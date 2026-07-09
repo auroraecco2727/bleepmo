@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bleepmo",
+  "compatibility_date": "2026-07-09",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "bleepmo-backend"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
