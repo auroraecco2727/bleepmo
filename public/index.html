@@ -1690,8 +1690,28 @@ body::after {
     document.getElementById('signupScreen').style.display = 'flex';
   }
   function backToAuthFromSignup() {
+    stopVoicePreview();
     document.getElementById('signupScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
+  }
+
+  // Hiding the signup screen with display:none only hides it visually —
+  // a <video> element underneath keeps playing (and keeps making sound)
+  // unless explicitly paused. This stops both the recorded/uploaded clip
+  // preview and, just in case, any still-open camera/mic stream.
+  function stopVoicePreview() {
+    var v = document.getElementById('voicePreview');
+    if (v) {
+      v.pause();
+      v.loop = false;
+      v.removeAttribute('src');
+      v.load();
+    }
+    stopVoiceStreamTracks();
+    if (voiceCountdownTimer) {
+      clearInterval(voiceCountdownTimer);
+      voiceCountdownTimer = null;
+    }
   }
 
   /* ── Profile picture shape + upload ── */
@@ -1918,6 +1938,7 @@ body::after {
         return false;
       }
       currentUser = data.user;
+      stopVoicePreview();
       var signupScreen = document.getElementById('signupScreen');
       signupScreen.classList.add('hide');
       setTimeout(function () { signupScreen.style.display = 'none'; }, 550);
