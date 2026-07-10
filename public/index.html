@@ -482,6 +482,31 @@ body::after {
 }
 .bot-send:hover { background:rgba(212,175,55,0.2); box-shadow:0 0 16px rgba(212,175,55,0.3); }
 
+.bot-field-input {
+  flex:1; background:rgba(20,40,100,0.25);
+  border:0.5px solid rgba(212,175,55,0.18);
+  border-radius:18px; padding:8px 14px;
+  font-size:13px; color: var(--text-hi);
+  font-family:'DM Sans',sans-serif;
+  resize:none; outline:none; max-height:90px; line-height:1.4;
+  transition: border-color 0.2s;
+}
+.bot-field-input::placeholder { color: rgba(212,175,55,0.4); }
+.bot-field-input:focus { border-color: rgba(212,175,55,0.45); }
+
+.bot-expand {
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+}
+.bot-expand.open { max-height: 220px; opacity: 1; margin-bottom: 10px; }
+.bot-expand-row { display: flex; align-items: center; gap: 10px; }
+.bot-collapse {
+  margin-left: auto; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-lo); cursor: pointer; font-size: 13px; transition: all 0.2s;
+}
+.bot-collapse:hover { color: var(--gold); background: rgba(212,175,55,0.1); }
+
 @keyframes fadeUp { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
 .card { animation:fadeUp 0.35s ease forwards; }
 
@@ -1086,49 +1111,7 @@ body::after {
 <!-- ══ FEED ══ -->
 <div class="feed" id="feed">
 
-  <!-- ═══ COMPOSE — real posting ═══ -->
-  <div class="card-wrap" id="composeWrap">
-    <div class="card">
-      <div style="margin-bottom:2px;"><span class="bleep-label">New Bleep</span></div>
-      <div class="creator-row">
-        <div class="avatar" id="composeAvatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">?</div>
-        <div style="flex:1;">
-          <div class="screenname" style="color:#fff;" id="composeScreenname">You</div>
-          <div class="creator-handle" id="composeHandle">—</div>
-        </div>
-      </div>
-
-      <textarea class="compose-textarea" id="composeBody" placeholder="What's the signal? Mention someone with @, *, ~, ^, &gt;, or &amp;"></textarea>
-
-      <div class="compose-media-row">
-        <label class="compose-icon-btn" title="Attach a photo or video">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
-        </label>
-        <span class="compose-media-filename" id="composeMediaFilename"></span>
-      </div>
-
-      <div class="compose-toggle-row">
-        <label class="compose-checkbox">
-          <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Add trend-points
-        </label>
-        <label class="compose-checkbox breaking">
-          <input type="checkbox" id="composeBreaking" /> 🔴 BREAKING
-        </label>
-      </div>
-
-      <div id="composeTrendInputWrap" style="display:none;">
-        <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
-        <div class="compose-trend-chips" id="composeTrendChips"></div>
-      </div>
-
-      <div class="auth-error" id="composeError" style="margin-bottom:10px;"></div>
-
-      <button class="compose-post-btn" id="composePostBtn" onclick="submitCompose()">Post Bleep</button>
-    </div>
-  </div>
-
-  <!-- ═══ LIVE BLEEPS — pulled from the real database ═══ -->
+  <!-- ═══ LIVE BLEEPS — pulled from the real database, posted via the bar below ═══ -->
   <div id="liveFeedList"></div>
 
   <!-- ═══ CARD 1 · Video Bleep ═══ -->
@@ -1666,8 +1649,32 @@ body::after {
   <div class="cs-sub">We're still building this part of the swarm. Check back shortly.</div>
 </div>
 
-<!-- BleepBot bar -->
-<div class="bot-bar">
+<!-- BleepBot bar — now doubles as where you post a Bleep -->
+<div class="bot-bar" id="botBar">
+  <div class="bot-expand" id="botExpand">
+    <div class="bot-expand-row">
+      <label class="compose-icon-btn" title="Attach a photo or video">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
+      </label>
+      <span class="compose-media-filename" id="composeMediaFilename"></span>
+      <span class="bot-collapse" onclick="collapseComposeBar()" title="Close">✕</span>
+    </div>
+    <div class="compose-toggle-row" style="margin-top:8px;">
+      <label class="compose-checkbox">
+        <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Add trend-points
+      </label>
+      <label class="compose-checkbox breaking">
+        <input type="checkbox" id="composeBreaking" /> 🔴 BREAKING
+      </label>
+    </div>
+    <div id="composeTrendInputWrap" style="display:none;">
+      <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
+      <div class="compose-trend-chips" id="composeTrendChips"></div>
+    </div>
+    <div class="auth-error" id="composeError" style="margin-top:6px;"></div>
+  </div>
+
   <div class="bot-input">
     <div class="bot-icon">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -1678,8 +1685,8 @@ body::after {
         <path d="M9 8 Q12 6.5 15 8" stroke="rgba(212,175,55,0.5)" stroke-width="0.7" fill="none"/>
       </svg>
     </div>
-    <div class="bot-field">Ask BleepBot anything…</div>
-    <div class="bot-send">
+    <textarea class="bot-field-input" id="composeBody" placeholder="What's the signal?" rows="1" onfocus="expandComposeBar()" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
+    <div class="bot-send" id="composeSendBtn" onclick="submitCompose()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </div>
   </div>
@@ -2191,6 +2198,27 @@ body::after {
   var composeTrendPoints = [];
   var composeMediaFile = null;
 
+  function expandComposeBar() {
+    document.getElementById('botExpand').classList.add('open');
+  }
+
+  function collapseComposeBar() {
+    document.getElementById('botExpand').classList.remove('open');
+    document.getElementById('composeBody').blur();
+  }
+
+  function autoGrowComposeInput(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 90) + 'px';
+  }
+
+  function handleComposeBodyKeydown(evt) {
+    if (evt.key === 'Enter' && !evt.shiftKey) {
+      evt.preventDefault();
+      submitCompose();
+    }
+  }
+
   function toggleTrendInput() {
     var checked = document.getElementById('composeTrendToggle').checked;
     document.getElementById('composeTrendInputWrap').style.display = checked ? 'block' : 'none';
@@ -2242,11 +2270,13 @@ body::after {
 
   async function submitCompose() {
     hideComposeError();
-    var body = document.getElementById('composeBody').value.trim();
+    var bodyInput = document.getElementById('composeBody');
+    var body = bodyInput.value.trim();
     var isBreaking = document.getElementById('composeBreaking').checked;
 
     if (!body && !composeMediaFile) {
       showComposeError('Write something or attach a photo/video first.');
+      expandComposeBar();
       return;
     }
 
@@ -2256,25 +2286,25 @@ body::after {
     if (composeTrendPoints.length) fd.append('trendPoints', JSON.stringify(composeTrendPoints));
     if (composeMediaFile) fd.append('media', composeMediaFile);
 
-    var btn = document.getElementById('composePostBtn');
-    var originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Posting…';
+    var sendBtn = document.getElementById('composeSendBtn');
+    sendBtn.style.opacity = '0.4';
+    sendBtn.style.pointerEvents = 'none';
 
     try {
       var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
       var data = await res.json();
       if (!res.ok) {
         showComposeError(data.error || 'Something went wrong posting that.');
-        btn.disabled = false;
-        btn.textContent = originalText;
+        sendBtn.style.opacity = '';
+        sendBtn.style.pointerEvents = '';
         return;
       }
 
       var container = document.getElementById('liveFeedList');
       container.insertBefore(renderBleepCard(data.bleep), container.firstChild);
 
-      document.getElementById('composeBody').value = '';
+      bodyInput.value = '';
+      bodyInput.style.height = 'auto';
       document.getElementById('composeBreaking').checked = false;
       document.getElementById('composeTrendToggle').checked = false;
       document.getElementById('composeTrendInputWrap').style.display = 'none';
@@ -2283,11 +2313,12 @@ body::after {
       composeMediaFile = null;
       document.getElementById('composeMedia').value = '';
       document.getElementById('composeMediaFilename').textContent = '';
+      collapseComposeBar();
     } catch (err) {
       showComposeError('Couldn\'t reach the server.');
     }
-    btn.disabled = false;
-    btn.textContent = originalText;
+    sendBtn.style.opacity = '';
+    sendBtn.style.pointerEvents = '';
   }
 
   function toggleExpand(idx) {
