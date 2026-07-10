@@ -370,6 +370,59 @@ body::after {
 }
 .act:hover { color: var(--gold); }
 
+/* ══════════════════════════════════════
+   COMPOSE BOX (real posting, live feed)
+══════════════════════════════════════ */
+.compose-textarea {
+  width: 100%; min-height: 90px; resize: vertical; padding: 13px 15px; border-radius: 12px;
+  background: rgba(15,35,80,0.35); border: 0.5px solid rgba(212,175,55,0.22);
+  color: var(--text-hi); font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.5;
+  outline: none; transition: all 0.2s; margin-bottom: 10px;
+}
+.compose-textarea::placeholder { color: var(--text-lo); }
+.compose-textarea:focus { border-color: rgba(212,175,55,0.6); box-shadow: 0 0 0 3px rgba(212,175,55,0.1); background: rgba(15,35,80,0.5); }
+
+.compose-media-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.compose-icon-btn {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.25);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gold);
+  transition: all 0.2s;
+}
+.compose-icon-btn:hover { background: rgba(212,175,55,0.16); }
+.compose-media-filename { font-size: 11.5px; color: var(--text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.compose-toggle-row { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+.compose-checkbox { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-mid); cursor: pointer; }
+.compose-checkbox input { accent-color: var(--gold); width: 15px; height: 15px; cursor: pointer; }
+.compose-checkbox.breaking { color: #ff8866; font-weight: 700; }
+.compose-checkbox.breaking input { accent-color: #ff5533; }
+
+.compose-trend-input {
+  width: 100%; padding: 10px 13px; border-radius: 10px; margin-bottom: 8px;
+  background: rgba(15,35,80,0.35); border: 0.5px solid rgba(212,175,55,0.22);
+  color: var(--text-hi); font-family: 'DM Sans', sans-serif; font-size: 12.5px; outline: none;
+}
+.compose-trend-input::placeholder { color: var(--text-lo); }
+.compose-trend-input:focus { border-color: rgba(212,175,55,0.6); }
+.compose-trend-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.compose-trend-chips .btag { cursor: pointer; }
+
+.compose-post-btn {
+  width: 100%; padding: 13px 18px; border-radius: 999px; border: none; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13.5px;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
+  color: #161225; box-shadow: 0 0 16px rgba(212,175,55,0.3); transition: all 0.2s; margin-top: 4px;
+}
+.compose-post-btn:hover { transform: translateY(-1px); box-shadow: 0 0 22px rgba(212,175,55,0.4); }
+.compose-post-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.live-bleep-body { font-size: 14px; line-height: 1.6; color: var(--text-hi); margin: 10px 0; white-space: pre-wrap; }
+.breaking-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800;
+  color: #ff8866; letter-spacing: 0.04em; text-transform: uppercase;
+}
+
 .sponsor-block {
   border-radius:14px; padding:16px;
   background: rgba(212,175,55,0.04);
@@ -1033,6 +1086,51 @@ body::after {
 <!-- ══ FEED ══ -->
 <div class="feed" id="feed">
 
+  <!-- ═══ COMPOSE — real posting ═══ -->
+  <div class="card-wrap" id="composeWrap">
+    <div class="card">
+      <div style="margin-bottom:2px;"><span class="bleep-label">New Bleep</span></div>
+      <div class="creator-row">
+        <div class="avatar" id="composeAvatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">?</div>
+        <div style="flex:1;">
+          <div class="screenname" style="color:#fff;" id="composeScreenname">You</div>
+          <div class="creator-handle" id="composeHandle">—</div>
+        </div>
+      </div>
+
+      <textarea class="compose-textarea" id="composeBody" placeholder="What's the signal? Mention someone with @, *, ~, ^, &gt;, or &amp;"></textarea>
+
+      <div class="compose-media-row">
+        <label class="compose-icon-btn" title="Attach a photo or video">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
+        </label>
+        <span class="compose-media-filename" id="composeMediaFilename"></span>
+      </div>
+
+      <div class="compose-toggle-row">
+        <label class="compose-checkbox">
+          <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Add trend-points
+        </label>
+        <label class="compose-checkbox breaking">
+          <input type="checkbox" id="composeBreaking" /> 🔴 BREAKING
+        </label>
+      </div>
+
+      <div id="composeTrendInputWrap" style="display:none;">
+        <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
+        <div class="compose-trend-chips" id="composeTrendChips"></div>
+      </div>
+
+      <div class="auth-error" id="composeError" style="margin-bottom:10px;"></div>
+
+      <button class="compose-post-btn" id="composePostBtn" onclick="submitCompose()">Post Bleep</button>
+    </div>
+  </div>
+
+  <!-- ═══ LIVE BLEEPS — pulled from the real database ═══ -->
+  <div id="liveFeedList"></div>
+
   <!-- ═══ CARD 1 · Video Bleep ═══ -->
   <div class="card-wrap" id="wrap0">
     <div class="card" id="card0">
@@ -1598,6 +1696,8 @@ body::after {
     if (!a) return;
     a.classList.add('hide');
     setTimeout(function () { a.style.display = 'none'; }, 550);
+    updateComposeIdentity();
+    loadLiveFeed();
   }
 
   // If a valid session cookie already exists (returning user), skip the
@@ -1610,6 +1710,8 @@ body::after {
         currentUser = data.user;
         var a = document.getElementById('authScreen');
         if (a) a.style.display = 'none';
+        updateComposeIdentity();
+        loadLiveFeed();
       }
     } catch (err) {
       // Backend not deployed yet, or request failed — fall back to showing
@@ -1942,12 +2044,250 @@ body::after {
       var signupScreen = document.getElementById('signupScreen');
       signupScreen.classList.add('hide');
       setTimeout(function () { signupScreen.style.display = 'none'; }, 550);
+      updateComposeIdentity();
+      loadLiveFeed();
     } catch (err) {
       showSignupError('Couldn\'t reach the server. Is the backend deployed?');
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
     }
     return false;
+  }
+
+  /* ══════════════════════════════════════
+     LIVE FEED — real Bleeps from the database
+  ══════════════════════════════════════ */
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderBleepMentions(text) {
+    text = text || '';
+    var re = /(^|[^A-Za-z0-9_])([@*~^>&])([A-Za-z0-9_]{2,30})/g;
+    var result = '';
+    var lastIndex = 0;
+    var match;
+    while ((match = re.exec(text)) !== null) {
+      var pre = match[1];
+      var sym = match[2];
+      var handle = match[3];
+      var plainEnd = match.index + pre.length;
+      result += escapeHtml(text.slice(lastIndex, plainEnd));
+      result += '<span style="color:var(--gold);font-weight:700;">' + escapeHtml(sym + handle) + '</span>';
+      lastIndex = re.lastIndex;
+    }
+    result += escapeHtml(text.slice(lastIndex));
+    return result;
+  }
+
+  function relativeTime(isoString) {
+    var then = new Date(isoString + 'Z').getTime();
+    var diffSec = Math.max(1, Math.floor((Date.now() - then) / 1000));
+    if (diffSec < 60) return diffSec + 's';
+    var diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return diffMin + 'm';
+    var diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return diffHr + 'h';
+    return Math.floor(diffHr / 24) + 'd';
+  }
+
+  function initialsFor(fullName) {
+    var parts = (fullName || '').trim().split(/\s+/);
+    var initials = parts.slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
+    return initials || '?';
+  }
+
+  function updateComposeIdentity() {
+    var avatar = document.getElementById('composeAvatar');
+    var screenname = document.getElementById('composeScreenname');
+    var handle = document.getElementById('composeHandle');
+    if (!avatar) return;
+    if (currentUser) {
+      avatar.textContent = initialsFor(currentUser.full_name);
+      screenname.textContent = currentUser.full_name;
+      handle.innerHTML = '<span style="color:var(--gold);font-weight:800;">' + escapeHtml(currentUser.handle_symbol) + '</span>' + escapeHtml(currentUser.handle);
+    } else {
+      avatar.textContent = '?';
+      screenname.textContent = 'You';
+      handle.textContent = '—';
+    }
+  }
+
+  function renderBleepCard(b) {
+    var wrap = document.createElement('div');
+    wrap.className = 'card-wrap';
+
+    var trendTagsHtml = '';
+    if (b.trend_points && b.trend_points.length) {
+      trendTagsHtml = '<div class="bullet-tags">' + b.trend_points.map(function (t) {
+        return '<span class="btag hi">' + escapeHtml(t) + '</span>';
+      }).join('') + '</div>';
+    }
+
+    var bodyHtml = b.body ? '<div class="live-bleep-body">' + renderBleepMentions(b.body) + '</div>' : '';
+    var labelHtml = b.is_breaking
+      ? '<span class="breaking-badge">🔴 Breaking</span>'
+      : '<span class="bleep-label">Bleep</span>';
+
+    wrap.innerHTML =
+      '<div class="card">' +
+      '  <div style="margin-bottom:2px;">' + labelHtml + '</div>' +
+      '  <div class="creator-row">' +
+      '    <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">' + escapeHtml(initialsFor(b.full_name)) + '</div>' +
+      '    <div style="flex:1;">' +
+      '      <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
+      '      <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
+      '    </div>' +
+      '  </div>' +
+      '  <div class="live-media-slot"></div>' +
+      bodyHtml +
+      trendTagsHtml +
+      '  <div class="action-row">' +
+      '    <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></div>' +
+      '    <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>' + (b.comment_count || 0) + '</span></div>' +
+      '    <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
+      '  </div>' +
+      '</div>';
+
+    if (b.media_key) {
+      var slot = wrap.querySelector('.live-media-slot');
+      var img = document.createElement('img');
+      img.src = '/media/' + b.media_key;
+      img.style.cssText = 'width:100%;border-radius:12px;display:block;margin:8px 0;max-height:420px;object-fit:cover;';
+      img.onerror = function () {
+        slot.innerHTML = '';
+        var vid = document.createElement('video');
+        vid.src = '/media/' + b.media_key;
+        vid.controls = true;
+        vid.style.cssText = 'width:100%;border-radius:12px;display:block;margin:8px 0;max-height:420px;';
+        slot.appendChild(vid);
+      };
+      slot.appendChild(img);
+    }
+
+    return wrap;
+  }
+
+  async function loadLiveFeed() {
+    var container = document.getElementById('liveFeedList');
+    if (!container) return;
+    try {
+      var res = await fetch('/api/bleeps', { credentials: 'include' });
+      if (!res.ok) return; // not logged in, or backend hiccup — demo cards below still show
+      var data = await res.json();
+      container.innerHTML = '';
+      data.bleeps.forEach(function (b) {
+        container.appendChild(renderBleepCard(b));
+      });
+    } catch (err) {
+      // network hiccup — leave whatever's already there, don't break the page
+    }
+  }
+
+  /* ── Compose box ── */
+  var composeTrendPoints = [];
+  var composeMediaFile = null;
+
+  function toggleTrendInput() {
+    var checked = document.getElementById('composeTrendToggle').checked;
+    document.getElementById('composeTrendInputWrap').style.display = checked ? 'block' : 'none';
+  }
+
+  function renderComposeTrendChips() {
+    var wrap = document.getElementById('composeTrendChips');
+    wrap.innerHTML = '';
+    composeTrendPoints.forEach(function (t, idx) {
+      var chip = document.createElement('span');
+      chip.className = 'btag hi';
+      chip.title = 'Remove';
+      chip.textContent = t + ' ✕';
+      chip.onclick = function () {
+        composeTrendPoints.splice(idx, 1);
+        renderComposeTrendChips();
+      };
+      wrap.appendChild(chip);
+    });
+  }
+
+  function handleTrendInputKeydown(evt) {
+    if (evt.key === 'Enter' || evt.key === ',') {
+      evt.preventDefault();
+      var input = document.getElementById('composeTrendInput');
+      var val = input.value.trim().replace(/,$/, '');
+      if (val && composeTrendPoints.indexOf(val) === -1 && composeTrendPoints.length < 8) {
+        composeTrendPoints.push(val);
+        renderComposeTrendChips();
+      }
+      input.value = '';
+    }
+  }
+
+  function handleComposeMediaChange(evt) {
+    var file = evt.target.files && evt.target.files[0];
+    composeMediaFile = file || null;
+    document.getElementById('composeMediaFilename').textContent = file ? file.name : '';
+  }
+
+  function showComposeError(msg) {
+    var el = document.getElementById('composeError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideComposeError() {
+    document.getElementById('composeError').style.display = 'none';
+  }
+
+  async function submitCompose() {
+    hideComposeError();
+    var body = document.getElementById('composeBody').value.trim();
+    var isBreaking = document.getElementById('composeBreaking').checked;
+
+    if (!body && !composeMediaFile) {
+      showComposeError('Write something or attach a photo/video first.');
+      return;
+    }
+
+    var fd = new FormData();
+    fd.append('body', body);
+    fd.append('isBreaking', isBreaking ? 'true' : 'false');
+    if (composeTrendPoints.length) fd.append('trendPoints', JSON.stringify(composeTrendPoints));
+    if (composeMediaFile) fd.append('media', composeMediaFile);
+
+    var btn = document.getElementById('composePostBtn');
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Posting…';
+
+    try {
+      var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        showComposeError(data.error || 'Something went wrong posting that.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
+      var container = document.getElementById('liveFeedList');
+      container.insertBefore(renderBleepCard(data.bleep), container.firstChild);
+
+      document.getElementById('composeBody').value = '';
+      document.getElementById('composeBreaking').checked = false;
+      document.getElementById('composeTrendToggle').checked = false;
+      document.getElementById('composeTrendInputWrap').style.display = 'none';
+      composeTrendPoints = [];
+      renderComposeTrendChips();
+      composeMediaFile = null;
+      document.getElementById('composeMedia').value = '';
+      document.getElementById('composeMediaFilename').textContent = '';
+    } catch (err) {
+      showComposeError('Couldn\'t reach the server.');
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 
   function toggleExpand(idx) {
