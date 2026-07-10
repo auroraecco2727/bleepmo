@@ -420,8 +420,25 @@ body::after {
 .live-bleep-body { font-size: 14px; line-height: 1.6; color: var(--text-hi); margin: 10px 0; white-space: pre-wrap; }
 .breaking-badge {
   display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800;
-  color: #ff8866; letter-spacing: 0.04em; text-transform: uppercase;
+  color: #ffb3a0; letter-spacing: 0.05em; text-transform: uppercase;
+  background: rgba(255,60,30,0.16); border: 1px solid rgba(255,80,50,0.5);
+  padding: 4px 10px; border-radius: 8px; box-shadow: 0 0 10px rgba(255,60,30,0.2);
+  animation: breakingPulse 1.8s ease-in-out infinite;
 }
+@keyframes breakingPulse {
+  0%,100% { box-shadow: 0 0 10px rgba(255,60,30,0.2); }
+  50% { box-shadow: 0 0 16px rgba(255,60,30,0.4); }
+}
+.breaking-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #ff4422; flex-shrink: 0;
+  animation: breakingPulse 1.8s ease-in-out infinite;
+}
+
+.live-delete-btn {
+  margin-left: auto; color: var(--text-lo); cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.2s;
+  display: flex; align-items: center;
+}
+.live-delete-btn:hover { color: #ff6644; background: rgba(255,80,50,0.1); }
 
 .sponsor-block {
   border-radius:14px; padding:16px;
@@ -1657,17 +1674,15 @@ body::after {
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
       </label>
-      <span class="compose-media-filename" id="composeMediaFilename"></span>
-      <span class="bot-collapse" onclick="collapseComposeBar()" title="Close">✕</span>
-    </div>
-    <div class="compose-toggle-row" style="margin-top:8px;">
-      <label class="compose-checkbox">
-        <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Add trend-points
+      <label class="compose-checkbox" style="white-space:nowrap;">
+        <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Trend-points
       </label>
-      <label class="compose-checkbox breaking">
+      <label class="compose-checkbox breaking" style="white-space:nowrap;">
         <input type="checkbox" id="composeBreaking" /> 🔴 BREAKING
       </label>
+      <span class="bot-collapse" onclick="collapseComposeBar()" title="Close">✕</span>
     </div>
+    <div class="compose-media-filename" id="composeMediaFilename" style="margin-top:6px;"></div>
     <div id="composeTrendInputWrap" style="display:none;">
       <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
       <div class="compose-trend-chips" id="composeTrendChips"></div>
@@ -2126,6 +2141,7 @@ body::after {
   function renderBleepCard(b) {
     var wrap = document.createElement('div');
     wrap.className = 'card-wrap';
+    var expandId = 'liveExpand-' + b.id;
 
     var trendTagsHtml = '';
     if (b.trend_points && b.trend_points.length) {
@@ -2136,12 +2152,17 @@ body::after {
 
     var bodyHtml = b.body ? '<div class="live-bleep-body">' + renderBleepMentions(b.body) + '</div>' : '';
     var labelHtml = b.is_breaking
-      ? '<span class="breaking-badge">🔴 Breaking</span>'
+      ? '<span class="breaking-badge"><span class="breaking-dot"></span>Breaking</span>'
       : '<span class="bleep-label">Bleep</span>';
+
+    var isOwner = currentUser && currentUser.id === b.author_id;
+    var deleteHtml = isOwner
+      ? '<span class="live-delete-btn" title="Delete this Bleep" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>'
+      : '';
 
     wrap.innerHTML =
       '<div class="card">' +
-      '  <div style="margin-bottom:2px;">' + labelHtml + '</div>' +
+      '  <div style="margin-bottom:2px; display:flex; align-items:center;">' + labelHtml + deleteHtml + '</div>' +
       '  <div class="creator-row">' +
       '    <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">' + escapeHtml(initialsFor(b.full_name)) + '</div>' +
       '    <div style="flex:1;">' +
@@ -2152,6 +2173,21 @@ body::after {
       '  <div class="live-media-slot"></div>' +
       bodyHtml +
       trendTagsHtml +
+      '  <div class="pulse-indicator" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
+      '    <div class="pulse-line"></div>' +
+      '    <div class="pulse-bar">' +
+      '      <div class="heart-pulse-icon">' +
+      '        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '        <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>' +
+      '      </div>' +
+      '    </div>' +
+      '  </div>' +
+      '  <div class="bleepbot-expand" id="' + expandId + '">' +
+      '    <div class="bleepbot-inner">' +
+      '      <div class="bb-header">Contextual Intelligence</div>' +
+      '      <div style="font-size:12.5px; color:var(--text-mid); line-height:1.6; padding:10px 0;">BleepBot hasn\'t analyzed this post yet — live insights are still being trained. Check back soon.</div>' +
+      '    </div>' +
+      '  </div>' +
       '  <div class="action-row">' +
       '    <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></div>' +
       '    <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>' + (b.comment_count || 0) + '</span></div>' +
@@ -2176,6 +2212,26 @@ body::after {
     }
 
     return wrap;
+  }
+
+  function toggleLiveExpand(expandId) {
+    var el = document.getElementById(expandId);
+    if (el) el.classList.toggle('open');
+  }
+
+  async function deleteLiveBleep(bleepId, el) {
+    if (!confirm('Delete this Bleep? This can\'t be undone.')) return;
+    try {
+      var res = await fetch('/api/bleeps/' + bleepId, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        alert('Couldn\'t delete that — try again in a moment.');
+        return;
+      }
+      var cardWrap = el.closest('.card-wrap');
+      if (cardWrap) cardWrap.remove();
+    } catch (err) {
+      alert('Couldn\'t reach the server.');
+    }
   }
 
   async function loadLiveFeed() {

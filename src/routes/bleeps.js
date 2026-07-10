@@ -26,7 +26,7 @@ export async function handleBleepsGet(request, env) {
 
   let query = `
     SELECT
-      b.id, b.author_id, b.content_type, b.body, b.media_key, b.created_at,
+      b.id, b.author_id, b.content_type, b.body, b.media_key, b.is_breaking, b.created_at,
       u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key,
       (SELECT COUNT(*) FROM comments c WHERE c.content_type = 'bleep' AND c.content_id = b.id AND c.hidden_at IS NULL) AS comment_count
     FROM bleeps b
@@ -42,6 +42,24 @@ export async function handleBleepsGet(request, env) {
   binds.push(PAGE_SIZE);
 
   const { results } = await env.DB.prepare(query).bind(...binds).all();
+
+  // Attach trend-points to each Bleep in one extra query rather than N+1.
+  if (results.length > 0) {
+    const ids = results.map((b) => b.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const { results: allTrendPoints } = await env.DB
+      .prepare(`SELECT bleep_id, topic FROM trend_points WHERE bleep_id IN (${placeholders}) ORDER BY created_at ASC`)
+      .bind(...ids)
+      .all();
+    const byBleepId = {};
+    for (const tp of allTrendPoints) {
+      (byBleepId[tp.bleep_id] = byBleepId[tp.bleep_id] || []).push(tp.topic);
+    }
+    for (const b of results) {
+      b.trend_points = byBleepId[b.id] || [];
+    }
+  }
+
   const nextCursor = results.length === PAGE_SIZE ? results[results.length - 1].created_at : null;
 
   return new Response(JSON.stringify({ bleeps: results, nextCursor }), {
@@ -67,6 +85,24 @@ export async function handleBleepsPost(request, env) {
   const body = (form.get('body') || '').toString().trim();
   const contentType = (form.get('contentType') || 'bleep').toString();
   const media = form.get('media');
+  const isBreaking = (form.get('isBreaking') || '').toString() === 'true' ? 1 : 0;
+
+  // trendPoints arrives as a JSON array string, e.g. '["Sustainable Tech","Urban Design"]'
+  let trendPoints = [];
+  const trendPointsRaw = form.get('trendPoints');
+  if (trendPointsRaw) {
+    try {
+      const parsed = JSON.parse(trendPointsRaw.toString());
+      if (Array.isArray(parsed)) {
+        trendPoints = parsed
+          .map((t) => t.toString().trim())
+          .filter((t) => t.length > 0 && t.length <= 40)
+          .slice(0, 8); // sane cap so nobody turns a caption into 200 tags
+      }
+    } catch {
+      // malformed JSON — just skip trend-points rather than failing the whole post
+    }
+  }
 
   const hasMedia = media && typeof media === 'object' && media.size > 0;
   if (!body && !hasMedia) {
@@ -87,11 +123,18 @@ export async function handleBleepsPost(request, env) {
 
   await env.DB
     .prepare(
-      `INSERT INTO bleeps (id, author_id, content_type, body, media_key)
-       VALUES (?, ?, ?, ?, ?)`
+      `INSERT INTO bleeps (id, author_id, content_type, body, media_key, is_breaking)
+       VALUES (?, ?, ?, ?, ?, ?)`
     )
-    .bind(bleepId, user.id, contentType, body || null, mediaKey)
+    .bind(bleepId, user.id, contentType, body || null, mediaKey, isBreaking)
     .run();
+
+  for (const topic of trendPoints) {
+    await env.DB
+      .prepare(`INSERT INTO trend_points (id, bleep_id, topic) VALUES (?, ?, ?)`)
+      .bind(newId(), bleepId, topic)
+      .run();
+  }
 
   const tags = await applyMentions(env.DB, {
     text: body,
@@ -102,12 +145,13 @@ export async function handleBleepsPost(request, env) {
 
   const bleep = await env.DB
     .prepare(
-      `SELECT b.id, b.author_id, b.content_type, b.body, b.media_key, b.created_at,
+      `SELECT b.id, b.author_id, b.content_type, b.body, b.media_key, b.is_breaking, b.created_at,
               u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key
        FROM bleeps b JOIN users u ON u.id = b.author_id WHERE b.id = ?`
     )
     .bind(bleepId)
     .first();
+  bleep.trend_points = trendPoints;
 
   return new Response(JSON.stringify({ bleep, tagsApplied: tags.length }), {
     status: 201,
