@@ -143,6 +143,10 @@ body::after {
   min-height: calc(100vh - 108px);
   position: relative;
 }
+.card-wrap.compact {
+  min-height: 0;
+  margin-bottom: 4px;
+}
 
 .creator-row { display: flex; align-items: center; gap: 9px; }
 .avatar {
@@ -280,6 +284,7 @@ body::after {
   overflow-y: auto;
   scrollbar-width: none;
 }
+.card.compact { min-height: 0; padding-bottom: 20px; }
 .card::-webkit-scrollbar { display: none; }
 
 .bb-header {
@@ -451,8 +456,6 @@ body::after {
   display: flex; align-items: center;
 }
 .live-delete-btn:hover { color: #ff6644; background: rgba(255,80,50,0.1); }
-.paired-card { padding-bottom: 8px; }
-.paired-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(212,175,55,0.22), transparent); margin: 6px 0 16px; }
 
 .sponsor-block {
   border-radius:14px; padding:16px;
@@ -2157,7 +2160,8 @@ body::after {
   var bleepbotAutoHideTimers = {};
 
   function isShortBleep(b) {
-    return !b.media_key && !b.title && (!b.body || b.body.length <= SHORT_BLEEP_MAX_LEN);
+    var tagCount = b.trend_points ? b.trend_points.length : 0;
+    return !b.media_key && !b.title && tagCount <= 3 && (!b.body || b.body.length <= SHORT_BLEEP_MAX_LEN);
   }
 
   function scheduleBleepbotAutoHide(id, el) {
@@ -2258,35 +2262,17 @@ body::after {
 
   function renderBleepCard(b) {
     var wrap = document.createElement('div');
-    wrap.className = 'card-wrap';
     var card = document.createElement('div');
-    card.className = 'card';
+    if (isShortBleep(b)) {
+      wrap.className = 'card-wrap compact';
+      card.className = 'card compact';
+    } else {
+      wrap.className = 'card-wrap';
+      card.className = 'card';
+    }
     card.innerHTML = buildBleepCardInner(b);
     wrap.appendChild(card);
     attachBleepMedia(card, b);
-    return wrap;
-  }
-
-  // Extremely short, media-free, title-free Bleeps get paired two-to-a-slide
-  // so the feed doesn't feel emptied out by tiny posts.
-  function renderPairedBleepCards(b1, b2) {
-    var wrap = document.createElement('div');
-    wrap.className = 'card-wrap';
-
-    var card1 = document.createElement('div');
-    card1.className = 'card paired-card';
-    card1.innerHTML = buildBleepCardInner(b1);
-
-    var divider = document.createElement('div');
-    divider.className = 'paired-divider';
-
-    var card2 = document.createElement('div');
-    card2.className = 'card paired-card';
-    card2.innerHTML = buildBleepCardInner(b2);
-
-    wrap.appendChild(card1);
-    wrap.appendChild(divider);
-    wrap.appendChild(card2);
     return wrap;
   }
 
@@ -2311,18 +2297,8 @@ body::after {
         alert('Couldn\'t delete that — try again in a moment.');
         return;
       }
-      var card = el.closest('.card');
       var wrap = el.closest('.card-wrap');
-      if (card) card.remove();
-      if (wrap) {
-        var remaining = wrap.querySelectorAll('.card').length;
-        if (remaining === 0) {
-          wrap.remove();
-        } else {
-          var divider = wrap.querySelector('.paired-divider');
-          if (divider) divider.remove();
-        }
-      }
+      if (wrap) wrap.remove();
     } catch (err) {
       alert('Couldn\'t reach the server.');
     }
@@ -2336,18 +2312,9 @@ body::after {
       if (!res.ok) return; // not logged in, or backend hiccup — demo cards below still show
       var data = await res.json();
       container.innerHTML = '';
-      var bleeps = data.bleeps;
-      var i = 0;
-      while (i < bleeps.length) {
-        var current = bleeps[i];
-        if (isShortBleep(current) && i + 1 < bleeps.length && isShortBleep(bleeps[i + 1])) {
-          container.appendChild(renderPairedBleepCards(current, bleeps[i + 1]));
-          i += 2;
-        } else {
-          container.appendChild(renderBleepCard(current));
-          i += 1;
-        }
-      }
+      data.bleeps.forEach(function (b) {
+        container.appendChild(renderBleepCard(b));
+      });
     } catch (err) {
       // network hiccup — leave whatever's already there, don't break the page
     }
