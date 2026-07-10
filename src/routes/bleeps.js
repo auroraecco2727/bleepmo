@@ -26,7 +26,7 @@ export async function handleBleepsGet(request, env) {
 
   let query = `
     SELECT
-      b.id, b.author_id, b.content_type, b.body, b.media_key, b.is_breaking, b.created_at,
+      b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
       u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key,
       (SELECT COUNT(*) FROM comments c WHERE c.content_type = 'bleep' AND c.content_id = b.id AND c.hidden_at IS NULL) AS comment_count
     FROM bleeps b
@@ -83,6 +83,7 @@ export async function handleBleepsPost(request, env) {
   }
 
   const body = (form.get('body') || '').toString().trim();
+  const title = (form.get('title') || '').toString().trim().slice(0, 120) || null;
   const contentType = (form.get('contentType') || 'bleep').toString();
   const media = form.get('media');
   const isBreaking = (form.get('isBreaking') || '').toString() === 'true' ? 1 : 0;
@@ -123,10 +124,10 @@ export async function handleBleepsPost(request, env) {
 
   await env.DB
     .prepare(
-      `INSERT INTO bleeps (id, author_id, content_type, body, media_key, is_breaking)
-       VALUES (?, ?, ?, ?, ?, ?)`
+      `INSERT INTO bleeps (id, author_id, content_type, title, body, media_key, is_breaking)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(bleepId, user.id, contentType, body || null, mediaKey, isBreaking)
+    .bind(bleepId, user.id, contentType, title, body || null, mediaKey, isBreaking)
     .run();
 
   for (const topic of trendPoints) {
@@ -145,7 +146,7 @@ export async function handleBleepsPost(request, env) {
 
   const bleep = await env.DB
     .prepare(
-      `SELECT b.id, b.author_id, b.content_type, b.body, b.media_key, b.is_breaking, b.created_at,
+      `SELECT b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
               u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key
        FROM bleeps b JOIN users u ON u.id = b.author_id WHERE b.id = ?`
     )
