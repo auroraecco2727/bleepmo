@@ -1,8 +1,7 @@
-// functions/api/logout.js
-import { readCookie, clearSessionCookie } from '../_shared/auth.js';
+// src/routes/logout.js
+import { readCookie, clearSessionCookie } from '../shared/auth.js';
 
-export async function onRequestPost(context) {
-  const { request, env } = context;
+export async function handleLogout(request, env) {
   const token = readCookie(request, 'session');
 
   if (token && env.DB) {

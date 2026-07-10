@@ -1,13 +1,9 @@
-// functions/api/signup.js
+// src/routes/signup.js
 // POST multipart/form-data:
 //   fullName, handleSymbol, handle, email, password, avatarShape (required-ish)
 //   mainPic, iconPic, voiceClip (files, all optional)
-//
-// Bindings expected on the Pages project:
-//   env.DB    -> D1 database ("bleepmo-db")
-//   env.MEDIA -> R2 bucket ("bleepmo-media")
 
-import { hashPassword, newId, createSession, sessionCookie, publicUser } from '../_shared/auth.js';
+import { hashPassword, newId, createSession, sessionCookie, publicUser } from '../shared/auth.js';
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;   // 8MB
 const MAX_VIDEO_BYTES = 40 * 1024 * 1024;  // 40MB (generous ceiling for a 15s clip)
@@ -27,11 +23,9 @@ async function putFile(bucket, key, file) {
   return key;
 }
 
-export async function onRequestPost(context) {
-  const { request, env } = context;
-
-  if (!env.DB) return badRequest('DB binding not configured on this Pages project.', 500);
-  if (!env.MEDIA) return badRequest('MEDIA (R2) binding not configured on this Pages project.', 500);
+export async function handleSignup(request, env) {
+  if (!env.DB) return badRequest('DB binding not configured on this Worker.', 500);
+  if (!env.MEDIA) return badRequest('MEDIA (R2) binding not configured on this Worker.', 500);
 
   let form;
   try {
@@ -68,8 +62,6 @@ export async function onRequestPost(context) {
 
   const userId = newId();
 
-  // Upload any provided media to R2. All optional — the "genuine voice"
-  // clip is intentionally NOT required to complete signup at this milestone.
   let mainPicKey = null;
   let iconPicKey = null;
   let voiceClipKey = null;
@@ -107,12 +99,10 @@ export async function onRequestPost(context) {
       .bind(userId, fullName, handleSymbol, handle, email, hash, salt, avatarShape, mainPicKey, iconPicKey, voiceClipKey)
       .run();
   } catch (err) {
-    // Most likely a UNIQUE constraint race — treat as taken.
     return badRequest('That email or handle is already taken.', 409);
   }
 
   const { token, expiresAt } = await createSession(env.DB, userId);
-
   const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
 
   return new Response(JSON.stringify({ user: publicUser(user) }), {

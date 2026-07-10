@@ -1,15 +1,11 @@
-// functions/api/upload-voice-clip.js
-// POST multipart/form-data: { voiceClip: <file> }
-// Requires an active session. Lets a user add/replace their genuine-voice
-// clip after the fact, since signup no longer requires it up front.
+// src/routes/upload-voice-clip.js
+// POST multipart/form-data: { voiceClip: <file> } — requires an active session.
 
-import { getSessionUser } from '../_shared/auth.js';
+import { getSessionUser } from '../shared/auth.js';
 
 const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
-export async function onRequestPost(context) {
-  const { request, env } = context;
-
+export async function handleUploadVoiceClip(request, env, ctx) {
   if (!env.DB || !env.MEDIA) {
     return new Response(JSON.stringify({ error: 'Not configured' }), { status: 500 });
   }
@@ -35,9 +31,8 @@ export async function onRequestPost(context) {
     httpMetadata: { contentType: voiceClip.type || 'video/webm' },
   });
 
-  // Best-effort cleanup of the previous clip so R2 doesn't accumulate orphans.
   if (user.voice_clip_key && user.voice_clip_key !== key) {
-    context.waitUntil(env.MEDIA.delete(user.voice_clip_key).catch(() => {}));
+    ctx.waitUntil(env.MEDIA.delete(user.voice_clip_key).catch(() => {}));
   }
 
   await env.DB.prepare('UPDATE users SET voice_clip_key = ? WHERE id = ?').bind(key, user.id).run();

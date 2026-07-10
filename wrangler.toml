@@ -1,0 +1,20 @@
+name = "bleepmo"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# Static site files (index.html, test-console.html) — served automatically
+# for any request that doesn't match a route in src/index.js.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# D1 database — already created, real ID filled in below.
+[[d1_databases]]
+binding = "DB"
+database_name = "bleepmo-db"
+database_id = "ae436c20-9c40-4e7f-8dfb-8fbbe6fa4f94"
+
+# R2 bucket — already created, real name filled in below.
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "bleepmo-media"
