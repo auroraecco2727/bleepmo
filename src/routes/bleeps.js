@@ -23,6 +23,7 @@ export async function handleBleepsGet(request, env) {
 
   const url = new URL(request.url);
   const cursor = url.searchParams.get('cursor');
+  const authorFilter = url.searchParams.get('author');
 
   let query = `
     SELECT
@@ -34,6 +35,10 @@ export async function handleBleepsGet(request, env) {
     WHERE b.deleted_at IS NULL
   `;
   const binds = [];
+  if (authorFilter) {
+    query += ' AND b.author_id = ?';
+    binds.push(authorFilter);
+  }
   if (cursor) {
     query += ' AND b.created_at < ?';
     binds.push(cursor);

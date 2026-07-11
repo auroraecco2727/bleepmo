@@ -148,25 +148,63 @@ body::after {
   margin-bottom: 4px;
 }
 
-.creator-row { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.creator-row { display: flex; align-items: center; gap: 9px; }
 
-/* EXPERIMENTAL — tap a creator row to reveal quick-jump buttons.
-   Pure front-end, no backend dependency — safe to rip out via this
-   block + the .creator-quick-actions markup + the two JS functions
-   (toggleCardSelected, filterFeedByAuthor) if it doesn't feel right. */
-.creator-quick-actions {
-  display: flex; gap: 6px; margin-left: 8px; flex-shrink: 0;
-  opacity: 0; transform: translateX(4px); pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+/* EXPERIMENTAL — quick-jump buttons live inside the Contextual Intelligence
+   panel for now, giving that space a job while there's no real AI analysis
+   yet. Safe to rip out via this block + the .bb-quick-actions markup +
+   filterFeedByAuthor/clearAuthorFilter/showToast if it doesn't feel right. */
+.bb-quick-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+.bb-action-btn {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-radius: 10px;
+  background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.22);
+  color: var(--gold); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
 }
-.card.selected .creator-quick-actions { opacity: 1; transform: translateX(0); pointer-events: auto; }
-.quick-action-btn {
-  width: 27px; height: 27px; border-radius: 50%; flex-shrink: 0;
-  background: rgba(212,175,55,0.05); border: 1px solid rgba(212,175,55,0.22);
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  color: var(--gold); transition: all 0.2s;
+.bb-action-btn:hover { background: rgba(212,175,55,0.14); border-color: rgba(212,175,55,0.4); }
+
+/* ══════════════════════════════════════
+   CREATOR PROFILE SCREEN
+══════════════════════════════════════ */
+.profile-screen {
+  display: none; position: fixed; inset: 0; max-width: 480px; margin: 0 auto; z-index: 2500;
+  background: linear-gradient(165deg, rgba(9,16,42,0.98) 0%, rgba(7,11,30,0.99) 55%, rgba(11,19,46,0.97) 100%);
+  flex-direction: column;
 }
-.quick-action-btn:hover { background: rgba(212,175,55,0.16); border-color: rgba(212,175,55,0.4); }
+.profile-screen.show { display: flex; }
+.profile-header-bar {
+  display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px;
+  border-bottom: 0.5px solid rgba(212,175,55,0.15); flex-shrink: 0;
+}
+.profile-back-btn {
+  width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); cursor: pointer; transition: all 0.2s;
+}
+.profile-back-btn:hover { color: var(--gold); background: rgba(212,175,55,0.1); }
+
+.profile-info-block { padding: 24px 20px; text-align: center; border-bottom: 0.5px solid rgba(212,175,55,0.12); flex-shrink: 0; }
+.profile-avatar-lg {
+  width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 800; background: rgba(212,175,55,0.14); color: var(--gold);
+  border: 1.5px solid rgba(212,175,55,0.4);
+}
+.profile-name-lg { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--text-hi); }
+.profile-handle-lg { font-size: 13px; color: var(--text-mid); margin-top: 2px; }
+.profile-handle-lg .sym { color: var(--gold); font-weight: 800; }
+
+.profile-tabs { display: flex; gap: 6px; padding: 12px 16px; flex-shrink: 0; }
+.profile-tab {
+  flex: 1; text-align: center; padding: 9px; border-radius: 10px; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; color: var(--text-mid); background: rgba(212,175,55,0.04); border: 1px solid rgba(212,175,55,0.15);
+  transition: all 0.2s;
+}
+.profile-tab.active { color: var(--gold); background: rgba(212,175,55,0.14); border-color: rgba(212,175,55,0.4); }
+
+.profile-content { flex: 1; overflow-y: auto; padding: 12px 14px 24px; scrollbar-width: none; }
+.profile-content::-webkit-scrollbar { display: none; }
+.profile-empty-state, .profile-loading { text-align: center; padding: 60px 30px; color: var(--text-lo); font-size: 13px; line-height: 1.6; }
 
 .author-filter-banner {
   display: none; align-items: center; justify-content: space-between;
@@ -1170,6 +1208,29 @@ body::after {
   </div>
 </div>
 
+<!-- ══ CREATOR PROFILE SCREEN ══ -->
+<div class="profile-screen" id="profileScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeProfileScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Profile</span>
+  </div>
+
+  <div class="profile-info-block">
+    <div class="profile-avatar-lg" id="profileAvatar">?</div>
+    <div class="profile-name-lg" id="profileName">—</div>
+    <div class="profile-handle-lg" id="profileHandle">—</div>
+  </div>
+
+  <div class="profile-tabs">
+    <div class="profile-tab active" id="profileTabBleeps" onclick="setProfileTab('bleeps')">Bleeps</div>
+    <div class="profile-tab" id="profileTabFlicks" onclick="setProfileTab('flicks')">Flicks</div>
+  </div>
+
+  <div class="profile-content" id="profileContent"></div>
+</div>
+
 <!-- ── Nav ── -->
 <nav class="top-nav">
   <div class="nav-row">
@@ -1756,8 +1817,29 @@ body::after {
 
 <!-- BleepBot bar — now doubles as where you post a Bleep -->
 <div class="bot-bar" id="botBar">
-  <div class="bot-expand" id="botExpand">
+  <div class="bot-expand" id="botExpandTop">
     <input type="text" class="compose-title-input" id="composeTitleInput" placeholder="Add a bold headline (optional)" maxlength="120" onfocus="expandComposeBar()" />
+  </div>
+
+  <div class="bot-input">
+    <div class="bot-icon">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+        <ellipse cx="12" cy="13" rx="6" ry="5" fill="rgba(212,175,55,0.7)"/>
+        <circle cx="10" cy="12.5" r="1" fill="#1a2540"/>
+        <circle cx="14" cy="12.5" r="1" fill="#1a2540"/>
+        <path d="M10 15.5 Q12 16.5 14 15.5" stroke="#1a2540" stroke-width="0.7" stroke-linecap="round" fill="none"/>
+        <path d="M9 8 Q12 6.5 15 8" stroke="rgba(212,175,55,0.5)" stroke-width="0.7" fill="none"/>
+      </svg>
+    </div>
+    <textarea class="bot-field-input" id="composeBody" placeholder="What's the signal?" rows="1" onfocus="expandComposeBar()" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
+    <div class="emoji-btn" id="emojiToggleBtn" onclick="toggleEmojiPicker(event)" title="Add an emoji">😊</div>
+    <div class="bot-send" id="composeSendBtn" onclick="submitCompose()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </div>
+  </div>
+  <div class="emoji-picker" id="emojiPicker"></div>
+
+  <div class="bot-expand" id="botExpandBottom">
     <div class="bot-expand-row">
       <label class="compose-icon-btn" title="Attach a photo or video">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -1778,24 +1860,6 @@ body::after {
     </div>
     <div class="auth-error" id="composeError" style="margin-top:6px;"></div>
   </div>
-
-  <div class="bot-input">
-    <div class="bot-icon">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-        <ellipse cx="12" cy="13" rx="6" ry="5" fill="rgba(212,175,55,0.7)"/>
-        <circle cx="10" cy="12.5" r="1" fill="#1a2540"/>
-        <circle cx="14" cy="12.5" r="1" fill="#1a2540"/>
-        <path d="M10 15.5 Q12 16.5 14 15.5" stroke="#1a2540" stroke-width="0.7" stroke-linecap="round" fill="none"/>
-        <path d="M9 8 Q12 6.5 15 8" stroke="rgba(212,175,55,0.5)" stroke-width="0.7" fill="none"/>
-      </svg>
-    </div>
-    <textarea class="bot-field-input" id="composeBody" placeholder="What's the signal?" rows="1" onfocus="expandComposeBar()" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
-    <div class="emoji-btn" id="emojiToggleBtn" onclick="toggleEmojiPicker(event)" title="Add an emoji">😊</div>
-    <div class="bot-send" id="composeSendBtn" onclick="submitCompose()">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-    </div>
-  </div>
-  <div class="emoji-picker" id="emojiPicker"></div>
 </div>
 
 <script>
@@ -2259,8 +2323,8 @@ body::after {
     return '<div class="bullet-tags">' + parts.join('') + '</div>';
   }
 
-  function buildBleepCardInner(b) {
-    var expandId = 'liveExpand-' + b.id;
+  function buildBleepCardInner(b, idPrefix) {
+    var expandId = 'liveExpand-' + (idPrefix || '') + b.id;
     var tagsRowHtml = buildTagsRowHtml(b);
 
     var bodyHtml;
@@ -2281,20 +2345,21 @@ body::after {
 
     var html =
       '<div style="margin-bottom:2px; display:flex; align-items:center;"><span class="bleep-label">Bleep</span>' + deleteHtml + '</div>' +
-      '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '" onclick="toggleCardSelected(this)">' +
+      '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '">' +
       '  <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">' + escapeHtml(initialsFor(b.full_name)) + '</div>' +
       '  <div style="flex:1;">' +
       '    <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
       '    <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
       '  </div>' +
-      '  <div class="creator-quick-actions">' +
-      '    <span class="quick-action-btn" title="This person\'s Bleeps" onclick="event.stopPropagation(); filterFeedByAuthor(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
-      '    <span class="quick-action-btn" title="This person\'s Flicks" onclick="event.stopPropagation(); showToast(\'Flicks by ' + escapeHtml(b.handle_symbol + b.handle) + ' — coming soon\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' +
-      '  </div>' +
       '</div>' +
       '<div class="live-media-slot"></div>' +
       bodyHtml +
       tagsRowHtml +
+      '<div class="action-row">' +
+      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></div>' +
+      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>' + (b.comment_count || 0) + '</span></div>' +
+      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
+      '</div>' +
       '<div class="pulse-indicator" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
       '  <div class="pulse-line"></div>' +
       '  <div class="pulse-bar">' +
@@ -2307,13 +2372,13 @@ body::after {
       '<div class="bleepbot-expand" id="' + expandId + '">' +
       '  <div class="bleepbot-inner">' +
       '    <div class="bb-header">Contextual Intelligence</div>' +
-      '    <div style="font-size:12.5px; color:var(--text-mid); line-height:1.6; padding:10px 0;">BleepBot hasn\'t analyzed this post yet — live insights are still being trained. Check back soon.</div>' +
+      '    <div style="font-size:12.5px; color:var(--text-mid); line-height:1.6; padding:8px 0 12px;">BleepBot hasn\'t analyzed this post yet — live insights are still being trained. Check back soon.</div>' +
+      '    <div class="bb-quick-actions">' +
+      '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg>This person\'s Bleeps</span>' +
+      '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg>This person\'s Flicks</span>' +
+      '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>View Profile</span>' +
+      '    </div>' +
       '  </div>' +
-      '</div>' +
-      '<div class="action-row">' +
-      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></div>' +
-      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>' + (b.comment_count || 0) + '</span></div>' +
-      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
       '</div>';
 
     return html;
@@ -2337,16 +2402,78 @@ body::after {
     slot.appendChild(img);
   }
 
-  /* EXPERIMENTAL — see the CSS comment above .creator-quick-actions for
-     the full block this belongs to if it needs to be removed later. */
-  function toggleCardSelected(el) {
-    var card = el.closest('.card');
-    if (!card) return;
-    var wasSelected = card.classList.contains('selected');
-    document.querySelectorAll('.card.selected').forEach(function (c) { c.classList.remove('selected'); });
-    if (!wasSelected) card.classList.add('selected');
+  /* Creator profile screen — real destination for the Bleeps/Flicks/View
+     Profile buttons inside Contextual Intelligence. Bleeps is fully real
+     (fetches that author's actual posts). Flicks is real infrastructure
+     with an honest empty state, since there's currently no way to create
+     video-type Flick content — it'll fill in naturally once that exists. */
+  var profileScreenState = { authorId: null, activeTab: 'bleeps', posts: null };
+
+  async function openProfileScreen(authorId, handleSymbol, handle, fullName, initialTab) {
+    profileScreenState.authorId = authorId;
+    profileScreenState.activeTab = initialTab || 'bleeps';
+    profileScreenState.posts = null;
+
+    document.getElementById('profileAvatar').textContent = initialsFor(fullName);
+    document.getElementById('profileName').textContent = fullName;
+    document.getElementById('profileHandle').innerHTML = '<span class="sym">' + escapeHtml(handleSymbol) + '</span>' + escapeHtml(handle);
+    document.getElementById('profileTabBleeps').classList.toggle('active', profileScreenState.activeTab === 'bleeps');
+    document.getElementById('profileTabFlicks').classList.toggle('active', profileScreenState.activeTab === 'flicks');
+    document.getElementById('profileContent').innerHTML = '<div class="profile-loading">Loading…</div>';
+    document.getElementById('profileScreen').classList.add('show');
+
+    try {
+      var res = await fetch('/api/bleeps?author=' + encodeURIComponent(authorId), { credentials: 'include' });
+      if (!res.ok) {
+        document.getElementById('profileContent').innerHTML = '<div class="profile-empty-state">Couldn\'t load this profile right now.</div>';
+        return;
+      }
+      var data = await res.json();
+      profileScreenState.posts = data.bleeps || [];
+      renderProfileContent();
+    } catch (err) {
+      document.getElementById('profileContent').innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
   }
 
+  function closeProfileScreen() {
+    document.getElementById('profileScreen').classList.remove('show');
+  }
+
+  function setProfileTab(tab) {
+    profileScreenState.activeTab = tab;
+    document.getElementById('profileTabBleeps').classList.toggle('active', tab === 'bleeps');
+    document.getElementById('profileTabFlicks').classList.toggle('active', tab === 'flicks');
+    if (profileScreenState.posts) renderProfileContent();
+  }
+
+  function renderProfileContent() {
+    var container = document.getElementById('profileContent');
+    var tab = profileScreenState.activeTab;
+    var posts = (profileScreenState.posts || []).filter(function (p) {
+      return tab === 'flicks' ? p.content_type !== 'bleep' : p.content_type === 'bleep';
+    });
+
+    if (posts.length === 0) {
+      container.innerHTML = tab === 'flicks'
+        ? '<div class="profile-empty-state">No Flicks yet — there\'s no way to post video Flicks as their own thing just yet, so this fills in once that\'s built.</div>'
+        : '<div class="profile-empty-state">No Bleeps yet.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    posts.forEach(function (b) {
+      var card = document.createElement('div');
+      card.className = 'card compact';
+      card.style.marginBottom = '12px';
+      card.innerHTML = buildBleepCardInner(b, 'profile-');
+      container.appendChild(card);
+      attachBleepMedia(card, b);
+    });
+  }
+
+  /* EXPERIMENTAL — see the CSS comment above .bb-quick-actions for the
+     full block this belongs to if it needs to be removed later. */
   var activeAuthorFilter = null;
 
   function filterFeedByAuthor(authorId, handleDisplay) {
@@ -2448,7 +2575,8 @@ body::after {
   var composeMediaFile = null;
 
   function expandComposeBar() {
-    document.getElementById('botExpand').classList.add('open');
+    document.getElementById('botExpandTop').classList.add('open');
+    document.getElementById('botExpandBottom').classList.add('open');
   }
 
   // Instantly collapse the expanded compose panel the moment someone
@@ -2456,10 +2584,12 @@ body::after {
   // controls out of the way except while actually posting.
   document.addEventListener('mousedown', function (evt) {
     var bar = document.getElementById('botBar');
-    var expand = document.getElementById('botExpand');
-    if (!bar || !expand) return;
-    if (expand.classList.contains('open') && !bar.contains(evt.target)) {
-      expand.classList.remove('open');
+    var top = document.getElementById('botExpandTop');
+    var bottom = document.getElementById('botExpandBottom');
+    if (!bar || !top || !bottom) return;
+    if ((top.classList.contains('open') || bottom.classList.contains('open')) && !bar.contains(evt.target)) {
+      top.classList.remove('open');
+      bottom.classList.remove('open');
     }
     var picker = document.getElementById('emojiPicker');
     var emojiBtn = document.getElementById('emojiToggleBtn');
@@ -2509,7 +2639,8 @@ body::after {
   renderEmojiPicker();
 
   function collapseComposeBar() {
-    document.getElementById('botExpand').classList.remove('open');
+    document.getElementById('botExpandTop').classList.remove('open');
+    document.getElementById('botExpandBottom').classList.remove('open');
     document.getElementById('composeBody').blur();
   }
 
