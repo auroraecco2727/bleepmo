@@ -528,6 +528,31 @@ body::after {
 .bot-field-input::placeholder { color: rgba(212,175,55,0.4); }
 .bot-field-input:focus { border-color: rgba(212,175,55,0.45); }
 
+.emoji-btn {
+  width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.2);
+  font-size: 15px; transition: all 0.2s;
+}
+.emoji-btn:hover { background: rgba(212,175,55,0.16); }
+
+.emoji-picker {
+  position: absolute; bottom: calc(100% + 8px); right: 14px;
+  width: 264px; max-height: 190px; overflow-y: auto;
+  background: rgba(10,18,45,0.97); backdrop-filter: blur(20px);
+  border: 1px solid rgba(212,175,55,0.25); border-radius: 14px;
+  padding: 10px; display: none; grid-template-columns: repeat(8, 1fr); gap: 2px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  scrollbar-width: none;
+}
+.emoji-picker::-webkit-scrollbar { display: none; }
+.emoji-picker.open { display: grid; }
+.emoji-picker span {
+  font-size: 18px; text-align: center; cursor: pointer; border-radius: 8px; padding: 5px 0;
+  transition: background 0.15s;
+}
+.emoji-picker span:hover { background: rgba(212,175,55,0.15); }
+
 .bot-expand {
   max-height: 0; overflow: hidden; opacity: 0;
   transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
@@ -1719,10 +1744,12 @@ body::after {
       </svg>
     </div>
     <textarea class="bot-field-input" id="composeBody" placeholder="What's the signal?" rows="1" onfocus="expandComposeBar()" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
+    <div class="emoji-btn" id="emojiToggleBtn" onclick="toggleEmojiPicker(event)" title="Add an emoji">😊</div>
     <div class="bot-send" id="composeSendBtn" onclick="submitCompose()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </div>
   </div>
+  <div class="emoji-picker" id="emojiPicker"></div>
 </div>
 
 <script>
@@ -2338,7 +2365,52 @@ body::after {
     if (expand.classList.contains('open') && !bar.contains(evt.target)) {
       expand.classList.remove('open');
     }
+    var picker = document.getElementById('emojiPicker');
+    var emojiBtn = document.getElementById('emojiToggleBtn');
+    if (picker && picker.classList.contains('open') && !picker.contains(evt.target) && !emojiBtn.contains(evt.target)) {
+      picker.classList.remove('open');
+    }
   });
+
+  /* ── Emoji picker ── */
+  var EMOJI_LIST = [
+    '😀','😂','🥰','😎','🤔','😢','😡','🥳',
+    '👍','👎','👏','🙌','🔥','✨','💯','❤️',
+    '💛','💙','🎉','🚀','⚡','🌟','💡','🎯',
+    '🙏','👀','😴','🤯','🥲','😭','😅','😇',
+    '🤝','💪','🫡','🎬','📸','🎵','☀️','🌙',
+    '⭐','💬','📢','⚠️','✅','❌','🤖','🫶'
+  ];
+
+  function renderEmojiPicker() {
+    var picker = document.getElementById('emojiPicker');
+    if (!picker) return;
+    picker.innerHTML = EMOJI_LIST.map(function (e) {
+      return '<span onclick="insertEmoji(\'' + e + '\')">' + e + '</span>';
+    }).join('');
+  }
+
+  function toggleEmojiPicker(evt) {
+    if (evt) evt.stopPropagation();
+    var picker = document.getElementById('emojiPicker');
+    picker.classList.toggle('open');
+    if (picker.classList.contains('open')) expandComposeBar();
+  }
+
+  function insertEmoji(emoji) {
+    var textarea = document.getElementById('composeBody');
+    var start = textarea.selectionStart != null ? textarea.selectionStart : textarea.value.length;
+    var end = textarea.selectionEnd != null ? textarea.selectionEnd : textarea.value.length;
+    var value = textarea.value;
+    textarea.value = value.slice(0, start) + emoji + value.slice(end);
+    var newPos = start + emoji.length;
+    textarea.focus();
+    textarea.setSelectionRange(newPos, newPos);
+    autoGrowComposeInput(textarea);
+    expandComposeBar();
+  }
+
+  renderEmojiPicker();
 
   function collapseComposeBar() {
     document.getElementById('botExpand').classList.remove('open');
