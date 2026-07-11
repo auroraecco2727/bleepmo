@@ -148,7 +148,47 @@ body::after {
   margin-bottom: 4px;
 }
 
-.creator-row { display: flex; align-items: center; gap: 9px; }
+.creator-row { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+
+/* EXPERIMENTAL — tap a creator row to reveal quick-jump buttons.
+   Pure front-end, no backend dependency — safe to rip out via this
+   block + the .creator-quick-actions markup + the two JS functions
+   (toggleCardSelected, filterFeedByAuthor) if it doesn't feel right. */
+.creator-quick-actions {
+  display: flex; gap: 6px; margin-left: 8px; flex-shrink: 0;
+  opacity: 0; transform: translateX(4px); pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.card.selected .creator-quick-actions { opacity: 1; transform: translateX(0); pointer-events: auto; }
+.quick-action-btn {
+  width: 27px; height: 27px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(212,175,55,0.05); border: 1px solid rgba(212,175,55,0.22);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  color: var(--gold); transition: all 0.2s;
+}
+.quick-action-btn:hover { background: rgba(212,175,55,0.16); border-color: rgba(212,175,55,0.4); }
+
+.author-filter-banner {
+  display: none; align-items: center; justify-content: space-between;
+  padding: 10px 14px; margin-bottom: 10px; border-radius: 12px;
+  background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.25);
+  font-size: 12.5px; color: var(--text-mid);
+}
+.author-filter-banner.show { display: flex; }
+.author-filter-banner b { color: var(--gold); }
+.author-filter-banner a { color: var(--gold); cursor: pointer; font-weight: 700; text-decoration: none; }
+
+.bleepmo-toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(10px);
+  max-width: 400px; width: calc(100% - 48px);
+  background: rgba(10,18,45,0.97); backdrop-filter: blur(20px);
+  border: 1px solid rgba(212,175,55,0.3); border-radius: 12px;
+  padding: 11px 16px; font-size: 12.5px; color: var(--text-hi); text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 200; pointer-events: none;
+}
+.bleepmo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .avatar {
   width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -1169,6 +1209,12 @@ body::after {
 
 <!-- ══ FEED ══ -->
 <div class="feed" id="feed">
+
+  <!-- Experimental: shown when a "this person's Bleeps" quick action is active -->
+  <div class="author-filter-banner" id="authorFilterBanner">
+    <span>Showing <b id="authorFilterName"></b>'s Bleeps</span>
+    <a onclick="clearAuthorFilter()">Clear ✕</a>
+  </div>
 
   <!-- ═══ LIVE BLEEPS — pulled from the real database, posted via the bar below ═══ -->
   <div id="liveFeedList"></div>
@@ -2235,11 +2281,15 @@ body::after {
 
     var html =
       '<div style="margin-bottom:2px; display:flex; align-items:center;"><span class="bleep-label">Bleep</span>' + deleteHtml + '</div>' +
-      '<div class="creator-row">' +
+      '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '" onclick="toggleCardSelected(this)">' +
       '  <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">' + escapeHtml(initialsFor(b.full_name)) + '</div>' +
       '  <div style="flex:1;">' +
       '    <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
       '    <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
+      '  </div>' +
+      '  <div class="creator-quick-actions">' +
+      '    <span class="quick-action-btn" title="This person\'s Bleeps" onclick="event.stopPropagation(); filterFeedByAuthor(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
+      '    <span class="quick-action-btn" title="This person\'s Flicks" onclick="event.stopPropagation(); showToast(\'Flicks by ' + escapeHtml(b.handle_symbol + b.handle) + ' — coming soon\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' +
       '  </div>' +
       '</div>' +
       '<div class="live-media-slot"></div>' +
@@ -2285,6 +2335,52 @@ body::after {
       slot.appendChild(vid);
     };
     slot.appendChild(img);
+  }
+
+  /* EXPERIMENTAL — see the CSS comment above .creator-quick-actions for
+     the full block this belongs to if it needs to be removed later. */
+  function toggleCardSelected(el) {
+    var card = el.closest('.card');
+    if (!card) return;
+    var wasSelected = card.classList.contains('selected');
+    document.querySelectorAll('.card.selected').forEach(function (c) { c.classList.remove('selected'); });
+    if (!wasSelected) card.classList.add('selected');
+  }
+
+  var activeAuthorFilter = null;
+
+  function filterFeedByAuthor(authorId, handleDisplay) {
+    activeAuthorFilter = authorId;
+    document.querySelectorAll('#liveFeedList .card-wrap').forEach(function (wrap) {
+      var row = wrap.querySelector('.creator-row');
+      var matches = row && row.getAttribute('data-author-id') === authorId;
+      wrap.style.display = matches ? '' : 'none';
+    });
+    document.getElementById('authorFilterName').textContent = handleDisplay;
+    document.getElementById('authorFilterBanner').classList.add('show');
+  }
+
+  function clearAuthorFilter() {
+    activeAuthorFilter = null;
+    document.querySelectorAll('#liveFeedList .card-wrap').forEach(function (wrap) {
+      wrap.style.display = '';
+    });
+    document.getElementById('authorFilterBanner').classList.remove('show');
+  }
+
+  var toastTimer = null;
+  function showToast(message) {
+    var toast = document.getElementById('bleepmoToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'bleepmoToast';
+      toast.className = 'bleepmo-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
   }
 
   function renderBleepCard(b) {
