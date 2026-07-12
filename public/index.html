@@ -248,6 +248,8 @@ body::after {
 .btag::before { content: '•'; color: var(--gold-dim); font-size: 10px; }
 .btag.hi { background: rgba(212,175,55,0.1); border-color: rgba(212,175,55,0.25); color: var(--gold); }
 .btag.hi::before { color: var(--gold); }
+.btag.tag-chip { background: rgba(100,150,255,0.08); border-color: rgba(100,150,255,0.3); color: #9cc0ff; }
+.btag.tag-chip::before { content: '👤'; font-size: 8px; }
 
 .video-thumb {
   width: 100%; aspect-ratio: 16/9;
@@ -1876,14 +1878,24 @@ body::after {
       <label class="compose-checkbox" style="white-space:nowrap;">
         <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Trend-points
       </label>
+      <label class="compose-checkbox" style="white-space:nowrap;">
+        <input type="checkbox" id="composeTagToggle" onchange="toggleTagInput()" /> Tag people
+      </label>
       <label class="compose-checkbox breaking" style="white-space:nowrap;">
         <input type="checkbox" id="composeBreaking" /> 🔴 BREAKING
       </label>
     </div>
     <div class="compose-media-filename" id="composeMediaFilename" style="margin-top:6px;"></div>
+    <label class="compose-checkbox" id="composeFlickToggleWrap" style="display:none; margin-top:8px; color:var(--gold); font-weight:700;">
+      <input type="checkbox" id="composeFlickToggle" /> Post as a Flick (full-screen video)
+    </label>
     <div id="composeTrendInputWrap" style="display:none;">
       <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
       <div class="compose-trend-chips" id="composeTrendChips"></div>
+    </div>
+    <div id="composeTagInputWrap" style="display:none;">
+      <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a handle (no symbol needed), press Enter to add" onkeydown="handleTagInputKeydown(event)" />
+      <div class="compose-trend-chips" id="composeTagChips"></div>
     </div>
     <div class="auth-error" id="composeError" style="margin-top:6px;"></div>
   </div>
@@ -2346,6 +2358,11 @@ body::after {
         parts.push('<span class="btag hi">' + escapeHtml(t) + '</span>');
       });
     }
+    if (b.tagged_handles && b.tagged_handles.length) {
+      b.tagged_handles.forEach(function (h) {
+        parts.push('<span class="btag hi tag-chip">' + escapeHtml(h) + '</span>');
+      });
+    }
     if (parts.length === 0) return '';
     return '<div class="bullet-tags">' + parts.join('') + '</div>';
   }
@@ -2483,19 +2500,14 @@ body::after {
 
     if (posts.length === 0) {
       container.innerHTML = tab === 'flicks'
-        ? '<div class="profile-empty-state">No Flicks yet — there\'s no way to post video Flicks as their own thing just yet, so this fills in once that\'s built.</div>'
+        ? '<div class="profile-empty-state">No Flicks yet.</div>'
         : '<div class="profile-empty-state">No Bleeps yet.</div>';
       return;
     }
 
     container.innerHTML = '';
     posts.forEach(function (b) {
-      var card = document.createElement('div');
-      card.className = 'card compact';
-      card.style.marginBottom = '12px';
-      card.innerHTML = buildBleepCardInner(b, 'profile-');
-      container.appendChild(card);
-      attachBleepMedia(card, b);
+      container.appendChild(renderCompactCard(b, 'profile-'));
     });
   }
 
@@ -2553,6 +2565,19 @@ body::after {
     return wrap;
   }
 
+  // For contexts that AREN'T the snap-scroll feed (Profile screen, the
+  // Flicks tab's live list) — a plain compact card with no forced
+  // full-viewport height, since that layout only makes sense inside the
+  // one-slide-per-post feed.
+  function renderCompactCard(b, idPrefix) {
+    var card = document.createElement('div');
+    card.className = 'card compact';
+    card.style.marginBottom = '12px';
+    card.innerHTML = buildBleepCardInner(b, idPrefix);
+    attachBleepMedia(card, b);
+    return card;
+  }
+
   function toggleLiveExpand(expandId) {
     var el = document.getElementById(expandId);
     if (!el) return;
@@ -2594,6 +2619,27 @@ body::after {
       });
     } catch (err) {
       // network hiccup — leave whatever's already there, don't break the page
+    }
+  }
+
+  async function loadLiveFlicks() {
+    var container = document.getElementById('liveFlicksList');
+    if (!container) return;
+    container.innerHTML = '<div class="profile-loading">Loading…</div>';
+    try {
+      var res = await fetch('/api/bleeps?contentType=flick_short', { credentials: 'include' });
+      if (!res.ok) { container.innerHTML = ''; return; }
+      var data = await res.json();
+      if (!data.bleeps || data.bleeps.length === 0) {
+        container.innerHTML = '<div class="profile-empty-state" style="padding:30px 10px;">No community Flicks yet — be the first by attaching a video and checking "Post as a Flick."</div>';
+        return;
+      }
+      container.innerHTML = '';
+      data.bleeps.forEach(function (b) {
+        container.appendChild(renderCompactCard(b, 'flicks-'));
+      });
+    } catch (err) {
+      container.innerHTML = '';
     }
   }
 
@@ -2740,10 +2786,51 @@ body::after {
     }
   }
 
+  var composeTaggedHandles = [];
+
+  function toggleTagInput() {
+    var checked = document.getElementById('composeTagToggle').checked;
+    document.getElementById('composeTagInputWrap').style.display = checked ? 'block' : 'none';
+  }
+
+  function renderComposeTagChips() {
+    var wrap = document.getElementById('composeTagChips');
+    wrap.innerHTML = '';
+    composeTaggedHandles.forEach(function (h, idx) {
+      var chip = document.createElement('span');
+      chip.className = 'btag hi';
+      chip.title = 'Remove';
+      chip.textContent = '@' + h + ' ✕';
+      chip.onclick = function () {
+        composeTaggedHandles.splice(idx, 1);
+        renderComposeTagChips();
+      };
+      wrap.appendChild(chip);
+    });
+  }
+
+  function handleTagInputKeydown(evt) {
+    if (evt.key === 'Enter' || evt.key === ',') {
+      evt.preventDefault();
+      var input = document.getElementById('composeTagInput');
+      var val = input.value.trim().replace(/,$/, '').replace(/^[@*~^>&]/, '');
+      if (val && composeTaggedHandles.indexOf(val) === -1 && composeTaggedHandles.length < 10) {
+        composeTaggedHandles.push(val);
+        renderComposeTagChips();
+      }
+      input.value = '';
+    }
+  }
+
   function handleComposeMediaChange(evt) {
     var file = evt.target.files && evt.target.files[0];
     composeMediaFile = file || null;
     document.getElementById('composeMediaFilename').textContent = file ? file.name : '';
+
+    var flickWrap = document.getElementById('composeFlickToggleWrap');
+    var isVideo = file && file.type && file.type.indexOf('video/') === 0;
+    flickWrap.style.display = isVideo ? 'flex' : 'none';
+    if (!isVideo) document.getElementById('composeFlickToggle').checked = false;
   }
 
   function showComposeError(msg) {
@@ -2762,6 +2849,7 @@ body::after {
     var body = bodyInput.value.trim();
     var title = titleInput.value.trim();
     var isBreaking = document.getElementById('composeBreaking').checked;
+    var postAsFlick = document.getElementById('composeFlickToggle').checked;
 
     if (!body && !composeMediaFile && !title) {
       showComposeError('Write something or attach a photo/video first.');
@@ -2772,7 +2860,9 @@ body::after {
     fd.append('body', body);
     fd.append('title', title);
     fd.append('isBreaking', isBreaking ? 'true' : 'false');
+    fd.append('postAsFlick', postAsFlick ? 'true' : 'false');
     if (composeTrendPoints.length) fd.append('trendPoints', JSON.stringify(composeTrendPoints));
+    if (composeTaggedHandles.length) fd.append('taggedHandles', JSON.stringify(composeTaggedHandles));
     if (composeMediaFile) fd.append('media', composeMediaFile);
 
     var sendBtn = document.getElementById('composeSendBtn');
@@ -2789,17 +2879,33 @@ body::after {
         return;
       }
 
-      var container = document.getElementById('liveFeedList');
-      container.insertBefore(renderBleepCard(data.bleep), container.firstChild);
+      // Flicks land in the Flicks tab's live list, not the For You feed.
+      if (data.bleep.content_type === 'bleep') {
+        var feedContainer = document.getElementById('liveFeedList');
+        if (feedContainer) feedContainer.insertBefore(renderBleepCard(data.bleep), feedContainer.firstChild);
+      } else {
+        var flicksContainer = document.getElementById('liveFlicksList');
+        if (flicksContainer) {
+          var emptyState = flicksContainer.querySelector('.profile-empty-state');
+          if (emptyState) flicksContainer.innerHTML = '';
+          flicksContainer.insertBefore(renderCompactCard(data.bleep, 'flicks-'), flicksContainer.firstChild);
+        }
+      }
 
       bodyInput.value = '';
       bodyInput.style.height = 'auto';
       titleInput.value = '';
       document.getElementById('composeBreaking').checked = false;
+      document.getElementById('composeFlickToggle').checked = false;
+      document.getElementById('composeFlickToggleWrap').style.display = 'none';
       document.getElementById('composeTrendToggle').checked = false;
       document.getElementById('composeTrendInputWrap').style.display = 'none';
       composeTrendPoints = [];
       renderComposeTrendChips();
+      document.getElementById('composeTagToggle').checked = false;
+      document.getElementById('composeTagInputWrap').style.display = 'none';
+      composeTaggedHandles = [];
+      renderComposeTagChips();
       composeMediaFile = null;
       document.getElementById('composeMedia').value = '';
       document.getElementById('composeMediaFilename').textContent = '';
@@ -2871,6 +2977,7 @@ body::after {
     document.getElementById('feed').style.display = showFeed ? '' : 'none';
     document.getElementById('scrollDots').style.display = showFeed ? '' : 'none';
     document.getElementById('flicksView').style.display = isFlicks ? 'flex' : 'none';
+    if (isFlicks) loadLiveFlicks();
 
     const csView = document.getElementById('comingSoonView');
     if (isComingSoon) {
@@ -3257,6 +3364,12 @@ body::after {
     <div style="text-align:center;padding:4px 0;">
       <span style="font-size:9px;color:rgba(212,175,55,0.35);letter-spacing:0.08em;text-transform:uppercase;">Up next</span>
     </div>
+  </div>
+
+  <!-- ═══ LIVE FLICKS — real video posts from the database ═══ -->
+  <div style="padding:16px 14px 4px;">
+    <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-lo);margin-bottom:10px;">Community Flicks</div>
+    <div id="liveFlicksList"></div>
   </div>
 </div>
 </body>

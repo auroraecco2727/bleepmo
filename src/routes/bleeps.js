@@ -24,6 +24,7 @@ export async function handleBleepsGet(request, env) {
   const url = new URL(request.url);
   const cursor = url.searchParams.get('cursor');
   const authorFilter = url.searchParams.get('author');
+  const contentTypeFilter = url.searchParams.get('contentType');
 
   let query = `
     SELECT
@@ -39,6 +40,10 @@ export async function handleBleepsGet(request, env) {
     query += ' AND b.author_id = ?';
     binds.push(authorFilter);
   }
+  if (contentTypeFilter) {
+    query += ' AND b.content_type = ?';
+    binds.push(contentTypeFilter);
+  }
   if (cursor) {
     query += ' AND b.created_at < ?';
     binds.push(cursor);
@@ -48,20 +53,38 @@ export async function handleBleepsGet(request, env) {
 
   const { results } = await env.DB.prepare(query).bind(...binds).all();
 
-  // Attach trend-points to each Bleep in one extra query rather than N+1.
+  // Attach trend-points and tagged users to each Bleep in two extra
+  // queries rather than N+1.
   if (results.length > 0) {
     const ids = results.map((b) => b.id);
     const placeholders = ids.map(() => '?').join(',');
+
     const { results: allTrendPoints } = await env.DB
       .prepare(`SELECT bleep_id, topic FROM trend_points WHERE bleep_id IN (${placeholders}) ORDER BY created_at ASC`)
       .bind(...ids)
       .all();
-    const byBleepId = {};
+    const trendByBleepId = {};
     for (const tp of allTrendPoints) {
-      (byBleepId[tp.bleep_id] = byBleepId[tp.bleep_id] || []).push(tp.topic);
+      (trendByBleepId[tp.bleep_id] = trendByBleepId[tp.bleep_id] || []).push(tp.topic);
     }
+
+    const { results: allTags } = await env.DB
+      .prepare(
+        `SELECT t.content_id AS bleep_id, u.handle_symbol, u.handle
+         FROM tags t JOIN users u ON u.id = t.tagged_user_id
+         WHERE t.content_type = 'bleep' AND t.content_id IN (${placeholders})
+         ORDER BY t.created_at ASC`
+      )
+      .bind(...ids)
+      .all();
+    const tagsByBleepId = {};
+    for (const t of allTags) {
+      (tagsByBleepId[t.bleep_id] = tagsByBleepId[t.bleep_id] || []).push(t.handle_symbol + t.handle);
+    }
+
     for (const b of results) {
-      b.trend_points = byBleepId[b.id] || [];
+      b.trend_points = trendByBleepId[b.id] || [];
+      b.tagged_handles = tagsByBleepId[b.id] || [];
     }
   }
 
@@ -89,9 +112,9 @@ export async function handleBleepsPost(request, env) {
 
   const body = (form.get('body') || '').toString().trim();
   const title = (form.get('title') || '').toString().trim().slice(0, 120) || null;
-  const contentType = (form.get('contentType') || 'bleep').toString();
   const media = form.get('media');
   const isBreaking = (form.get('isBreaking') || '').toString() === 'true' ? 1 : 0;
+  const postAsFlick = (form.get('postAsFlick') || '').toString() === 'true';
 
   // trendPoints arrives as a JSON array string, e.g. '["Sustainable Tech","Urban Design"]'
   let trendPoints = [];
@@ -110,10 +133,32 @@ export async function handleBleepsPost(request, env) {
     }
   }
 
+  // taggedHandles arrives as a JSON array of bare handles (no symbol), e.g.
+  // '["QuantumCity","darvenHaze"]' — explicit tags from the compose UI,
+  // separate from any @/*/~/^/>/& mentions typed directly into the body.
+  let taggedHandles = [];
+  const taggedHandlesRaw = form.get('taggedHandles');
+  if (taggedHandlesRaw) {
+    try {
+      const parsed = JSON.parse(taggedHandlesRaw.toString());
+      if (Array.isArray(parsed)) {
+        taggedHandles = parsed
+          .map((h) => h.toString().trim().replace(/^[@*~^>&]/, ''))
+          .filter((h) => h.length > 0)
+          .slice(0, 10);
+      }
+    } catch {
+      // malformed JSON — skip explicit tags rather than failing the whole post
+    }
+  }
+
   const hasMedia = media && typeof media === 'object' && media.size > 0;
   if (!body && !hasMedia) {
     return badRequest('A Bleep needs either a caption or media.');
   }
+
+  const isVideo = hasMedia && (media.type || '').startsWith('video/');
+  const contentType = postAsFlick && isVideo ? 'flick_short' : 'bleep';
 
   const bleepId = newId();
   let mediaKey = null;
@@ -142,12 +187,26 @@ export async function handleBleepsPost(request, env) {
       .run();
   }
 
-  const tags = await applyMentions(env.DB, {
-    text: body,
+  // Combine body-text mentions and explicit compose-time tags into a single
+  // pass so the same handle mentioned both ways doesn't get double-tagged
+  // or double-notified — applyMentions already dedupes within one text blob.
+  const combinedTagText = body + ' ' + taggedHandles.map((h) => '@' + h).join(' ');
+  await applyMentions(env.DB, {
+    text: combinedTagText,
     contentType: 'bleep',
     contentId: bleepId,
     taggerUserId: user.id,
   });
+
+  const { results: resolvedTags } = await env.DB
+    .prepare(
+      `SELECT u.handle_symbol, u.handle
+       FROM tags t JOIN users u ON u.id = t.tagged_user_id
+       WHERE t.content_type = 'bleep' AND t.content_id = ?
+       ORDER BY t.created_at ASC`
+    )
+    .bind(bleepId)
+    .all();
 
   const bleep = await env.DB
     .prepare(
@@ -158,8 +217,9 @@ export async function handleBleepsPost(request, env) {
     .bind(bleepId)
     .first();
   bleep.trend_points = trendPoints;
+  bleep.tagged_handles = resolvedTags.map((t) => t.handle_symbol + t.handle);
 
-  return new Response(JSON.stringify({ bleep, tagsApplied: tags.length }), {
+  return new Response(JSON.stringify({ bleep, tagsApplied: resolvedTags.length }), {
     status: 201,
     headers: { 'Content-Type': 'application/json' },
   });
