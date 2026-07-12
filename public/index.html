@@ -71,6 +71,90 @@ body::after {
 }
 .nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
+.nav-hamburger {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s;
+}
+.nav-hamburger:hover { background: rgba(212,175,55,0.1); }
+
+/* ══════════════════════════════════════
+   NAV DRAWER — universal left-side hideable menu
+══════════════════════════════════════ */
+.nav-drawer-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 2800;
+  background: rgba(4,7,20,0.6); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.nav-drawer-backdrop.open { display: block; opacity: 1; }
+
+.nav-drawer {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 2900;
+  width: 78%; max-width: 300px;
+  background: linear-gradient(165deg, rgba(9,16,42,0.99) 0%, rgba(7,11,30,0.99) 60%, rgba(11,19,46,0.98) 100%);
+  border-right: 1px solid rgba(212,175,55,0.2);
+  box-shadow: 8px 0 40px rgba(0,0,0,0.5);
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+  display: flex; flex-direction: column;
+  padding: 22px 0;
+}
+.nav-drawer.open { transform: translateX(0); }
+
+.nav-drawer-header { padding: 0 20px 18px; border-bottom: 0.5px solid rgba(212,175,55,0.15); margin-bottom: 10px; }
+.nav-drawer-identity { display: flex; align-items: center; gap: 11px; }
+.nav-drawer-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(212,175,55,0.14); border: 1.5px solid rgba(212,175,55,0.4);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold); font-weight: 800; font-size: 15px;
+}
+.nav-drawer-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text-hi); }
+.nav-drawer-handle { font-size: 11.5px; color: var(--text-mid); margin-top: 1px; }
+
+.nav-drawer-items { display: flex; flex-direction: column; padding: 6px 10px; }
+.nav-drawer-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 12px; border-radius: 12px; cursor: pointer;
+  color: var(--text-hi); font-size: 13.5px; font-weight: 600;
+  transition: background 0.2s;
+}
+.nav-drawer-item:hover { background: rgba(212,175,55,0.1); }
+.nav-drawer-item svg { flex-shrink: 0; color: var(--gold); }
+.nav-drawer-item .nav-item-badge {
+  margin-left: auto; background: #ff5566; color: #fff; font-size: 10px; font-weight: 800;
+  padding: 1px 6px; border-radius: 10px;
+}
+
+/* ══════════════════════════════════════
+   NOTIFICATIONS SCREEN
+══════════════════════════════════════ */
+.notif-screen {
+  display: none; position: fixed; inset: 0; max-width: 480px; margin: 0 auto; z-index: 2500;
+  background: linear-gradient(165deg, rgba(9,16,42,0.98) 0%, rgba(7,11,30,0.99) 55%, rgba(11,19,46,0.97) 100%);
+  flex-direction: column;
+}
+.notif-screen.show { display: flex; }
+.notif-list { flex: 1; overflow-y: auto; padding: 8px 14px 24px; scrollbar-width: none; }
+.notif-list::-webkit-scrollbar { display: none; }
+.notif-row {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 12px 10px; border-radius: 12px; margin-bottom: 4px;
+  border-bottom: 0.5px solid rgba(212,175,55,0.08);
+}
+.notif-row.unread { background: rgba(212,175,55,0.05); }
+.notif-row-icon {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(212,175,55,0.12); border: 1px solid rgba(212,175,55,0.25);
+  display: flex; align-items: center; justify-content: center; color: var(--gold);
+}
+.notif-row-text { font-size: 12.5px; color: var(--text-hi); line-height: 1.5; }
+.notif-row-text b { color: var(--gold); }
+.notif-row-time { font-size: 10.5px; color: var(--text-lo); margin-top: 2px; }
+.notif-mark-read-btn {
+  font-size: 11.5px; color: var(--gold); cursor: pointer; font-weight: 600;
+}
+
 .logo-mark {
   width: 30px; height: 30px; border-radius: 9px;
   background: linear-gradient(135deg, rgba(50,70,150,0.6), rgba(80,100,200,0.4));
@@ -366,6 +450,26 @@ body::after {
 }
 .card.compact { min-height: 0; padding-bottom: 20px; }
 .card::-webkit-scrollbar { display: none; }
+
+/* Card-level relationship/status accents — restrained by design: same
+   shape and padding as a regular card, differentiated only by a left
+   border + a faint edge glow, so the feed reads as one consistent
+   visual language rather than several competing card styles. */
+.card.card-breaking {
+  border-left: 3px solid rgba(255,140,60,0.55);
+  background: linear-gradient(90deg, rgba(255,90,40,0.05), transparent 45%);
+  padding-left: 17px;
+}
+.card.card-tagged-you {
+  border-left: 3px solid rgba(255,225,120,0.75);
+  background: linear-gradient(90deg, rgba(255,225,120,0.08), transparent 45%);
+  padding-left: 17px;
+  animation: taggedGlow 2.4s ease-in-out 3;
+}
+@keyframes taggedGlow {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: inset 3px 0 14px rgba(255,225,120,0.15), 0 0 18px rgba(255,225,120,0.1); }
+}
 
 .bb-header {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -1249,10 +1353,25 @@ body::after {
   <div class="profile-content" id="profileContent"></div>
 </div>
 
+<!-- ══ NOTIFICATIONS SCREEN ══ -->
+<div class="notif-screen" id="notifScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeNotificationsScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Notifications</span>
+    <span class="notif-mark-read-btn" style="margin-left:auto;" onclick="markAllNotificationsRead()">Mark all read</span>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</div>
+
 <!-- ── Nav ── -->
 <nav class="top-nav">
   <div class="nav-row">
     <div style="display:flex;align-items:center;gap:8px;">
+      <div class="nav-hamburger" onclick="openNavDrawer()" title="Menu">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.75)" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </div>
       <div class="logo-mark">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
           <ellipse cx="12" cy="13" rx="7" ry="6" fill="#D4AF37" opacity="0.9"/>
@@ -1265,11 +1384,11 @@ body::after {
       <span class="logo-text">Bleep<span>mo</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <div style="position:relative;cursor:pointer;">
+      <div style="position:relative;cursor:pointer;" onclick="openNotificationsScreen()" title="Notifications">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.5)" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <div style="width:5px;height:5px;border-radius:50%;background:#ff5566;position:absolute;top:-1px;right:-1px;box-shadow:0 0 4px #ff5566;"></div>
+        <div class="notif-dot" id="navNotifDot" style="width:5px;height:5px;border-radius:50%;background:#ff5566;position:absolute;top:-1px;right:-1px;box-shadow:0 0 4px #ff5566;display:none;"></div>
       </div>
-      <div class="avatar" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:11px;">A</div>
+      <div class="avatar" id="navAvatar" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;" onclick="openOwnProfile()">A</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -1279,6 +1398,43 @@ body::after {
     <div class="tab" onclick="switchTab(this)">Calendar</div>
     <div class="tab" onclick="switchTab(this)">Special Offers</div>  </div>
 </nav>
+
+<!-- ══ UNIVERSAL NAV DRAWER ══ -->
+<div class="nav-drawer-backdrop" id="navDrawerBackdrop" onclick="closeNavDrawer()"></div>
+<div class="nav-drawer" id="navDrawer">
+  <div class="nav-drawer-header">
+    <div class="nav-drawer-identity">
+      <div class="nav-drawer-avatar" id="drawerAvatar">?</div>
+      <div>
+        <div class="nav-drawer-name" id="drawerName">—</div>
+        <div class="nav-drawer-handle" id="drawerHandle">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-drawer-items">
+    <div class="nav-drawer-item" onclick="drawerGoHome()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+      Home
+    </div>
+    <div class="nav-drawer-item" onclick="drawerSearch()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search
+    </div>
+    <div class="nav-drawer-item" onclick="closeNavDrawer(); openNotificationsScreen();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notifications
+      <span class="nav-item-badge" id="drawerNotifBadge" style="display:none;">•</span>
+    </div>
+    <div class="nav-drawer-item" onclick="closeNavDrawer(); openOwnProfile();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
+      Profile
+    </div>
+    <div class="nav-drawer-item" onclick="drawerSettings()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </div>
+  </div>
+</div>
 
 <!-- Scroll dots -->
 <div class="scroll-dots" id="scrollDots">
@@ -1914,6 +2070,7 @@ body::after {
     setTimeout(function () { a.style.display = 'none'; }, 550);
     updateComposeIdentity();
     loadLiveFeed();
+    checkNotifBadge();
   }
 
   // If a valid session cookie already exists (returning user), skip the
@@ -1928,6 +2085,7 @@ body::after {
         if (a) a.style.display = 'none';
         updateComposeIdentity();
         loadLiveFeed();
+        checkNotifBadge();
       }
     } catch (err) {
       // Backend not deployed yet, or request failed — fall back to showing
@@ -2262,6 +2420,7 @@ body::after {
       setTimeout(function () { signupScreen.style.display = 'none'; }, 550);
       updateComposeIdentity();
       loadLiveFeed();
+      checkNotifBadge();
     } catch (err) {
       showSignupError('Couldn\'t reach the server. Is the backend deployed?');
       submitBtn.disabled = false;
@@ -2484,6 +2643,133 @@ body::after {
     document.getElementById('profileScreen').classList.remove('show');
   }
 
+  /* ── Universal nav drawer ── */
+  function openNavDrawer() {
+    document.getElementById('navDrawerBackdrop').classList.add('open');
+    document.getElementById('navDrawer').classList.add('open');
+    if (currentUser) {
+      document.getElementById('drawerAvatar').textContent = initialsFor(currentUser.full_name);
+      document.getElementById('drawerName').textContent = currentUser.full_name;
+      document.getElementById('drawerHandle').innerHTML = '<span style="color:var(--gold);font-weight:800;">' + escapeHtml(currentUser.handle_symbol) + '</span>' + escapeHtml(currentUser.handle);
+    }
+  }
+
+  function closeNavDrawer() {
+    document.getElementById('navDrawerBackdrop').classList.remove('open');
+    document.getElementById('navDrawer').classList.remove('open');
+  }
+
+  function drawerGoHome() {
+    closeNavDrawer();
+    var forYouTab = document.querySelector('.tab-bar .tab');
+    if (forYouTab) switchTab(forYouTab);
+    var feed = document.getElementById('feed');
+    if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function drawerSearch() {
+    closeNavDrawer();
+    showToast('Search is coming soon.');
+  }
+
+  function drawerSettings() {
+    closeNavDrawer();
+    showToast('Settings is coming soon.');
+  }
+
+  function openOwnProfile() {
+    if (!currentUser) return;
+    openProfileScreen(currentUser.id, currentUser.handle_symbol, currentUser.handle, currentUser.full_name, 'bleeps');
+  }
+
+  /* ── Notifications screen ── */
+  function notifVerbAndIcon(type) {
+    if (type === 'tag') {
+      return { verb: 'tagged you in a', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/>' };
+    }
+    if (type === 'reply') {
+      return { verb: 'replied to your comment on a', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' };
+    }
+    return { verb: 'commented on your', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' };
+  }
+
+  async function openNotificationsScreen() {
+    document.getElementById('notifScreen').classList.add('show');
+    var list = document.getElementById('notifList');
+    list.innerHTML = '<div class="profile-loading">Loading…</div>';
+    try {
+      var res = await fetch('/api/notifications', { credentials: 'include' });
+      if (!res.ok) {
+        list.innerHTML = '<div class="profile-empty-state">Couldn\'t load notifications right now.</div>';
+        return;
+      }
+      var data = await res.json();
+      renderNotifList(data.notifications || []);
+      updateNotifBadge(data.notifications || []);
+    } catch (err) {
+      list.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function closeNotificationsScreen() {
+    document.getElementById('notifScreen').classList.remove('show');
+  }
+
+  function renderNotifList(notifications) {
+    var list = document.getElementById('notifList');
+    if (notifications.length === 0) {
+      list.innerHTML = '<div class="profile-empty-state">No notifications yet.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    notifications.forEach(function (n) {
+      var meta = notifVerbAndIcon(n.type);
+      var row = document.createElement('div');
+      row.className = 'notif-row' + (n.read_at ? '' : ' unread');
+      row.innerHTML =
+        '<div class="notif-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + meta.icon + '</svg></div>' +
+        '<div>' +
+        '  <div class="notif-row-text"><b>' + escapeHtml(n.actor_symbol + n.actor_handle) + '</b> ' + meta.verb + ' ' + escapeHtml(n.source_type) + '</div>' +
+        '  <div class="notif-row-time">' + relativeTime(n.created_at) + ' ago</div>' +
+        '</div>';
+      list.appendChild(row);
+    });
+  }
+
+  function updateNotifBadge(notifications) {
+    var unreadCount = notifications.filter(function (n) { return !n.read_at; }).length;
+    var navDot = document.getElementById('navNotifDot');
+    var drawerBadge = document.getElementById('drawerNotifBadge');
+    if (navDot) navDot.style.display = unreadCount > 0 ? 'block' : 'none';
+    if (drawerBadge) drawerBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+  }
+
+  async function markAllNotificationsRead() {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      openNotificationsScreen();
+    } catch (err) {
+      // quiet fail — not critical
+    }
+  }
+
+  async function checkNotifBadge() {
+    if (!currentUser) return;
+    try {
+      var res = await fetch('/api/notifications', { credentials: 'include' });
+      if (!res.ok) return;
+      var data = await res.json();
+      updateNotifBadge(data.notifications || []);
+    } catch (err) {
+      // quiet fail
+    }
+  }
+
   function setProfileTab(tab) {
     profileScreenState.activeTab = tab;
     document.getElementById('profileTabBleeps').classList.toggle('active', tab === 'bleeps');
@@ -2549,15 +2835,23 @@ body::after {
     toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
   }
 
+  function cardStatusClass(b) {
+    if (currentUser && b.tagged_handles && b.tagged_handles.indexOf(currentUser.handle_symbol + currentUser.handle) !== -1) {
+      return ' card-tagged-you';
+    }
+    if (b.is_breaking) return ' card-breaking';
+    return '';
+  }
+
   function renderBleepCard(b) {
     var wrap = document.createElement('div');
     var card = document.createElement('div');
     if (isShortBleep(b)) {
       wrap.className = 'card-wrap compact';
-      card.className = 'card compact';
+      card.className = 'card compact' + cardStatusClass(b);
     } else {
       wrap.className = 'card-wrap';
-      card.className = 'card';
+      card.className = 'card' + cardStatusClass(b);
     }
     card.innerHTML = buildBleepCardInner(b);
     wrap.appendChild(card);
@@ -2571,7 +2865,7 @@ body::after {
   // one-slide-per-post feed.
   function renderCompactCard(b, idPrefix) {
     var card = document.createElement('div');
-    card.className = 'card compact';
+    card.className = 'card compact' + cardStatusClass(b);
     card.style.marginBottom = '12px';
     card.innerHTML = buildBleepCardInner(b, idPrefix);
     attachBleepMedia(card, b);
@@ -2620,6 +2914,13 @@ body::after {
     } catch (err) {
       // network hiccup — leave whatever's already there, don't break the page
     }
+  }
+
+  function toggleFlickRail() {
+    var rail = document.getElementById('flickRail');
+    var toggle = document.getElementById('flickRailToggle');
+    var hidden = rail.classList.toggle('hidden-rail');
+    toggle.classList.toggle('rail-hidden', hidden);
   }
 
   async function loadLiveFlicks() {
@@ -3028,9 +3329,17 @@ body::after {
 <style>
   #flicksView {
     display: none;
+    flex-direction: column;
     height: calc(100vh - 108px);
-    position: relative; z-index: 1;
-    flex-direction: row;
+    overflow-y: auto;
+    scrollbar-width: none;
+    z-index: 1;
+  }
+  #flicksView::-webkit-scrollbar { display: none; }
+  .flick-hero-row {
+    display: flex; flex-direction: row;
+    height: calc(100vh - 108px); flex-shrink: 0;
+    position: relative;
     overflow: hidden;
   }
 
@@ -3040,6 +3349,7 @@ body::after {
     position: relative;
     overflow: hidden;
     border-right: 0.5px solid rgba(212,175,55,0.1);
+    order: 1;
   }
 
   .flick-bg {
@@ -3167,8 +3477,22 @@ body::after {
     padding: 10px 8px;
     display: flex; flex-direction: column; gap: 8px;
     background: rgba(8,12,32,0.8);
+    order: 2;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
   }
+  .flick-rail.hidden-rail { width: 0; padding: 10px 0; opacity: 0; }
   .flick-rail::-webkit-scrollbar { display: none; }
+
+  .flick-rail-toggle {
+    position: absolute; top: 50%; right: 0; transform: translateY(-50%);
+    width: 20px; height: 46px; border-radius: 10px 0 0 10px;
+    background: rgba(10,18,45,0.9); border: 1px solid rgba(212,175,55,0.3); border-right: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 5; transition: background 0.2s;
+  }
+  .flick-rail-toggle:hover { background: rgba(212,175,55,0.18); }
+  .flick-rail-toggle svg { transition: transform 0.25s ease; }
+  .flick-rail-toggle.rail-hidden svg { transform: rotate(180deg); }
 
   .flick-thumb {
     width: 74px; height: 98px;
@@ -3250,6 +3574,7 @@ body::after {
 </style>
 
 <div id="flicksView">
+  <div class="flick-hero-row">
   <!-- ── Main player ── -->
   <div class="flick-player">
     <div class="flick-bg" id="flickGradient" style="background:linear-gradient(135deg,rgba(10,18,50,0.9),rgba(30,10,60,0.85));"></div>
@@ -3311,7 +3636,7 @@ body::after {
   </div>
 
   <!-- ── Thumbnail rail ── -->
-  <div class="flick-rail">
+  <div class="flick-rail" id="flickRail">
     <!-- Thumb 1 (active) -->
     <div class="flick-thumb active-thumb" style="background:linear-gradient(135deg,rgba(10,18,50,0.9),rgba(30,10,60,0.85));">
       <div class="thumb-grid"></div>
@@ -3364,6 +3689,11 @@ body::after {
     <div style="text-align:center;padding:4px 0;">
       <span style="font-size:9px;color:rgba(212,175,55,0.35);letter-spacing:0.08em;text-transform:uppercase;">Up next</span>
     </div>
+  </div>
+
+  <div class="flick-rail-toggle" id="flickRailToggle" onclick="toggleFlickRail()" title="Show/hide clip list">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </div>
   </div>
 
   <!-- ═══ LIVE FLICKS — real video posts from the database ═══ -->
