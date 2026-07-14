@@ -155,6 +155,17 @@ body::after {
   font-size: 11.5px; color: var(--gold); cursor: pointer; font-weight: 600;
 }
 
+.comment-row { display: flex; gap: 10px; padding: 12px 10px; }
+.comment-row.reply { margin-left: 34px; padding-top: 8px; padding-bottom: 8px; }
+.comment-body-col { flex: 1; min-width: 0; }
+.comment-meta { font-size: 12px; color: var(--text-mid); }
+.comment-meta b { color: var(--gold); font-weight: 800; }
+.comment-text { font-size: 13px; color: var(--text-hi); line-height: 1.5; margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
+.comment-actions { display: flex; gap: 14px; margin-top: 5px; }
+.comment-action-link { font-size: 11px; color: var(--text-lo); cursor: pointer; font-weight: 600; transition: color 0.15s; }
+.comment-action-link:hover { color: var(--gold); }
+.comment-action-link.danger:hover { color: #ff6644; }
+
 .logo-mark {
   width: 30px; height: 30px; border-radius: 9px;
   background: linear-gradient(135deg, rgba(50,70,150,0.6), rgba(80,100,200,0.4));
@@ -1365,6 +1376,31 @@ body::after {
   <div class="notif-list" id="notifList"></div>
 </div>
 
+<!-- ══ COMMENTS SCREEN ══ -->
+<div class="notif-screen" id="commentsScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeCommentsScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Comments</span>
+  </div>
+
+  <div id="commentsPostPreview" style="padding:14px 16px;border-bottom:0.5px solid rgba(212,175,55,0.12);"></div>
+
+  <div class="notif-list" id="commentsList" style="flex:1;"></div>
+
+  <div id="commentsReplyingBanner" style="display:none;padding:6px 16px;font-size:11.5px;color:var(--text-mid);background:rgba(212,175,55,0.06);">
+    Replying to <b id="commentsReplyingHandle" style="color:var(--gold);"></b>
+    <span style="color:var(--gold);cursor:pointer;font-weight:700;margin-left:6px;" onclick="cancelCommentReply()">✕</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:9px;padding:10px 14px 16px;border-top:0.5px solid rgba(212,175,55,0.12);flex-shrink:0;">
+    <textarea class="bot-field-input" id="commentInput" placeholder="Add a comment…" rows="1" oninput="autoGrowComposeInput(this)" onkeydown="handleCommentInputKeydown(event)"></textarea>
+    <div class="bot-send" id="commentSendBtn" onclick="submitComment()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </div>
+  </div>
+</div>
+
 <!-- ── Nav ── -->
 <nav class="top-nav">
   <div class="nav-row">
@@ -2063,12 +2099,18 @@ body::after {
   var signupFiles = { picMain: null, picIcon: null };
   var signupVoiceClipBlob = null;
 
+  function updateNavAvatar() {
+    var navAvatar = document.getElementById('navAvatar');
+    if (navAvatar && currentUser) navAvatar.innerHTML = buildAvatarHtml(currentUser, 28);
+  }
+
   function enterApp() {
     var a = document.getElementById('authScreen');
     if (!a) return;
     a.classList.add('hide');
     setTimeout(function () { a.style.display = 'none'; }, 550);
     updateComposeIdentity();
+    updateNavAvatar();
     loadLiveFeed();
     checkNotifBadge();
   }
@@ -2084,6 +2126,7 @@ body::after {
         var a = document.getElementById('authScreen');
         if (a) a.style.display = 'none';
         updateComposeIdentity();
+        updateNavAvatar();
         loadLiveFeed();
         checkNotifBadge();
       }
@@ -2419,6 +2462,7 @@ body::after {
       signupScreen.classList.add('hide');
       setTimeout(function () { signupScreen.style.display = 'none'; }, 550);
       updateComposeIdentity();
+      updateNavAvatar();
       loadLiveFeed();
       checkNotifBadge();
     } catch (err) {
@@ -2473,6 +2517,54 @@ body::after {
     var parts = (fullName || '').trim().split(/\s+/);
     var initials = parts.slice(0, 2).map(function (p) { return p.charAt(0).toUpperCase(); }).join('');
     return initials || '?';
+  }
+
+  // Real profile pictures, at last. Renders the uploaded main picture in
+  // whichever shape the person picked at signup, with the smaller
+  // icon-picture overlapping bottom-right per the original dual-avatar
+  // design — and falls back to the gold initials circle at every step
+  // (no picture uploaded, or the image fails to load) rather than ever
+  // showing a broken image.
+  function buildAvatarHtml(user, sizePx) {
+    sizePx = sizePx || 36;
+    var shape = user.avatar_shape || 'circle';
+    var shapeClass = 'shape-' + shape;
+    var initials = escapeHtml(initialsFor(user.full_name));
+    var fontSize = Math.round(sizePx * 0.38);
+    var fallbackHtml =
+      '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;' +
+      'background:rgba(212,175,55,0.12);color:var(--gold);font-family:\'Syne\',sans-serif;font-weight:800;' +
+      'font-size:' + fontSize + 'px;">' + initials + '</div>';
+
+    var mainInner;
+    if (user.main_pic_key) {
+      mainInner =
+        '<img src="/media/' + escapeHtml(user.main_pic_key) + '" alt="" ' +
+        'style="width:100%;height:100%;object-fit:cover;display:block;" ' +
+        'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';" />' +
+        fallbackHtml.replace('style="width', 'style="display:none;width');
+    } else {
+      mainInner = fallbackHtml;
+    }
+
+    var iconBadge = '';
+    if (user.icon_pic_key) {
+      var iconSize = Math.max(14, Math.round(sizePx * 0.42));
+      iconBadge =
+        '<div style="position:absolute;bottom:-2px;right:-2px;width:' + iconSize + 'px;height:' + iconSize + 'px;' +
+        'border-radius:50%;overflow:hidden;border:2px solid #0b1230;background:#0b1230;">' +
+        '<img src="/media/' + escapeHtml(user.icon_pic_key) + '" alt="" ' +
+        'style="width:100%;height:100%;object-fit:cover;display:block;" ' +
+        'onerror="this.parentElement.style.display=\'none\';" />' +
+        '</div>';
+    }
+
+    return (
+      '<div style="position:relative;width:' + sizePx + 'px;height:' + sizePx + 'px;flex-shrink:0;">' +
+      '  <div class="' + shapeClass + '" style="width:100%;height:100%;overflow:hidden;">' + mainInner + '</div>' +
+      iconBadge +
+      '</div>'
+    );
   }
 
   function updateComposeIdentity() {
@@ -2549,7 +2641,7 @@ body::after {
     var html =
       '<div style="margin-bottom:2px; display:flex; align-items:center;"><span class="bleep-label">Bleep</span>' + deleteHtml + '</div>' +
       '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '">' +
-      '  <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">' + escapeHtml(initialsFor(b.full_name)) + '</div>' +
+      '  ' + buildAvatarHtml(b, 36) +
       '  <div style="flex:1;">' +
       '    <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
       '    <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
@@ -2560,7 +2652,7 @@ body::after {
       tagsRowHtml +
       '<div class="action-row">' +
       '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></div>' +
-      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>' + (b.comment_count || 0) + '</span></div>' +
+      '  <div class="act" onclick="openCommentsScreen(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="comment-count-badge" data-bleep-id="' + escapeHtml(b.id) + '">' + (b.comment_count || 0) + '</span></div>' +
       '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
       '</div>' +
       '<div class="pulse-indicator" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
@@ -2617,7 +2709,10 @@ body::after {
     profileScreenState.activeTab = initialTab || 'bleeps';
     profileScreenState.posts = null;
 
-    document.getElementById('profileAvatar').textContent = initialsFor(fullName);
+    document.getElementById('profileAvatar').innerHTML = buildAvatarHtml(
+      (currentUser && authorId === currentUser.id) ? currentUser : { full_name: fullName },
+      76
+    );
     document.getElementById('profileName').textContent = fullName;
     document.getElementById('profileHandle').innerHTML = '<span class="sym">' + escapeHtml(handleSymbol) + '</span>' + escapeHtml(handle);
     document.getElementById('profileTabBleeps').classList.toggle('active', profileScreenState.activeTab === 'bleeps');
@@ -2633,6 +2728,11 @@ body::after {
       }
       var data = await res.json();
       profileScreenState.posts = data.bleeps || [];
+      // The feed query already joins each post to its author's picture
+      // fields — no separate profile-lookup endpoint needed for this.
+      if (profileScreenState.posts.length > 0) {
+        document.getElementById('profileAvatar').innerHTML = buildAvatarHtml(profileScreenState.posts[0], 76);
+      }
       renderProfileContent();
     } catch (err) {
       document.getElementById('profileContent').innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
@@ -2648,7 +2748,7 @@ body::after {
     document.getElementById('navDrawerBackdrop').classList.add('open');
     document.getElementById('navDrawer').classList.add('open');
     if (currentUser) {
-      document.getElementById('drawerAvatar').textContent = initialsFor(currentUser.full_name);
+      document.getElementById('drawerAvatar').innerHTML = buildAvatarHtml(currentUser, 42);
       document.getElementById('drawerName').textContent = currentUser.full_name;
       document.getElementById('drawerHandle').innerHTML = '<span style="color:var(--gold);font-weight:800;">' + escapeHtml(currentUser.handle_symbol) + '</span>' + escapeHtml(currentUser.handle);
     }
@@ -2767,6 +2867,175 @@ body::after {
       updateNotifBadge(data.notifications || []);
     } catch (err) {
       // quiet fail
+    }
+  }
+
+  /* ── Comments screen ── */
+  var commentsScreenState = { bleepId: null, replyingTo: null, replyingToHandle: null };
+
+  async function openCommentsScreen(bleepId) {
+    commentsScreenState.bleepId = bleepId;
+    commentsScreenState.replyingTo = null;
+    document.getElementById('commentsReplyingBanner').style.display = 'none';
+    document.getElementById('commentInput').value = '';
+    document.getElementById('commentsScreen').classList.add('show');
+    document.getElementById('commentsPostPreview').innerHTML = '<div class="profile-loading">Loading…</div>';
+    document.getElementById('commentsList').innerHTML = '';
+
+    try {
+      var bleepRes = await fetch('/api/bleeps/' + bleepId, { credentials: 'include' });
+      var commentsRes = await fetch('/api/bleeps/' + bleepId + '/comments', { credentials: 'include' });
+
+      if (bleepRes.ok) {
+        var bleepData = await bleepRes.json();
+        renderCommentsPostPreview(bleepData.bleep);
+      } else {
+        document.getElementById('commentsPostPreview').innerHTML = '';
+      }
+
+      if (commentsRes.ok) {
+        var commentsData = await commentsRes.json();
+        renderCommentsList(commentsData.comments || []);
+      } else {
+        document.getElementById('commentsList').innerHTML = '<div class="profile-empty-state">Couldn\'t load comments.</div>';
+      }
+    } catch (err) {
+      document.getElementById('commentsList').innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function closeCommentsScreen() {
+    document.getElementById('commentsScreen').classList.remove('show');
+  }
+
+  function renderCommentsPostPreview(b) {
+    var el = document.getElementById('commentsPostPreview');
+    if (!b) { el.innerHTML = ''; return; }
+    el.innerHTML =
+      '<div style="display:flex;gap:10px;align-items:flex-start;">' +
+      buildAvatarHtml(b, 32) +
+      '<div style="flex:1;min-width:0;">' +
+      '  <div class="comment-meta"><b>' + escapeHtml(b.handle_symbol + b.handle) + '</b> · ' + relativeTime(b.created_at) + '</div>' +
+      (b.body ? '<div class="comment-text">' + renderBleepMentions(b.body) + '</div>' : '') +
+      '</div>' +
+      '</div>';
+  }
+
+  function renderCommentsList(comments) {
+    var list = document.getElementById('commentsList');
+    if (comments.length === 0) {
+      list.innerHTML = '<div class="profile-empty-state">No comments yet. Be the first.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    comments.forEach(function (c) {
+      list.appendChild(buildCommentRow(c));
+    });
+  }
+
+  function buildCommentRow(c) {
+    var row = document.createElement('div');
+    row.className = 'comment-row' + (c.parent_comment_id ? ' reply' : '');
+    var isOwner = currentUser && currentUser.id === c.author_id;
+    var deleteHtml = isOwner
+      ? '<span class="comment-action-link danger" onclick="deleteComment(\'' + escapeHtml(c.id) + '\', this)">Delete</span>'
+      : '';
+    row.innerHTML =
+      buildAvatarHtml(c, 28) +
+      '<div class="comment-body-col">' +
+      '  <div class="comment-meta"><b>' + escapeHtml(c.handle_symbol + c.handle) + '</b> · ' + relativeTime(c.created_at) + '</div>' +
+      '  <div class="comment-text">' + renderBleepMentions(c.body) + '</div>' +
+      '  <div class="comment-actions">' +
+      '    <span class="comment-action-link" onclick="replyToComment(\'' + escapeHtml(c.id) + '\', \'' + escapeHtml(c.handle_symbol + c.handle) + '\')">Reply</span>' +
+      deleteHtml +
+      '  </div>' +
+      '</div>';
+    return row;
+  }
+
+  function replyToComment(commentId, handleDisplay) {
+    commentsScreenState.replyingTo = commentId;
+    commentsScreenState.replyingToHandle = handleDisplay;
+    document.getElementById('commentsReplyingHandle').textContent = handleDisplay;
+    document.getElementById('commentsReplyingBanner').style.display = 'block';
+    document.getElementById('commentInput').focus();
+  }
+
+  function cancelCommentReply() {
+    commentsScreenState.replyingTo = null;
+    document.getElementById('commentsReplyingBanner').style.display = 'none';
+  }
+
+  function handleCommentInputKeydown(evt) {
+    if (evt.key === 'Enter' && !evt.shiftKey) {
+      evt.preventDefault();
+      submitComment();
+    }
+  }
+
+  function updateCommentCountBadges(bleepId, delta) {
+    document.querySelectorAll('.comment-count-badge[data-bleep-id="' + bleepId + '"]').forEach(function (el) {
+      el.textContent = Math.max(0, (parseInt(el.textContent, 10) || 0) + delta);
+    });
+  }
+
+  async function submitComment() {
+    var input = document.getElementById('commentInput');
+    var body = input.value.trim();
+    if (!body || !commentsScreenState.bleepId) return;
+
+    var sendBtn = document.getElementById('commentSendBtn');
+    sendBtn.style.opacity = '0.4';
+    sendBtn.style.pointerEvents = 'none';
+
+    try {
+      var payload = { body: body };
+      if (commentsScreenState.replyingTo) payload.parentCommentId = commentsScreenState.replyingTo;
+
+      var res = await fetch('/api/bleeps/' + commentsScreenState.bleepId + '/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Couldn\'t post that comment.');
+        sendBtn.style.opacity = '';
+        sendBtn.style.pointerEvents = '';
+        return;
+      }
+
+      var list = document.getElementById('commentsList');
+      var emptyState = list.querySelector('.profile-empty-state');
+      if (emptyState) list.innerHTML = '';
+      list.appendChild(buildCommentRow(data.comment));
+
+      updateCommentCountBadges(commentsScreenState.bleepId, 1);
+
+      input.value = '';
+      input.style.height = 'auto';
+      cancelCommentReply();
+    } catch (err) {
+      alert('Couldn\'t reach the server.');
+    }
+    sendBtn.style.opacity = '';
+    sendBtn.style.pointerEvents = '';
+  }
+
+  async function deleteComment(commentId, el) {
+    if (!confirm('Delete this comment?')) return;
+    try {
+      var res = await fetch('/api/comments/' + commentId, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) {
+        alert('Couldn\'t delete that — try again.');
+        return;
+      }
+      var row = el.closest('.comment-row');
+      if (row) row.remove();
+      if (commentsScreenState.bleepId) updateCommentCountBadges(commentsScreenState.bleepId, -1);
+    } catch (err) {
+      alert('Couldn\'t reach the server.');
     }
   }
 
