@@ -569,6 +569,10 @@ body::after {
   font-size:12px; color:var(--text-lo); cursor:pointer; transition:color 0.2s;
 }
 .act:hover { color: var(--gold); }
+.act.like-btn.liked { color: #ff5577; }
+.act.like-btn svg { transition: transform 0.2s ease; }
+.act.like-btn.pop svg { animation: likePop 0.35s ease; }
+@keyframes likePop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
 
 /* ══════════════════════════════════════
    COMPOSE BOX (real posting, live feed)
@@ -1191,7 +1195,7 @@ body::after {
         <input class="auth-input" type="password" id="bleepPassword" name="bleepPassword" placeholder="••••••••" autocomplete="current-password" required />
       </div>
 
-      <div class="auth-forgot" onclick="alert('Password reset coming soon.')">Forgot password?</div>
+      <div class="auth-forgot" onclick="showToast('Password reset is coming soon.')">Forgot password?</div>
       <div class="auth-error" id="loginError"></div>
 
       <button type="submit" class="auth-btn-primary" style="margin-top:6px;">
@@ -1331,7 +1335,7 @@ body::after {
 
       <div class="signup-checkbox-row">
         <input type="checkbox" id="signupTerms" required />
-        <label for="signupTerms">I agree to Bleepmo's <a href="#" onclick="return false;">Terms of Service</a> and <a href="#" onclick="return false;">Community Voice Policy</a>, and confirm my verification clip is genuinely me.</label>
+        <label for="signupTerms">I agree to Bleepmo's <a href="#" onclick="openLegalScreen('terms'); return false;">Terms of Service</a> and <a href="#" onclick="openLegalScreen('policy'); return false;">Community Voice Policy</a>, and confirm my verification clip is genuinely me.</label>
       </div>
 
       <div class="auth-error" id="signupError" style="margin-bottom:14px;"></div>
@@ -1374,6 +1378,20 @@ body::after {
     <span class="notif-mark-read-btn" style="margin-left:auto;" onclick="markAllNotificationsRead()">Mark all read</span>
   </div>
   <div class="notif-list" id="notifList"></div>
+</div>
+
+<!-- ══ LEGAL SCREEN (Terms / Community Voice Policy) ══ -->
+<div class="notif-screen" id="legalScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeLegalScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span id="legalScreenTitle" style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">—</span>
+  </div>
+  <div style="padding:18px 20px; overflow-y:auto;">
+    <div style="display:inline-block; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#ff9433; background:rgba(255,148,51,0.1); border:1px solid rgba(255,148,51,0.3); padding:4px 10px; border-radius:8px; margin-bottom:14px;">Draft — not yet legally reviewed</div>
+    <div id="legalScreenBody" style="font-size:13px; color:var(--text-mid); line-height:1.7;"></div>
+  </div>
 </div>
 
 <!-- ══ COMMENTS SCREEN ══ -->
@@ -2048,7 +2066,7 @@ body::after {
     <div class="bot-send" id="composeSendBtn" onclick="submitCompose()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </div>
-    <div class="bot-icon" title="BleepBot">
+    <div class="bot-icon" title="BleepBot" style="cursor:pointer;" onclick="showToast('BleepBot chat is coming soon.')">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
         <ellipse cx="12" cy="13" rx="6" ry="5" fill="rgba(212,175,55,0.7)"/>
         <circle cx="10" cy="12.5" r="1" fill="#1a2540"/>
@@ -2129,6 +2147,7 @@ body::after {
         updateNavAvatar();
         loadLiveFeed();
         checkNotifBadge();
+        checkDeepLink();
       }
     } catch (err) {
       // Backend not deployed yet, or request failed — fall back to showing
@@ -2651,9 +2670,9 @@ body::after {
       bodyHtml +
       tagsRowHtml +
       '<div class="action-row">' +
-      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>0</span></div>' +
+      '  <div class="act like-btn' + (b.liked_by_viewer ? ' liked' : '') + '" data-bleep-id="' + escapeHtml(b.id) + '" onclick="toggleLike(\'' + escapeHtml(b.id) + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (b.liked_by_viewer ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count-badge">' + (b.like_count || 0) + '</span></div>' +
       '  <div class="act" onclick="openCommentsScreen(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="comment-count-badge" data-bleep-id="' + escapeHtml(b.id) + '">' + (b.comment_count || 0) + '</span></div>' +
-      '  <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
+      '  <div class="act" onclick="shareBleep(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
       '</div>' +
       '<div class="pulse-indicator" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
       '  <div class="pulse-line"></div>' +
@@ -3102,6 +3121,96 @@ body::after {
     toast.classList.add('show');
     if (toastTimer) clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
+  }
+
+  /* ── Likes ── */
+  function setLikeButtonsState(bleepId, liked, count) {
+    document.querySelectorAll('.like-btn[data-bleep-id="' + bleepId + '"]').forEach(function (btn) {
+      btn.classList.toggle('liked', liked);
+      var svg = btn.querySelector('svg');
+      if (svg) svg.setAttribute('fill', liked ? 'currentColor' : 'none');
+      if (count !== null) {
+        var countEl = btn.querySelector('.like-count-badge');
+        if (countEl) countEl.textContent = count;
+      }
+    });
+  }
+
+  async function toggleLike(bleepId, el) {
+    var wasLiked = el.classList.contains('liked');
+    var newLiked = !wasLiked;
+    var currentCount = parseInt((el.querySelector('.like-count-badge') || {}).textContent, 10) || 0;
+    var optimisticCount = Math.max(0, currentCount + (newLiked ? 1 : -1));
+
+    setLikeButtonsState(bleepId, newLiked, optimisticCount);
+    el.classList.add('pop');
+    setTimeout(function () { el.classList.remove('pop'); }, 350);
+
+    try {
+      var res = await fetch('/api/bleeps/' + bleepId + '/like', { method: 'POST', credentials: 'include' });
+      if (!res.ok) throw new Error('like request failed');
+      var data = await res.json();
+      setLikeButtonsState(bleepId, data.liked, data.likeCount);
+    } catch (err) {
+      setLikeButtonsState(bleepId, wasLiked, currentCount);
+    }
+  }
+
+  /* ── Share ── */
+  async function shareBleep(bleepId) {
+    var url = location.origin + '/?bleep=' + bleepId;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Bleepmo', text: 'Check out this Bleep', url: url });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return; // person cancelled the share sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Link copied to clipboard.');
+    } catch (err) {
+      showToast('Couldn\'t copy the link — try again.');
+    }
+  }
+
+  // A shared link (?bleep=ID) opens straight to that post's comments.
+  function checkDeepLink() {
+    var params = new URLSearchParams(location.search);
+    var bleepId = params.get('bleep');
+    if (bleepId) {
+      openCommentsScreen(bleepId);
+      history.replaceState(null, '', location.pathname);
+    }
+  }
+
+  var LEGAL_CONTENT = {
+    terms: {
+      title: 'Terms of Service',
+      body:
+        'This is a placeholder. Bleepmo\'s actual Terms of Service — covering account eligibility, content ownership, ' +
+        'acceptable use, and liability — needs to be written and reviewed before this app is used by real members. ' +
+        'Until then, this screen exists so the link goes somewhere real instead of nowhere.',
+    },
+    policy: {
+      title: 'Community Voice Policy',
+      body:
+        'This is a placeholder. Bleepmo asks every new member for a short genuine-voice clip at signup, and this is ' +
+        'where the real policy explaining why — how clips are used, how long they\'re kept, and what "genuine" means ' +
+        'in practice — will eventually live. Needs to be written before launch.',
+    },
+  };
+
+  function openLegalScreen(type) {
+    var content = LEGAL_CONTENT[type] || LEGAL_CONTENT.terms;
+    document.getElementById('legalScreenTitle').textContent = content.title;
+    document.getElementById('legalScreenBody').textContent = content.body;
+    document.getElementById('legalScreen').classList.add('show');
+  }
+
+  function closeLegalScreen() {
+    document.getElementById('legalScreen').classList.remove('show');
   }
 
   function cardStatusClass(b) {

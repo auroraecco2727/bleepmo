@@ -82,9 +82,22 @@ export async function handleBleepsGet(request, env) {
       (tagsByBleepId[t.bleep_id] = tagsByBleepId[t.bleep_id] || []).push(t.handle_symbol + t.handle);
     }
 
+    const { results: allLikes } = await env.DB
+      .prepare(`SELECT bleep_id, user_id FROM likes WHERE bleep_id IN (${placeholders})`)
+      .bind(...ids)
+      .all();
+    const likeCountByBleepId = {};
+    const likedByViewerSet = new Set();
+    for (const l of allLikes) {
+      likeCountByBleepId[l.bleep_id] = (likeCountByBleepId[l.bleep_id] || 0) + 1;
+      if (l.user_id === viewer.id) likedByViewerSet.add(l.bleep_id);
+    }
+
     for (const b of results) {
       b.trend_points = trendByBleepId[b.id] || [];
       b.tagged_handles = tagsByBleepId[b.id] || [];
+      b.like_count = likeCountByBleepId[b.id] || 0;
+      b.liked_by_viewer = likedByViewerSet.has(b.id);
     }
   }
 
@@ -217,6 +230,8 @@ export async function handleBleepsPost(request, env) {
     .bind(bleepId)
     .first();
   bleep.trend_points = trendPoints;
+  bleep.like_count = 0;
+  bleep.liked_by_viewer = false;
   bleep.tagged_handles = resolvedTags.map((t) => t.handle_symbol + t.handle);
 
   return new Response(JSON.stringify({ bleep, tagsApplied: resolvedTags.length }), {
