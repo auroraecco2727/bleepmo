@@ -14,6 +14,9 @@ import { handleBleepsGet, handleBleepsPost } from './routes/bleeps.js';
 import { handleBleepDetailGet, handleBleepDetailDelete } from './routes/bleep-detail.js';
 import { handleBleepCommentsGet, handleBleepCommentsPost } from './routes/bleep-comments.js';
 import { handleCommentDetailDelete } from './routes/comment-detail.js';
+import { handleBleepLikeToggle } from './routes/like.js';
+import { handleFollowToggle, handleUserRelationship } from './routes/follow.js';
+import { handleSearch } from './routes/search.js';
 import { handleMedia } from './routes/media.js';
 
 function notFound() {
@@ -60,9 +63,22 @@ export default {
       if (bleepCommentsMatch && method === 'GET') return await handleBleepCommentsGet(request, env, bleepCommentsMatch[1]);
       if (bleepCommentsMatch && method === 'POST') return await handleBleepCommentsPost(request, env, bleepCommentsMatch[1]);
 
+      const bleepLikeMatch = path.match(/^\/api\/bleeps\/([^/]+)\/like$/);
+      if (bleepLikeMatch && method === 'POST') return await handleBleepLikeToggle(request, env, bleepLikeMatch[1]);
+
       // ── Comments ──
       const commentDetailMatch = path.match(/^\/api\/comments\/([^/]+)$/);
       if (commentDetailMatch && method === 'DELETE') return await handleCommentDetailDelete(request, env, commentDetailMatch[1]);
+
+      // ── Follows ──
+      const followMatch = path.match(/^\/api\/users\/([^/]+)\/follow$/);
+      if (followMatch && method === 'POST') return await handleFollowToggle(request, env, followMatch[1]);
+
+      const relationshipMatch = path.match(/^\/api\/users\/([^/]+)\/relationship$/);
+      if (relationshipMatch && method === 'GET') return await handleUserRelationship(request, env, relationshipMatch[1]);
+
+      // ── Search ──
+      if (path === '/api/search' && method === 'GET') return await handleSearch(request, env);
 
       // ── Media (private R2 objects) ──
       const mediaMatch = path.match(/^\/media\/(.+)$/);
