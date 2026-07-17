@@ -57,6 +57,13 @@ CREATE TABLE IF NOT EXISTS likes (
   PRIMARY KEY (bleep_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS follows (
+  follower_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  followee_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (follower_id, followee_id)
+);
+
 CREATE TABLE IF NOT EXISTS comments (
   id                  TEXT PRIMARY KEY,
   content_type        TEXT NOT NULL DEFAULT 'bleep',  -- 'bleep' | 'flick'
@@ -100,6 +107,8 @@ CREATE INDEX IF NOT EXISTS idx_trend_points_bleep ON trend_points(bleep_id);
 CREATE INDEX IF NOT EXISTS idx_trend_points_topic ON trend_points(topic);
 CREATE INDEX IF NOT EXISTS idx_likes_bleep ON likes(bleep_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user ON likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_followee ON follows(followee_id);
 CREATE INDEX IF NOT EXISTS idx_comments_content ON comments(content_type, content_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_tags_content ON tags(content_type, content_id);
