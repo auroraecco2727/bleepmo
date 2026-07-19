@@ -27,14 +27,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
-CREATE TABLE IF NOT EXISTS user_settings (
-  user_id                 TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  in_app_notifications    INTEGER NOT NULL DEFAULT 1,
-  email_updates           INTEGER NOT NULL DEFAULT 0,
-  searchable              INTEGER NOT NULL DEFAULT 1,
-  updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
 -- ══════════════════════════════════════
 -- CONTENT: bleeps, comments, tags, notifications
 -- ══════════════════════════════════════

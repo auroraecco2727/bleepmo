@@ -19,7 +19,7 @@ export async function handleBleepDetailGet(request, env, bleepId) {
 
   const bleep = await env.DB
     .prepare(
-      `SELECT b.id, b.author_id, b.content_type, b.body, b.media_key, b.created_at,
+      `SELECT b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
               u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key
        FROM bleeps b JOIN users u ON u.id = b.author_id
        WHERE b.id = ? AND b.deleted_at IS NULL`
@@ -29,14 +29,22 @@ export async function handleBleepDetailGet(request, env, bleepId) {
 
   if (!bleep) return badRequest('Bleep not found.', 404);
 
+  const { results: trendPoints } = await env.DB
+    .prepare(`SELECT topic FROM trend_points WHERE bleep_id = ? ORDER BY created_at ASC`)
+    .bind(bleepId)
+    .all();
+  bleep.trend_points = trendPoints.map((t) => t.topic);
+
   const { results: tags } = await env.DB
     .prepare(
-      `SELECT t.tagged_user_id, t.symbol_used, u.handle, u.handle_symbol
+      `SELECT u.handle_symbol, u.handle
        FROM tags t JOIN users u ON u.id = t.tagged_user_id
-       WHERE t.content_type = 'bleep' AND t.content_id = ? AND t.approved = 1`
+       WHERE t.content_type = 'bleep' AND t.content_id = ?
+       ORDER BY t.created_at ASC`
     )
     .bind(bleepId)
     .all();
+  bleep.tagged_handles = tags.map((t) => t.handle_symbol + t.handle);
 
   const commentCountRow = await env.DB
     .prepare(
@@ -44,11 +52,21 @@ export async function handleBleepDetailGet(request, env, bleepId) {
     )
     .bind(bleepId)
     .first();
+  bleep.comment_count = commentCountRow ? commentCountRow.n : 0;
 
-  return new Response(
-    JSON.stringify({ bleep, tags, commentCount: commentCountRow ? commentCountRow.n : 0 }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  );
+  const likeCountRow = await env.DB.prepare('SELECT COUNT(*) AS n FROM likes WHERE bleep_id = ?').bind(bleepId).first();
+  bleep.like_count = likeCountRow ? likeCountRow.n : 0;
+
+  const likedByViewerRow = await env.DB
+    .prepare('SELECT 1 FROM likes WHERE bleep_id = ? AND user_id = ?')
+    .bind(bleepId, viewer.id)
+    .first();
+  bleep.liked_by_viewer = !!likedByViewerRow;
+
+  return new Response(JSON.stringify({ bleep }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 export async function handleBleepDetailDelete(request, env, bleepId) {

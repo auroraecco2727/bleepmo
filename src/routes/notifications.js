@@ -14,24 +14,6 @@ export async function handleNotificationsGet(request, env) {
   const user = await getSessionUser(request, env.DB);
   if (!user) return badRequest('Not logged in.', 401);
 
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS user_settings (
-      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      in_app_notifications INTEGER NOT NULL DEFAULT 1,
-      email_updates INTEGER NOT NULL DEFAULT 0,
-      searchable INTEGER NOT NULL DEFAULT 1,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`
-  ).run();
-  await env.DB.prepare('INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)').bind(user.id).run();
-  const preferences = await env.DB.prepare('SELECT in_app_notifications FROM user_settings WHERE user_id = ?').bind(user.id).first();
-  if (!preferences.in_app_notifications) {
-    return new Response(JSON.stringify({ notifications: [] }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
   const { results } = await env.DB
     .prepare(
       `SELECT n.id, n.type, n.source_type, n.source_id, n.read_at, n.created_at,

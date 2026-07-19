@@ -21,18 +21,6 @@ export async function handleSearch(request, env) {
   const viewer = await getSessionUser(request, env.DB);
   if (!viewer) return badRequest('Not logged in.', 401);
 
-  // This keeps the privacy control safe for production databases created
-  // before Settings existed; schema.sql creates the same table for new ones.
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS user_settings (
-      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      in_app_notifications INTEGER NOT NULL DEFAULT 1,
-      email_updates INTEGER NOT NULL DEFAULT 0,
-      searchable INTEGER NOT NULL DEFAULT 1,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`
-  ).run();
-
   const url = new URL(request.url);
   const q = (url.searchParams.get('q') || '').trim();
 
@@ -47,14 +35,13 @@ export async function handleSearch(request, env) {
 
   const { results: users } = await env.DB
     .prepare(
-      `SELECT u.id, u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key
-       FROM users u LEFT JOIN user_settings s ON s.user_id = u.id
-       WHERE (u.id = ? OR COALESCE(s.searchable, 1) = 1)
-         AND (u.handle LIKE ? ESCAPE '\\' OR u.full_name LIKE ? ESCAPE '\\')
+      `SELECT id, full_name, handle_symbol, handle, avatar_shape, main_pic_key, icon_pic_key
+       FROM users
+       WHERE (handle LIKE ? ESCAPE '\\' OR full_name LIKE ? ESCAPE '\\')
        ORDER BY (handle LIKE ? ESCAPE '\\') DESC, full_name ASC
        LIMIT ?`
     )
-    .bind(viewer.id, likeTerm, likeTerm, q + '%', MAX_RESULTS)
+    .bind(likeTerm, likeTerm, q + '%', MAX_RESULTS)
     .all();
 
   const { results: bleeps } = await env.DB
