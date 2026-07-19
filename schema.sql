@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   main_pic_key    TEXT,             -- R2 object key for the main profile picture
   icon_pic_key    TEXT,             -- R2 object key for the smaller icon-profile picture
   voice_clip_key  TEXT,             -- R2 object key for the 15s genuine-voice clip
+  google_sub      TEXT UNIQUE,      -- Google's stable per-user id ('sub' claim), set once linked
+  apple_sub       TEXT UNIQUE,      -- Apple's stable per-user id ('sub' claim), set once linked
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -101,6 +103,31 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ══════════════════════════════════════
+-- DIRECT MESSAGES: 1:1 conversations only, no group DMs (yet).
+-- user_a_id is always the lexicographically smaller of the two user ids,
+-- so a conversation between two users has exactly one row regardless of
+-- who started it — that's what UNIQUE(user_a_id, user_b_id) relies on.
+-- ══════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id                TEXT PRIMARY KEY,
+  user_a_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_b_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_message_at   TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_a_id, user_b_id)
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id                TEXT PRIMARY KEY,
+  conversation_id   TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body              TEXT NOT NULL,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  read_at           TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_bleeps_author ON bleeps(author_id);
 CREATE INDEX IF NOT EXISTS idx_bleeps_created ON bleeps(created_at);
 CREATE INDEX IF NOT EXISTS idx_trend_points_bleep ON trend_points(bleep_id);
@@ -114,3 +141,6 @@ CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_tags_content ON tags(content_type, content_id);
 CREATE INDEX IF NOT EXISTS idx_tags_tagged_user ON tags(tagged_user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+CREATE INDEX IF NOT EXISTS idx_conversations_user_a ON conversations(user_a_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_user_b ON conversations(user_b_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at);
