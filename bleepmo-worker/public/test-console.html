@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bleepmo — Test Console</title>
+<style>
+  :root {
+    --gold: #D4AF37; --gold-light: #E8CC6C;
+    --bg: #0b1230; --panel: rgba(15,35,80,0.35);
+    --border: rgba(212,175,55,0.25); --text-hi: #f2f0e8; --text-mid: #b9c0d4; --text-lo: #7c8399;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'DM Sans', -apple-system, sans-serif; background: var(--bg); color: var(--text-hi);
+    padding: 24px; max-width: 720px; margin: 0 auto;
+  }
+  h1 { font-size: 20px; color: var(--gold); margin-bottom: 4px; }
+  .sub { color: var(--text-lo); font-size: 12px; margin-bottom: 24px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px; margin-bottom: 20px;
+  }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); margin: 0 0 12px; }
+  input, textarea {
+    width: 100%; padding: 10px 12px; border-radius: 8px; margin-bottom: 8px;
+    background: rgba(9,16,42,0.6); border: 1px solid var(--border); color: var(--text-hi); font-family: inherit; font-size: 13px;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  button {
+    background: linear-gradient(90deg, var(--gold), var(--gold-light)); color: #161225; border: none;
+    border-radius: 999px; padding: 9px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer; margin-right: 6px;
+  }
+  button.secondary { background: rgba(212,175,55,0.1); color: var(--gold); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .status { font-size: 12px; color: var(--text-mid); margin-top: 6px; min-height: 16px; }
+  .status.err { color: #ff8866; }
+  .status.ok { color: #6fdc8c; }
+  .whoami { font-size: 12.5px; color: var(--text-mid); }
+  .whoami b { color: var(--gold); }
+  .bleep { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .bleep .meta { font-size: 11.5px; color: var(--text-lo); margin-bottom: 4px; }
+  .bleep .meta b { color: var(--text-hi); }
+  .bleep .body { font-size: 13.5px; line-height: 1.5; margin-bottom: 8px; white-space: pre-wrap; }
+  .bleep .body .mention { color: var(--gold); font-weight: 600; }
+  .bleep media-box img, .bleep media-box video { max-width: 100%; border-radius: 8px; display: block; margin-bottom: 8px; }
+  .bleep .actions { font-size: 11.5px; color: var(--gold); cursor: pointer; }
+  .comments { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); display: none; }
+  .comment { font-size: 12.5px; margin-bottom: 8px; padding-left: 4px; border-left: 2px solid var(--border); padding-left: 8px; }
+  .comment.reply { margin-left: 18px; opacity: 0.9; }
+  .comment .meta { color: var(--text-lo); font-size: 11px; margin-bottom: 2px; }
+  .comment .meta b { color: var(--text-hi); }
+  .notif { font-size: 12.5px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .notif.unread { color: var(--gold); }
+  .empty { color: var(--text-lo); font-size: 12.5px; font-style: italic; }
+  code { background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<h1>Bleepmo — Test Console</h1>
+<div class="sub">Not part of the app UI — a plain harness for exercising the real backend: login, post, comment, tag, notify.</div>
+
+<div class="panel" id="authPanel">
+  <h2>1. Log in</h2>
+  <div class="row">
+    <input id="loginUserId" placeholder="Email or handle" style="flex:1;" />
+    <input id="loginPassword" type="password" placeholder="Password" style="flex:1;" />
+  </div>
+  <button onclick="doLogin()">Log in</button>
+  <button class="secondary" onclick="doLogout()">Log out</button>
+  <button class="secondary" onclick="checkMe()">Who am I?</button>
+  <div class="status" id="authStatus"></div>
+  <div class="whoami" id="whoami">Not checked yet.</div>
+</div>
+
+<div class="panel">
+  <h2>2. Post a Bleep</h2>
+  <textarea id="bleepBody" placeholder="What's happening? Try mentioning someone with @handle, *handle, ~handle, ^handle, &gt;handle, or &amp;handle"></textarea>
+  <input id="bleepMedia" type="file" accept="image/*,video/*" />
+  <button onclick="postBleep()">Post Bleep</button>
+  <div class="status" id="postStatus"></div>
+</div>
+
+<div class="panel">
+  <h2>3. Feed</h2>
+  <button onclick="loadFeed()">Refresh Feed</button>
+  <div class="status" id="feedStatus"></div>
+  <div id="feedList" style="margin-top:12px;"></div>
+</div>
+
+<div class="panel">
+  <h2>4. Notifications</h2>
+  <button onclick="loadNotifications()">Refresh Notifications</button>
+  <button class="secondary" onclick="markAllRead()">Mark all read</button>
+  <div class="status" id="notifStatus"></div>
+  <div id="notifList" style="margin-top:12px;"></div>
+</div>
+
+<script>
+  var currentUser = null;
+
+  function setStatus(id, msg, cls) {
+    var el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function renderMentions(text) {
+    text = text || '';
+    var re = /(^|[^A-Za-z0-9_])([@*~^>&])([A-Za-z0-9_]{2,30})/g;
+    var result = '';
+    var lastIndex = 0;
+    var match;
+    while ((match = re.exec(text)) !== null) {
+      var pre = match[1];
+      var sym = match[2];
+      var handle = match[3];
+      var plainEnd = match.index + pre.length;
+      result += escapeHtml(text.slice(lastIndex, plainEnd));
+      result += '<span class="mention">' + escapeHtml(sym + handle) + '</span>';
+      lastIndex = re.lastIndex;
+    }
+    result += escapeHtml(text.slice(lastIndex));
+    return result;
+  }
+
+  async function doLogin() {
+    setStatus('authStatus', 'Logging in…');
+    try {
+      var res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: document.getElementById('loginUserId').value.trim(),
+          password: document.getElementById('loginPassword').value,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) { setStatus('authStatus', data.error || 'Login failed.', 'err'); return; }
+      currentUser = data.user;
+      setStatus('authStatus', 'Logged in ✓', 'ok');
+      renderWhoami();
+    } catch (e) {
+      setStatus('authStatus', 'Network error — is the backend deployed?', 'err');
+    }
+  }
+
+  async function doLogout() {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      currentUser = null;
+      setStatus('authStatus', 'Logged out.', 'ok');
+      renderWhoami();
+    } catch (e) {
+      setStatus('authStatus', 'Network error.', 'err');
+    }
+  }
+
+  async function checkMe() {
+    try {
+      var res = await fetch('/api/me', { credentials: 'include' });
+      var data = await res.json();
+      currentUser = res.ok ? data.user : null;
+      renderWhoami();
+    } catch (e) {
+      setStatus('authStatus', 'Network error.', 'err');
+    }
+  }
+
+  function renderWhoami() {
+    var el = document.getElementById('whoami');
+    if (currentUser) {
+      el.innerHTML = 'Logged in as <b>' + currentUser.handle_symbol + currentUser.handle + '</b> (' + escapeHtml(currentUser.full_name) + ')';
+    } else {
+      el.textContent = 'Not logged in.';
+    }
+  }
+
+  async function postBleep() {
+    setStatus('postStatus', 'Posting…');
+    var fd = new FormData();
+    fd.append('body', document.getElementById('bleepBody').value);
+    var mediaFile = document.getElementById('bleepMedia').files[0];
+    if (mediaFile) fd.append('media', mediaFile);
+
+    try {
+      var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) { setStatus('postStatus', data.error || 'Failed to post.', 'err'); return; }
+      setStatus('postStatus', 'Posted ✓ (' + data.tagsApplied + ' tag(s) applied)', 'ok');
+      document.getElementById('bleepBody').value = '';
+      document.getElementById('bleepMedia').value = '';
+      loadFeed();
+    } catch (e) {
+      setStatus('postStatus', 'Network error.', 'err');
+    }
+  }
+
+  function mediaElement(mediaKey) {
+    var box = document.createElement('media-box');
+    var img = document.createElement('img');
+    img.src = '/media/' + mediaKey;
+    img.onerror = function () {
+      box.innerHTML = '';
+      var vid = document.createElement('video');
+      vid.src = '/media/' + mediaKey;
+      vid.controls = true;
+      box.appendChild(vid);
+    };
+    box.appendChild(img);
+    return box;
+  }
+
+  async function loadFeed() {
+    setStatus('feedStatus', 'Loading…');
+    try {
+      var res = await fetch('/api/bleeps', { credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) { setStatus('feedStatus', data.error || 'Failed to load feed.', 'err'); return; }
+      setStatus('feedStatus', data.bleeps.length + ' Bleep(s) loaded.', 'ok');
+
+      var list = document.getElementById('feedList');
+      list.innerHTML = '';
+      if (data.bleeps.length === 0) {
+        list.innerHTML = '<div class="empty">No Bleeps yet — post the first one above.</div>';
+        return;
+      }
+      data.bleeps.forEach(function (b) {
+        var div = document.createElement('div');
+        div.className = 'bleep';
+        var mediaHtml = '';
+        div.innerHTML =
+          '<div class="meta"><b>' + b.handle_symbol + b.handle + '</b> · ' + escapeHtml(b.full_name) + ' · ' + new Date(b.created_at + 'Z').toLocaleString() + '</div>' +
+          (b.body ? '<div class="body">' + renderMentions(b.body) + '</div>' : '') +
+          '<div class="media-slot"></div>' +
+          '<div class="actions" onclick="toggleComments(\'' + b.id + '\', this)">💬 ' + b.comment_count + ' comment(s) — tap to view/add</div>' +
+          '<div class="comments" id="comments-' + b.id + '">' +
+          '  <div class="commentList" id="commentList-' + b.id + '"></div>' +
+          '  <div class="row" style="margin-top:8px;">' +
+          '    <input id="commentInput-' + b.id + '" placeholder="Add a comment… (mentions work here too)" style="flex:1;" />' +
+          '    <button onclick="postComment(\'' + b.id + '\')">Reply</button>' +
+          '  </div>' +
+          '</div>';
+        if (b.media_key) {
+          div.querySelector('.media-slot').appendChild(mediaElement(b.media_key));
+        }
+        list.appendChild(div);
+      });
+    } catch (e) {
+      setStatus('feedStatus', 'Network error.', 'err');
+    }
+  }
+
+  async function toggleComments(bleepId, el) {
+    var box = document.getElementById('comments-' + bleepId);
+    var isOpen = box.style.display === 'block';
+    box.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) await loadComments(bleepId);
+  }
+
+  async function loadComments(bleepId) {
+    var listEl = document.getElementById('commentList-' + bleepId);
+    listEl.innerHTML = '<div class="empty">Loading…</div>';
+    try {
+      var res = await fetch('/api/bleeps/' + bleepId + '/comments', { credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) { listEl.innerHTML = '<div class="empty">' + (data.error || 'Failed to load.') + '</div>'; return; }
+      if (data.comments.length === 0) { listEl.innerHTML = '<div class="empty">No comments yet.</div>'; return; }
+      listEl.innerHTML = '';
+      data.comments.forEach(function (c) {
+        var div = document.createElement('div');
+        div.className = 'comment' + (c.parent_comment_id ? ' reply' : '');
+        div.innerHTML =
+          '<div class="meta"><b>' + c.handle_symbol + c.handle + '</b> · ' + new Date(c.created_at + 'Z').toLocaleString() + (c.parent_comment_id ? ' · reply' : '') + '</div>' +
+          '<div>' + renderMentions(c.body) + '</div>';
+        listEl.appendChild(div);
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="empty">Network error.</div>';
+    }
+  }
+
+  async function postComment(bleepId) {
+    var input = document.getElementById('commentInput-' + bleepId);
+    var body = input.value.trim();
+    if (!body) return;
+    try {
+      var res = await fetch('/api/bleeps/' + bleepId + '/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ body: body }),
+      });
+      var data = await res.json();
+      if (!res.ok) { alert(data.error || 'Failed to comment.'); return; }
+      input.value = '';
+      await loadComments(bleepId);
+      loadFeed();
+    } catch (e) {
+      alert('Network error.');
+    }
+  }
+
+  async function loadNotifications() {
+    setStatus('notifStatus', 'Loading…');
+    try {
+      var res = await fetch('/api/notifications', { credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) { setStatus('notifStatus', data.error || 'Failed to load.', 'err'); return; }
+      setStatus('notifStatus', data.notifications.length + ' notification(s).', 'ok');
+
+      var list = document.getElementById('notifList');
+      list.innerHTML = '';
+      if (data.notifications.length === 0) {
+        list.innerHTML = '<div class="empty">No notifications yet.</div>';
+        return;
+      }
+      data.notifications.forEach(function (n) {
+        var div = document.createElement('div');
+        div.className = 'notif' + (n.read_at ? '' : ' unread');
+        var verb = n.type === 'tag' ? 'tagged you in a' : n.type === 'reply' ? 'replied to your comment on a' : 'commented on your';
+        div.textContent = (n.actor_symbol + n.actor_handle) + ' ' + verb + ' ' + n.source_type + ' · ' + new Date(n.created_at + 'Z').toLocaleString();
+        list.appendChild(div);
+      });
+    } catch (e) {
+      setStatus('notifStatus', 'Network error.', 'err');
+    }
+  }
+
+  async function markAllRead() {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ markAllRead: true }),
+      });
+      loadNotifications();
+    } catch (e) {
+      setStatus('notifStatus', 'Network error.', 'err');
+    }
+  }
+
+  checkMe();
+</script>
+</body>
+</html>

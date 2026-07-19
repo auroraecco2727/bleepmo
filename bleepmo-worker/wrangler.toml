@@ -1,0 +1,36 @@
+name = "bleepmo"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# Static site files (index.html, test-console.html) — served automatically
+# for any request that doesn't match a route in src/index.js.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# D1 database — already created, real ID filled in below.
+[[d1_databases]]
+binding = "DB"
+database_name = "bleepmo-db"
+database_id = "ae436c20-9c40-4e7f-8dfb-8fbbe6fa4f94"
+
+# R2 bucket — already created, real name filled in below.
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "bleepmo-media"
+
+# ══════════════════════════════════════
+# OAuth secrets — NOT set yet. "Continue with Google/Apple" will redirect
+# to /?oauth=error&reason=not_configured until these exist. Set with:
+#   wrangler secret put GOOGLE_CLIENT_ID
+#   wrangler secret put GOOGLE_CLIENT_SECRET
+#   wrangler secret put APPLE_CLIENT_ID      (your Services ID, e.g. com.bleepmo.web)
+#   wrangler secret put APPLE_TEAM_ID
+#   wrangler secret put APPLE_KEY_ID
+#   wrangler secret put APPLE_PRIVATE_KEY    (paste the full .p8 file contents)
+#
+# Redirect URIs to register with each provider (must match exactly):
+#   Google : https://<your-domain-or-workers.dev>/api/auth/google/callback
+#   Apple  : https://<your-domain-or-workers.dev>/api/auth/apple/callback
+# Register both your workers.dev URL and bleepmo.com if you test on both.
+# ══════════════════════════════════════
