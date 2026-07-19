@@ -18,6 +18,7 @@ import { handleBleepLikeToggle } from './routes/like.js';
 import { handleFollowToggle, handleUserRelationship } from './routes/follow.js';
 import { handleSearch } from './routes/search.js';
 import { handleMedia } from './routes/media.js';
+import { handleSettingsGet, handleSettingsPatch } from './routes/settings.js';
 
 function notFound() {
   return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -45,6 +46,8 @@ export default {
       if (path === '/api/login' && method === 'POST') return await handleLogin(request, env);
       if (path === '/api/logout' && method === 'POST') return await handleLogout(request, env);
       if (path === '/api/me' && method === 'GET') return await handleMe(request, env);
+      if (path === '/api/settings' && method === 'GET') return await handleSettingsGet(request, env);
+      if (path === '/api/settings' && method === 'PATCH') return await handleSettingsPatch(request, env);
       if (path === '/api/upload-voice-clip' && method === 'POST') return await handleUploadVoiceClip(request, env, ctx);
 
       // ── Notifications ──
