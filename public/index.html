@@ -157,6 +157,34 @@ body::after {
 
 .comment-row { display: flex; gap: 10px; padding: 12px 10px; }
 .comment-row.reply { margin-left: 34px; padding-top: 8px; padding-bottom: 8px; }
+
+/* ── Direct Messages ── */
+.conv-row {
+  display: flex; align-items: center; gap: 11px; padding: 11px 10px;
+  border-radius: 12px; cursor: pointer; transition: background 0.15s;
+}
+.conv-row:hover { background: rgba(212,175,55,0.06); }
+.conv-row-name { font-size: 13.5px; font-weight: 700; color: var(--text-hi); display: flex; align-items: center; gap: 6px; }
+.conv-row-preview { font-size: 12px; color: var(--text-mid); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.conv-row-preview.unread { color: var(--text-hi); font-weight: 600; }
+.conv-row-time { font-size: 10.5px; color: var(--text-lo); flex-shrink: 0; }
+.conv-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+
+.msg-bubble-row { display: flex; margin-bottom: 8px; }
+.msg-bubble-row.mine { justify-content: flex-end; }
+.msg-bubble {
+  max-width: 74%; padding: 9px 13px; border-radius: 16px; font-size: 13px; line-height: 1.45;
+  color: var(--text-hi); word-wrap: break-word; white-space: pre-wrap;
+}
+.msg-bubble-row.mine .msg-bubble {
+  background: linear-gradient(135deg, rgba(212,175,55,0.28), rgba(212,175,55,0.16));
+  border: 1px solid rgba(212,175,55,0.3); border-bottom-right-radius: 4px;
+}
+.msg-bubble-row.theirs .msg-bubble {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-bottom-left-radius: 4px;
+}
+.msg-bubble-time { font-size: 9.5px; color: var(--text-lo); margin-top: 3px; text-align: right; }
+.msg-bubble-row.theirs .msg-bubble-time { text-align: left; }
 .comment-body-col { flex: 1; min-width: 0; }
 .comment-meta { font-size: 12px; color: var(--text-mid); }
 .comment-meta b { color: var(--gold); font-weight: 800; }
@@ -506,6 +534,11 @@ body::after {
 @keyframes taggedGlow {
   0%, 100% { box-shadow: none; }
   50% { box-shadow: inset 3px 0 14px rgba(255,225,120,0.15), 0 0 18px rgba(255,225,120,0.1); }
+}
+.card.card-following {
+  border-left: 3px solid rgba(120,190,255,0.45);
+  background: linear-gradient(90deg, rgba(120,190,255,0.05), transparent 45%);
+  padding-left: 17px;
 }
 
 .bb-header {
@@ -1188,7 +1221,7 @@ body::after {
       <div class="auth-divider">or continue with</div>
 
       <div class="auth-social-row">
-        <button class="auth-social-btn" onclick="enterApp()" aria-label="Continue with Google" title="Google">
+        <button class="auth-social-btn" onclick="window.location.href='/api/auth/google/start'" aria-label="Continue with Google" title="Google">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-linejoin="round">
             <path d="M21 12.2c0-.7-.06-1.4-.18-2H12v3.8h5.05a4.32 4.32 0 0 1-1.88 2.83v2.35h3.03c1.78-1.64 2.8-4.05 2.8-6.98z"/>
             <path d="M12 21c2.55 0 4.7-.84 6.27-2.28l-3.03-2.35c-.84.57-1.93.9-3.24.9-2.49 0-4.6-1.68-5.35-3.94H3.53v2.42A9 9 0 0 0 12 21z"/>
@@ -1196,7 +1229,7 @@ body::after {
             <path d="M12 6.75c1.39 0 2.63.48 3.61 1.42l2.7-2.7C16.7 3.86 14.55 3 12 3a9 9 0 0 0-8.47 5.25l3.12 2.42C7.4 8.43 9.51 6.75 12 6.75z"/>
           </svg>
         </button>
-        <button class="auth-social-btn" onclick="enterApp()" aria-label="Continue with Apple" title="Apple">
+        <button class="auth-social-btn" onclick="window.location.href='/api/auth/apple/start'" aria-label="Continue with Apple" title="Apple">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#D4AF37"><path d="M16.365 1.43c0 1.14-.47 2.24-1.19 3.04-.77.85-2.04 1.5-3.06 1.42-.14-1.1.45-2.26 1.15-3.02.79-.85 2.15-1.49 3.1-1.44zM20.5 17.24c-.55 1.26-.81 1.82-1.52 2.94-.99 1.56-2.38 3.5-4.11 3.52-1.53.02-1.92-1-4-.99-2.08.01-2.51 1.01-4.04.99-1.73-.02-3.05-1.77-4.04-3.33C.28 17.5-.55 13.6.99 10.99c1.03-1.77 2.87-2.9 4.85-2.93 1.6-.03 2.61 1.06 4.02 1.06 1.36 0 2.13-1.06 4.02-1.02 1.36.05 3.13.55 4.16 2.02-3.44 1.98-2.88 6.87.46 8.12z"/></svg>
         </button>
       </div>
@@ -1389,6 +1422,7 @@ body::after {
       <span><b id="profileFollowingCount">0</b> Following</span>
     </div>
     <button class="profile-follow-btn" id="profileFollowBtn" onclick="toggleFollow()" onmouseenter="followBtnHover(true)" onmouseleave="followBtnHover(false)" style="display:none;">Follow</button>
+    <button class="profile-follow-btn" id="profileMessageBtn" onclick="startConversationFromProfile()" style="display:none;background:transparent;">Message</button>
   </div>
 
   <div class="profile-tabs">
@@ -1397,6 +1431,153 @@ body::after {
   </div>
 
   <div class="profile-content" id="profileContent"></div>
+</div>
+
+<!-- ══ SETTINGS SCREEN ══ -->
+<div class="profile-screen" id="settingsScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeSettingsScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Settings</span>
+  </div>
+
+  <div class="profile-content" style="padding:16px;">
+    <div id="settingsStatus" style="display:none;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:14px;"></div>
+
+    <!-- Avatar -->
+    <div class="signup-section">
+      <div class="signup-section-label">Avatar</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+        <div id="settingsMainPicPreview"></div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="voice-btn" onclick="document.getElementById('settingsMainPicInput').click()">Change photo</button>
+            <button type="button" class="voice-btn" onclick="clearSettingsPic('main')">Remove</button>
+          </div>
+          <input type="file" id="settingsMainPicInput" accept="image/*" style="display:none;" onchange="handleSettingsPicChange(event,'main')" />
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">
+        <div id="settingsIconPicPreview"></div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:8px;">
+            <button type="button" class="voice-btn" onclick="document.getElementById('settingsIconPicInput').click()">Change icon</button>
+            <button type="button" class="voice-btn" onclick="clearSettingsPic('icon')">Remove</button>
+          </div>
+          <input type="file" id="settingsIconPicInput" accept="image/*" style="display:none;" onchange="handleSettingsPicChange(event,'icon')" />
+        </div>
+      </div>
+      <div class="shape-row" id="settingsShapeRow">
+        <div class="shape-swatch sh-circle" data-shape="circle" onclick="selectSettingsShape('circle')" title="Circle"></div>
+        <div class="shape-swatch sh-square" data-shape="square" onclick="selectSettingsShape('square')" title="Rounded Square"></div>
+        <div class="shape-swatch sh-hex" data-shape="hex" onclick="selectSettingsShape('hex')" title="Hexagon"></div>
+        <div class="shape-swatch sh-star" data-shape="star" onclick="selectSettingsShape('star')" title="Star"></div>
+        <div class="shape-swatch sh-triangle" data-shape="triangle" onclick="selectSettingsShape('triangle')" title="Triangle"></div>
+      </div>
+    </div>
+
+    <!-- Name / handle -->
+    <div class="signup-section">
+      <div class="signup-section-label">Your Name</div>
+      <div class="auth-field">
+        <label for="settingsFullName">Screen-Name</label>
+        <input class="auth-input" type="text" id="settingsFullName" />
+      </div>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Digital Screenname</div>
+      <div class="symbol-row" id="settingsSymbolRow">
+        <div class="symbol-chip" data-symbol="@" onclick="selectSettingsSymbol('@')">@</div>
+        <div class="symbol-chip" data-symbol="*" onclick="selectSettingsSymbol('*')">*</div>
+        <div class="symbol-chip" data-symbol="~" onclick="selectSettingsSymbol('~')">~</div>
+        <div class="symbol-chip" data-symbol="^" onclick="selectSettingsSymbol('^')">^</div>
+        <div class="symbol-chip" data-symbol=">" onclick="selectSettingsSymbol('>')">&gt;</div>
+        <div class="symbol-chip" data-symbol="&amp;" onclick="selectSettingsSymbol('&amp;')">&amp;</div>
+      </div>
+      <div class="auth-field">
+        <input class="auth-input" type="text" id="settingsHandle" />
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div class="signup-section">
+      <div class="signup-section-label">Change Password</div>
+      <div class="signup-section-hint">Leave blank to keep your current password.</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="auth-field">
+          <label for="settingsCurrentPassword">Current Password</label>
+          <input class="auth-input" type="password" id="settingsCurrentPassword" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <div class="auth-field">
+          <label for="settingsNewPassword">New Password</label>
+          <input class="auth-input" type="password" id="settingsNewPassword" placeholder="••••••••" autocomplete="new-password" />
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="voice-btn" style="width:100%;justify-content:center;padding:12px;margin-bottom:12px;" onclick="saveSettings()" id="settingsSaveBtn">Save Changes</button>
+    <button type="button" class="voice-btn" style="width:100%;justify-content:center;padding:12px;color:#ff6644;border-color:rgba(255,80,50,0.35);" onclick="logoutUser()">Log Out</button>
+  </div>
+</div>
+
+<!-- ══ FINISH YOUR PROFILE (post Google/Apple sign-in, brand-new users) ══ -->
+<div class="auth-screen signup-screen" id="finishProfileScreen" style="display:none;">
+  <div style="padding:18px 20px 8px;">
+    <div class="signup-title syne">Almost there</div>
+    <div class="signup-sub" id="finishProfileSub">Continuing with <span id="finishProfileProvider">your account</span> — just pick a handle and look.</div>
+  </div>
+
+  <div style="padding:0 20px 20px; overflow-y:auto; flex:1;">
+    <div id="finishProfileStatus" style="display:none;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:14px;"></div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Your Name</div>
+      <div class="auth-field">
+        <label for="finishFullName">Screen-Name</label>
+        <input class="auth-input" type="text" id="finishFullName" />
+      </div>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Digital Screenname</div>
+      <div class="symbol-row" id="finishSymbolRow">
+        <div class="symbol-chip active" data-symbol="@" onclick="selectFinishSymbol('@')">@</div>
+        <div class="symbol-chip" data-symbol="*" onclick="selectFinishSymbol('*')">*</div>
+        <div class="symbol-chip" data-symbol="~" onclick="selectFinishSymbol('~')">~</div>
+        <div class="symbol-chip" data-symbol="^" onclick="selectFinishSymbol('^')">^</div>
+        <div class="symbol-chip" data-symbol=">" onclick="selectFinishSymbol('>')">&gt;</div>
+        <div class="symbol-chip" data-symbol="&amp;" onclick="selectFinishSymbol('&amp;')">&amp;</div>
+      </div>
+      <div class="auth-field">
+        <input class="auth-input" type="text" id="finishHandle" placeholder="yourhandle" />
+      </div>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Avatar Shape</div>
+      <div class="shape-row" id="finishShapeRow">
+        <div class="shape-swatch sh-circle active" data-shape="circle" onclick="selectFinishShape('circle')" title="Circle"></div>
+        <div class="shape-swatch sh-square" data-shape="square" onclick="selectFinishShape('square')" title="Rounded Square"></div>
+        <div class="shape-swatch sh-hex" data-shape="hex" onclick="selectFinishShape('hex')" title="Hexagon"></div>
+        <div class="shape-swatch sh-star" data-shape="star" onclick="selectFinishShape('star')" title="Star"></div>
+        <div class="shape-swatch sh-triangle" data-shape="triangle" onclick="selectFinishShape('triangle')" title="Triangle"></div>
+      </div>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Photos (optional, add anytime in Settings)</div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="voice-btn" onclick="document.getElementById('finishMainPicInput').click()">Main photo</button>
+        <button type="button" class="voice-btn" onclick="document.getElementById('finishIconPicInput').click()">Icon photo</button>
+      </div>
+      <input type="file" id="finishMainPicInput" accept="image/*" style="display:none;" onchange="handleFinishPicChange(event,'main')" />
+      <input type="file" id="finishIconPicInput" accept="image/*" style="display:none;" onchange="handleFinishPicChange(event,'icon')" />
+    </div>
+
+    <button type="button" class="auth-btn-primary" style="width:100%;justify-content:center;" onclick="submitFinishProfile()" id="finishProfileSubmitBtn">Create my Bleepmo</button>
+  </div>
 </div>
 
 <!-- ══ NOTIFICATIONS SCREEN ══ -->
@@ -1461,6 +1642,35 @@ body::after {
   </div>
 </div>
 
+<!-- ══ MESSAGES: conversation list ══ -->
+<div class="notif-screen" id="conversationsScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeConversationsScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Messages</span>
+  </div>
+  <div class="notif-list" id="conversationsList"></div>
+</div>
+
+<!-- ══ MESSAGES: single conversation thread ══ -->
+<div class="notif-screen" id="conversationThreadScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeConversationThreadScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <div id="threadHeaderAvatar" style="margin-right:2px;"></div>
+    <span id="threadHeaderName" style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">—</span>
+  </div>
+  <div class="notif-list" id="threadMessagesList" style="flex:1;display:flex;flex-direction:column;"></div>
+  <div style="display:flex;align-items:center;gap:9px;padding:10px 14px 16px;border-top:0.5px solid rgba(212,175,55,0.12);flex-shrink:0;">
+    <textarea class="bot-field-input" id="threadMessageInput" placeholder="Message…" rows="1" oninput="autoGrowComposeInput(this)" onkeydown="handleThreadMessageKeydown(event)"></textarea>
+    <div class="bot-send" id="threadSendBtn" onclick="sendThreadMessage()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </div>
+  </div>
+</div>
+
 <!-- ── Nav ── -->
 <nav class="top-nav">
   <div class="nav-row">
@@ -1520,6 +1730,11 @@ body::after {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       Notifications
       <span class="nav-item-badge" id="drawerNotifBadge" style="display:none;">•</span>
+    </div>
+    <div class="nav-drawer-item" onclick="closeNavDrawer(); openConversationsScreen();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Messages
+      <span class="nav-item-badge" id="drawerMessagesBadge" style="display:none;">•</span>
     </div>
     <div class="nav-drawer-item" onclick="closeNavDrawer(); openOwnProfile();">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
@@ -2173,11 +2388,23 @@ body::after {
     updateNavAvatar();
     loadLiveFeed();
     checkNotifBadge();
+    checkMessagesBadge();
   }
 
   // If a valid session cookie already exists (returning user), skip the
   // auth screen entirely instead of making them log in again.
   (async function checkExistingSession() {
+    // Handle the redirect back from Google/Apple before anything else.
+    var oauthParam = new URLSearchParams(window.location.search).get('oauth');
+    if (oauthParam) {
+      window.history.replaceState({}, '', window.location.pathname);
+      if (oauthParam === 'finish') {
+        openFinishProfileScreen();
+      } else if (oauthParam === 'error') {
+        showToast('That sign-in didn\'t go through. Please try again.');
+      }
+    }
+
     try {
       var res = await fetch('/api/me', { credentials: 'include' });
       if (res.ok) {
@@ -2189,6 +2416,7 @@ body::after {
         updateNavAvatar();
         loadLiveFeed();
         checkNotifBadge();
+    checkMessagesBadge();
         checkDeepLink();
       }
     } catch (err) {
@@ -2526,6 +2754,7 @@ body::after {
       updateNavAvatar();
       loadLiveFeed();
       checkNotifBadge();
+    checkMessagesBadge();
     } catch (err) {
       showSignupError('Couldn\'t reach the server. Is the backend deployed?');
       submitBtn.disabled = false;
@@ -2785,6 +3014,8 @@ body::after {
     followBtn.style.display = (currentUser && authorId === currentUser.id) ? 'none' : 'inline-block';
     followBtn.classList.remove('following');
     followBtn.textContent = 'Follow';
+    var messageBtn = document.getElementById('profileMessageBtn');
+    messageBtn.style.display = (currentUser && authorId === currentUser.id) ? 'none' : 'inline-block';
     document.getElementById('profileScreen').classList.add('show');
 
     fetch('/api/users/' + encodeURIComponent(authorId) + '/relationship', { credentials: 'include' })
@@ -2984,7 +3215,300 @@ body::after {
 
   function drawerSettings() {
     closeNavDrawer();
-    showToast('Settings is coming soon.');
+    openSettingsScreen();
+  }
+
+  /* ── Settings screen ── */
+  var settingsFiles = { mainPic: null, iconPic: null, removeMain: false, removeIcon: false };
+
+  function settingsAvatarPreviewHtml(fallbackUser, sizePx) {
+    return buildAvatarHtml(fallbackUser, sizePx || 64);
+  }
+
+  function refreshSettingsAvatarPreviews() {
+    // Build a transient user-shaped object reflecting any pending (not yet
+    // saved) picture changes, so the preview matches what Save will send.
+    var previewUser = Object.assign({}, currentUser);
+    var shapeEl = document.querySelector('#settingsShapeRow .shape-swatch.active');
+    if (shapeEl) previewUser.avatar_shape = shapeEl.getAttribute('data-shape');
+
+    if (settingsFiles.removeMain) previewUser.main_pic_key = null;
+    if (settingsFiles.removeIcon) previewUser.icon_pic_key = null;
+
+    var mainWrap = document.getElementById('settingsMainPicPreview');
+    var iconWrap = document.getElementById('settingsIconPicPreview');
+    if (mainWrap) {
+      if (settingsFiles.mainPic) {
+        mainWrap.innerHTML =
+          '<div style="width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0;">' +
+          '<img src="' + settingsFiles.mainPicPreviewUrl + '" style="width:100%;height:100%;object-fit:cover;" /></div>';
+      } else {
+        mainWrap.innerHTML = settingsAvatarPreviewHtml(previewUser, 64);
+      }
+    }
+    if (iconWrap) {
+      if (settingsFiles.iconPic) {
+        iconWrap.innerHTML =
+          '<div style="width:64px;height:64px;border-radius:50%;overflow:hidden;flex-shrink:0;">' +
+          '<img src="' + settingsFiles.iconPicPreviewUrl + '" style="width:100%;height:100%;object-fit:cover;" /></div>';
+      } else {
+        var iconOnlyUser = { avatar_shape: 'circle', icon_pic_key: previewUser.icon_pic_key, full_name: previewUser.full_name };
+        iconWrap.innerHTML = settingsAvatarPreviewHtml(iconOnlyUser, 64);
+      }
+    }
+  }
+
+  function selectSettingsShape(shape) {
+    document.querySelectorAll('#settingsShapeRow .shape-swatch').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-shape') === shape);
+    });
+    refreshSettingsAvatarPreviews();
+  }
+
+  function selectSettingsSymbol(sym) {
+    document.querySelectorAll('#settingsSymbolRow .symbol-chip').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-symbol') === sym);
+    });
+  }
+
+  function handleSettingsPicChange(evt, which) {
+    var file = evt.target.files && evt.target.files[0];
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    if (which === 'main') {
+      settingsFiles.mainPic = file;
+      settingsFiles.mainPicPreviewUrl = url;
+      settingsFiles.removeMain = false;
+    } else {
+      settingsFiles.iconPic = file;
+      settingsFiles.iconPicPreviewUrl = url;
+      settingsFiles.removeIcon = false;
+    }
+    refreshSettingsAvatarPreviews();
+  }
+
+  function clearSettingsPic(which) {
+    if (which === 'main') {
+      settingsFiles.mainPic = null;
+      settingsFiles.mainPicPreviewUrl = null;
+      settingsFiles.removeMain = true;
+      document.getElementById('settingsMainPicInput').value = '';
+    } else {
+      settingsFiles.iconPic = null;
+      settingsFiles.iconPicPreviewUrl = null;
+      settingsFiles.removeIcon = true;
+      document.getElementById('settingsIconPicInput').value = '';
+    }
+    refreshSettingsAvatarPreviews();
+  }
+
+  function showSettingsStatus(message, isError) {
+    var el = document.getElementById('settingsStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.style.display = 'block';
+    el.style.background = isError ? 'rgba(255,80,50,0.1)' : 'rgba(120,220,150,0.1)';
+    el.style.color = isError ? '#ff6644' : '#7fe0a0';
+    el.style.border = '1px solid ' + (isError ? 'rgba(255,80,50,0.3)' : 'rgba(120,220,150,0.3)');
+  }
+
+  function openSettingsScreen() {
+    if (!currentUser) return;
+    settingsFiles = { mainPic: null, iconPic: null, removeMain: false, removeIcon: false };
+    document.getElementById('settingsStatus').style.display = 'none';
+    document.getElementById('settingsFullName').value = currentUser.full_name || '';
+    document.getElementById('settingsHandle').value = currentUser.handle || '';
+    document.getElementById('settingsCurrentPassword').value = '';
+    document.getElementById('settingsNewPassword').value = '';
+    selectSettingsShape(currentUser.avatar_shape || 'circle');
+    selectSettingsSymbol(currentUser.handle_symbol || '@');
+    refreshSettingsAvatarPreviews();
+    document.getElementById('settingsScreen').classList.add('show');
+  }
+
+  function closeSettingsScreen() {
+    document.getElementById('settingsScreen').classList.remove('show');
+  }
+
+  async function saveSettings() {
+    if (!currentUser) return;
+    var btn = document.getElementById('settingsSaveBtn');
+    var originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    var fullName = document.getElementById('settingsFullName').value.trim();
+    var handle = document.getElementById('settingsHandle').value.trim();
+    var symbolEl = document.querySelector('#settingsSymbolRow .symbol-chip.active');
+    var shapeEl = document.querySelector('#settingsShapeRow .shape-swatch.active');
+    var currentPassword = document.getElementById('settingsCurrentPassword').value;
+    var newPassword = document.getElementById('settingsNewPassword').value;
+
+    if (!fullName || !handle) {
+      showSettingsStatus('Screen-name and handle can\'t be empty.', true);
+      btn.disabled = false;
+      btn.textContent = originalText;
+      return;
+    }
+
+    var fd = new FormData();
+    fd.append('fullName', fullName);
+    fd.append('handle', handle);
+    if (symbolEl) fd.append('handleSymbol', symbolEl.getAttribute('data-symbol'));
+    if (shapeEl) fd.append('avatarShape', shapeEl.getAttribute('data-shape'));
+    if (settingsFiles.mainPic) fd.append('mainPic', settingsFiles.mainPic);
+    if (settingsFiles.removeMain) fd.append('removeMainPic', 'true');
+    if (settingsFiles.iconPic) fd.append('iconPic', settingsFiles.iconPic);
+    if (settingsFiles.removeIcon) fd.append('removeIconPic', 'true');
+    if (currentPassword || newPassword) {
+      fd.append('currentPassword', currentPassword);
+      fd.append('newPassword', newPassword);
+    }
+
+    try {
+      var res = await fetch('/api/me', { method: 'PATCH', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        showSettingsStatus(data.error || 'Couldn\'t save changes.', true);
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      currentUser = data.user;
+      settingsFiles = { mainPic: null, iconPic: null, removeMain: false, removeIcon: false };
+      document.getElementById('settingsCurrentPassword').value = '';
+      document.getElementById('settingsNewPassword').value = '';
+      updateNavAvatar();
+      refreshSettingsAvatarPreviews();
+      showSettingsStatus('Saved.', false);
+    } catch (err) {
+      showSettingsStatus('Couldn\'t reach the server.', true);
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+
+  async function logoutUser() {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      // Even if the request fails, drop the client-side state and reload —
+      // the cookie will still expire on its own.
+    }
+    window.location.reload();
+  }
+
+  /* ── Finish-your-profile (post Google/Apple sign-in, brand-new users) ── */
+  var finishProfileFiles = { mainPic: null, iconPic: null };
+
+  async function openFinishProfileScreen() {
+    var authScreen = document.getElementById('authScreen');
+    if (authScreen) authScreen.classList.add('hide');
+    finishProfileFiles = { mainPic: null, iconPic: null };
+    document.getElementById('finishProfileStatus').style.display = 'none';
+    document.getElementById('finishFullName').value = '';
+    document.getElementById('finishHandle').value = '';
+    selectFinishSymbol('@');
+    selectFinishShape('circle');
+    document.getElementById('finishProfileScreen').style.display = 'flex';
+
+    try {
+      var res = await fetch('/api/auth/pending', { credentials: 'include' });
+      if (!res.ok) {
+        showFinishProfileStatus('Your sign-in expired. Please try Google/Apple again.', true);
+        return;
+      }
+      var data = await res.json();
+      var pending = data.pending;
+      if (!pending) return;
+      document.getElementById('finishFullName').value = pending.fullName || '';
+      document.getElementById('finishProfileProvider').textContent =
+        pending.provider === 'apple' ? 'Apple' : 'Google';
+      var subEl = document.getElementById('finishProfileSub');
+      if (pending.email) {
+        subEl.textContent = 'Signing up as ' + pending.email + ' — just pick a handle and look.';
+      }
+    } catch (err) {
+      showFinishProfileStatus('Couldn\'t reach the server.', true);
+    }
+  }
+
+  function selectFinishSymbol(sym) {
+    document.querySelectorAll('#finishSymbolRow .symbol-chip').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-symbol') === sym);
+    });
+  }
+
+  function selectFinishShape(shape) {
+    document.querySelectorAll('#finishShapeRow .shape-swatch').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-shape') === shape);
+    });
+  }
+
+  function handleFinishPicChange(evt, which) {
+    var file = evt.target.files && evt.target.files[0];
+    if (!file) return;
+    if (which === 'main') finishProfileFiles.mainPic = file;
+    else finishProfileFiles.iconPic = file;
+  }
+
+  function showFinishProfileStatus(message, isError) {
+    var el = document.getElementById('finishProfileStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.style.display = 'block';
+    el.style.background = isError ? 'rgba(255,80,50,0.1)' : 'rgba(120,220,150,0.1)';
+    el.style.color = isError ? '#ff6644' : '#7fe0a0';
+    el.style.border = '1px solid ' + (isError ? 'rgba(255,80,50,0.3)' : 'rgba(120,220,150,0.3)');
+  }
+
+  async function submitFinishProfile() {
+    var fullName = document.getElementById('finishFullName').value.trim();
+    var handle = document.getElementById('finishHandle').value.trim();
+    var symbolEl = document.querySelector('#finishSymbolRow .symbol-chip.active');
+    var shapeEl = document.querySelector('#finishShapeRow .shape-swatch.active');
+
+    if (!handle) {
+      showFinishProfileStatus('Please choose a handle.', true);
+      return;
+    }
+
+    var btn = document.getElementById('finishProfileSubmitBtn');
+    btn.disabled = true;
+    var originalText = btn.textContent;
+    btn.textContent = 'Creating…';
+
+    var fd = new FormData();
+    if (fullName) fd.append('fullName', fullName);
+    fd.append('handle', handle);
+    if (symbolEl) fd.append('handleSymbol', symbolEl.getAttribute('data-symbol'));
+    if (shapeEl) fd.append('avatarShape', shapeEl.getAttribute('data-shape'));
+    if (finishProfileFiles.mainPic) fd.append('mainPic', finishProfileFiles.mainPic);
+    if (finishProfileFiles.iconPic) fd.append('iconPic', finishProfileFiles.iconPic);
+
+    try {
+      var res = await fetch('/api/auth/complete', { method: 'POST', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        showFinishProfileStatus(data.error || 'Couldn\'t create your account.', true);
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+      currentUser = data.user;
+      document.getElementById('finishProfileScreen').style.display = 'none';
+      var authScreen = document.getElementById('authScreen');
+      if (authScreen) authScreen.style.display = 'none';
+      updateComposeIdentity();
+      updateNavAvatar();
+      loadLiveFeed();
+      checkNotifBadge();
+      checkMessagesBadge();
+    } catch (err) {
+      showFinishProfileStatus('Couldn\'t reach the server.', true);
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   function openOwnProfile() {
@@ -3084,6 +3608,225 @@ body::after {
     } catch (err) {
       // quiet fail
     }
+  }
+
+  /* ── Direct Messages ── */
+  async function checkMessagesBadge() {
+    if (!currentUser) return;
+    try {
+      var res = await fetch('/api/conversations', { credentials: 'include' });
+      if (!res.ok) return;
+      var data = await res.json();
+      var unreadTotal = (data.conversations || []).reduce(function (sum, c) { return sum + (c.unread_count || 0); }, 0);
+      var drawerBadge = document.getElementById('drawerMessagesBadge');
+      if (drawerBadge) drawerBadge.style.display = unreadTotal > 0 ? 'inline-block' : 'none';
+    } catch (err) {
+      // quiet fail
+    }
+  }
+
+  function conversationOtherUser(c) {
+    return {
+      id: c.other_id,
+      full_name: c.other_full_name,
+      handle_symbol: c.other_handle_symbol,
+      handle: c.other_handle,
+      avatar_shape: c.other_avatar_shape,
+      main_pic_key: c.other_main_pic_key,
+      icon_pic_key: c.other_icon_pic_key,
+    };
+  }
+
+  async function openConversationsScreen() {
+    document.getElementById('conversationsScreen').classList.add('show');
+    var list = document.getElementById('conversationsList');
+    list.innerHTML = '<div class="profile-loading">Loading…</div>';
+    try {
+      var res = await fetch('/api/conversations', { credentials: 'include' });
+      if (!res.ok) {
+        list.innerHTML = '<div class="profile-empty-state">Couldn\'t load messages right now.</div>';
+        return;
+      }
+      var data = await res.json();
+      renderConversationsList(data.conversations || []);
+    } catch (err) {
+      list.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function closeConversationsScreen() {
+    document.getElementById('conversationsScreen').classList.remove('show');
+  }
+
+  function renderConversationsList(conversations) {
+    var list = document.getElementById('conversationsList');
+    list.innerHTML = '';
+    if (conversations.length === 0) {
+      list.innerHTML = '<div class="profile-empty-state">No messages yet. Visit a profile and tap Message to start a conversation.</div>';
+      return;
+    }
+    conversations.forEach(function (c) {
+      var other = conversationOtherUser(c);
+      var row = document.createElement('div');
+      row.className = 'conv-row';
+      var unread = (c.unread_count || 0) > 0;
+      var previewText = c.last_message_body
+        ? (c.last_message_sender_id === currentUser.id ? 'You: ' : '') + c.last_message_body
+        : 'Say hello…';
+      row.innerHTML =
+        buildAvatarHtml(other, 44) +
+        '<div style="flex:1;min-width:0;">' +
+        '  <div class="conv-row-name">' + escapeHtml(other.full_name) +
+        (unread ? '<span class="conv-unread-dot"></span>' : '') +
+        '  </div>' +
+        '  <div class="conv-row-preview' + (unread ? ' unread' : '') + '">' + escapeHtml(previewText) + '</div>' +
+        '</div>' +
+        '<div class="conv-row-time">' + (c.last_message_at ? relativeTime(c.last_message_at) : '') + '</div>';
+      row.onclick = function () { openConversationThread(c.id, other); };
+      list.appendChild(row);
+    });
+  }
+
+  var threadScreenState = { conversationId: null, otherUser: null };
+
+  async function startConversationFromProfile() {
+    if (!profileScreenState.authorId || !currentUser) return;
+    if (profileScreenState.authorId === currentUser.id) return;
+
+    var btn = document.getElementById('profileMessageBtn');
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+
+    try {
+      var res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ otherUserId: profileScreenState.authorId }),
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Couldn\'t start that conversation.');
+        return;
+      }
+      var otherName = document.getElementById('profileName').textContent;
+      var otherHandleHtml = document.getElementById('profileHandle').innerHTML;
+      var symMatch = otherHandleHtml.match(/<span class="sym">([^<]*)<\/span>(.*)$/);
+      var other = {
+        id: profileScreenState.authorId,
+        full_name: otherName,
+        handle_symbol: symMatch ? symMatch[1] : '@',
+        handle: symMatch ? symMatch[2] : '',
+        avatar_shape: (profileScreenState.posts && profileScreenState.posts[0] && profileScreenState.posts[0].avatar_shape) || 'circle',
+        main_pic_key: (profileScreenState.posts && profileScreenState.posts[0] && profileScreenState.posts[0].main_pic_key) || null,
+        icon_pic_key: (profileScreenState.posts && profileScreenState.posts[0] && profileScreenState.posts[0].icon_pic_key) || null,
+      };
+      closeProfileScreen();
+      openConversationThread(data.conversation.id, other);
+    } catch (err) {
+      alert('Couldn\'t reach the server.');
+    }
+    btn.style.opacity = '';
+    btn.style.pointerEvents = '';
+  }
+
+  async function openConversationThread(conversationId, otherUser) {
+    threadScreenState.conversationId = conversationId;
+    threadScreenState.otherUser = otherUser;
+
+    document.getElementById('threadHeaderAvatar').innerHTML = buildAvatarHtml(otherUser, 26);
+    document.getElementById('threadHeaderName').textContent = otherUser.full_name;
+    document.getElementById('threadMessageInput').value = '';
+    document.getElementById('threadMessagesList').innerHTML = '<div class="profile-loading">Loading…</div>';
+    document.getElementById('conversationThreadScreen').classList.add('show');
+
+    try {
+      var res = await fetch('/api/conversations/' + encodeURIComponent(conversationId) + '/messages', { credentials: 'include' });
+      if (!res.ok) {
+        document.getElementById('threadMessagesList').innerHTML = '<div class="profile-empty-state">Couldn\'t load this conversation.</div>';
+        return;
+      }
+      var data = await res.json();
+      renderThreadMessages(data.messages || []);
+      fetch('/api/conversations/' + encodeURIComponent(conversationId) + '/read', { method: 'POST', credentials: 'include' })
+        .then(function () { checkMessagesBadge(); })
+        .catch(function () {});
+    } catch (err) {
+      document.getElementById('threadMessagesList').innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function closeConversationThreadScreen() {
+    document.getElementById('conversationThreadScreen').classList.remove('show');
+    threadScreenState.conversationId = null;
+    threadScreenState.otherUser = null;
+  }
+
+  function buildMessageBubbleEl(m) {
+    var row = document.createElement('div');
+    var mine = currentUser && m.sender_id === currentUser.id;
+    row.className = 'msg-bubble-row ' + (mine ? 'mine' : 'theirs');
+    row.innerHTML =
+      '<div>' +
+      '  <div class="msg-bubble">' + escapeHtml(m.body) + '</div>' +
+      '  <div class="msg-bubble-time">' + relativeTime(m.created_at) + '</div>' +
+      '</div>';
+    return row;
+  }
+
+  function renderThreadMessages(messages) {
+    var list = document.getElementById('threadMessagesList');
+    list.innerHTML = '';
+    if (messages.length === 0) {
+      list.innerHTML = '<div class="profile-empty-state">No messages yet. Say hello!</div>';
+      return;
+    }
+    messages.forEach(function (m) { list.appendChild(buildMessageBubbleEl(m)); });
+    list.scrollTop = list.scrollHeight;
+  }
+
+  function handleThreadMessageKeydown(evt) {
+    if (evt.key === 'Enter' && !evt.shiftKey) {
+      evt.preventDefault();
+      sendThreadMessage();
+    }
+  }
+
+  async function sendThreadMessage() {
+    var input = document.getElementById('threadMessageInput');
+    var body = input.value.trim();
+    if (!body || !threadScreenState.conversationId) return;
+
+    var sendBtn = document.getElementById('threadSendBtn');
+    sendBtn.style.opacity = '0.4';
+    sendBtn.style.pointerEvents = 'none';
+
+    try {
+      var res = await fetch('/api/conversations/' + encodeURIComponent(threadScreenState.conversationId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ body: body }),
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Couldn\'t send that message.');
+        sendBtn.style.opacity = '';
+        sendBtn.style.pointerEvents = '';
+        return;
+      }
+      var list = document.getElementById('threadMessagesList');
+      var emptyState = list.querySelector('.profile-empty-state');
+      if (emptyState) list.innerHTML = '';
+      list.appendChild(buildMessageBubbleEl(data.message));
+      list.scrollTop = list.scrollHeight;
+      input.value = '';
+      input.style.height = 'auto';
+    } catch (err) {
+      alert('Couldn\'t reach the server.');
+    }
+    sendBtn.style.opacity = '';
+    sendBtn.style.pointerEvents = '';
   }
 
   /* ── Comments screen ── */
@@ -3415,6 +4158,7 @@ body::after {
       return ' card-tagged-you';
     }
     if (b.is_breaking) return ' card-breaking';
+    if (b.followed_by_viewer) return ' card-following';
     return '';
   }
 

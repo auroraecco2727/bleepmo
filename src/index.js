@@ -8,6 +8,7 @@ import { handleSignup } from './routes/signup.js';
 import { handleLogin } from './routes/login.js';
 import { handleLogout } from './routes/logout.js';
 import { handleMe } from './routes/me.js';
+import { handleUpdateProfile } from './routes/update-profile.js';
 import { handleUploadVoiceClip } from './routes/upload-voice-clip.js';
 import { handleNotificationsGet, handleNotificationsPost } from './routes/notifications.js';
 import { handleBleepsGet, handleBleepsPost } from './routes/bleeps.js';
@@ -17,6 +18,16 @@ import { handleCommentDetailDelete } from './routes/comment-detail.js';
 import { handleBleepLikeToggle } from './routes/like.js';
 import { handleFollowToggle, handleUserRelationship } from './routes/follow.js';
 import { handleSearch } from './routes/search.js';
+import {
+  handleConversationsGet,
+  handleConversationsPost,
+  handleConversationMessagesGet,
+  handleConversationMessagesPost,
+  handleConversationReadPost,
+} from './routes/conversations.js';
+import { handleGoogleAuthStart, handleGoogleAuthCallback } from './routes/oauth-google.js';
+import { handleAppleAuthStart, handleAppleAuthCallback } from './routes/oauth-apple.js';
+import { handlePendingOAuthGet, handleCompleteOAuthSignup } from './routes/oauth-complete.js';
 import { handleMedia } from './routes/media.js';
 
 function notFound() {
@@ -45,6 +56,7 @@ export default {
       if (path === '/api/login' && method === 'POST') return await handleLogin(request, env);
       if (path === '/api/logout' && method === 'POST') return await handleLogout(request, env);
       if (path === '/api/me' && method === 'GET') return await handleMe(request, env);
+      if (path === '/api/me' && method === 'PATCH') return await handleUpdateProfile(request, env);
       if (path === '/api/upload-voice-clip' && method === 'POST') return await handleUploadVoiceClip(request, env, ctx);
 
       // ── Notifications ──
@@ -79,6 +91,25 @@ export default {
 
       // ── Search ──
       if (path === '/api/search' && method === 'GET') return await handleSearch(request, env);
+
+      // ── Direct Messages ──
+      if (path === '/api/conversations' && method === 'GET') return await handleConversationsGet(request, env);
+      if (path === '/api/conversations' && method === 'POST') return await handleConversationsPost(request, env);
+
+      const convMessagesMatch = path.match(/^\/api\/conversations\/([^/]+)\/messages$/);
+      if (convMessagesMatch && method === 'GET') return await handleConversationMessagesGet(request, env, convMessagesMatch[1]);
+      if (convMessagesMatch && method === 'POST') return await handleConversationMessagesPost(request, env, convMessagesMatch[1]);
+
+      const convReadMatch = path.match(/^\/api\/conversations\/([^/]+)\/read$/);
+      if (convReadMatch && method === 'POST') return await handleConversationReadPost(request, env, convReadMatch[1]);
+
+      // ── OAuth (Google / Apple) ──
+      if (path === '/api/auth/google/start' && method === 'GET') return await handleGoogleAuthStart(request, env);
+      if (path === '/api/auth/google/callback' && method === 'GET') return await handleGoogleAuthCallback(request, env);
+      if (path === '/api/auth/apple/start' && method === 'GET') return await handleAppleAuthStart(request, env);
+      if (path === '/api/auth/apple/callback' && method === 'POST') return await handleAppleAuthCallback(request, env);
+      if (path === '/api/auth/pending' && method === 'GET') return await handlePendingOAuthGet(request, env);
+      if (path === '/api/auth/complete' && method === 'POST') return await handleCompleteOAuthSignup(request, env);
 
       // ── Media (private R2 objects) ──
       const mediaMatch = path.match(/^\/media\/(.+)$/);

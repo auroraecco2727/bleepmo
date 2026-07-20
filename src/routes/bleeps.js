@@ -93,11 +93,24 @@ export async function handleBleepsGet(request, env) {
       if (l.user_id === viewer.id) likedByViewerSet.add(l.bleep_id);
     }
 
+    // Which of these authors does the viewer already follow? One query
+    // against the distinct author_ids on this page, rather than N+1.
+    const authorIds = [...new Set(results.map((b) => b.author_id))];
+    const authorPlaceholders = authorIds.map(() => '?').join(',');
+    const { results: allFollows } = await env.DB
+      .prepare(
+        `SELECT followee_id FROM follows WHERE follower_id = ? AND followee_id IN (${authorPlaceholders})`
+      )
+      .bind(viewer.id, ...authorIds)
+      .all();
+    const followedAuthorSet = new Set(allFollows.map((f) => f.followee_id));
+
     for (const b of results) {
       b.trend_points = trendByBleepId[b.id] || [];
       b.tagged_handles = tagsByBleepId[b.id] || [];
       b.like_count = likeCountByBleepId[b.id] || 0;
       b.liked_by_viewer = likedByViewerSet.has(b.id);
+      b.followed_by_viewer = b.author_id !== viewer.id && followedAuthorSet.has(b.author_id);
     }
   }
 
