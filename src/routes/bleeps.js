@@ -25,6 +25,7 @@ export async function handleBleepsGet(request, env) {
   const cursor = url.searchParams.get('cursor');
   const authorFilter = url.searchParams.get('author');
   const contentTypeFilter = url.searchParams.get('contentType');
+  const trendFilter = url.searchParams.get('trend');
 
   let query = `
     SELECT
@@ -44,6 +45,10 @@ export async function handleBleepsGet(request, env) {
     query += ' AND b.content_type = ?';
     binds.push(contentTypeFilter);
   }
+  if (trendFilter) {
+    query += ' AND b.id IN (SELECT bleep_id FROM trend_points WHERE topic = ? COLLATE NOCASE)';
+    binds.push(trendFilter);
+  }
   if (cursor) {
     query += ' AND b.created_at < ?';
     binds.push(cursor);
@@ -51,7 +56,34 @@ export async function handleBleepsGet(request, env) {
   query += ' ORDER BY b.created_at DESC LIMIT ?';
   binds.push(PAGE_SIZE);
 
-  const { results } = await env.DB.prepare(query).bind(...binds).all();
+  let { results } = await env.DB.prepare(query).bind(...binds).all();
+
+  // Trend-linked swipe (Bleep -> Flick -> Long-Flick) asked for a specific
+  // topic and came up empty — rather than a dead end, fall back to
+  // Bleepmo's general pick for that content type (first page only; a
+  // paginated cursor request just returns what it returns).
+  let usedTrendFallback = false;
+  if (trendFilter && results.length === 0 && !cursor) {
+    let fallbackQuery = `
+      SELECT
+        b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
+        u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key,
+        (SELECT COUNT(*) FROM comments c WHERE c.content_type = 'bleep' AND c.content_id = b.id AND c.hidden_at IS NULL) AS comment_count
+      FROM bleeps b
+      JOIN users u ON u.id = b.author_id
+      WHERE b.deleted_at IS NULL
+    `;
+    const fallbackBinds = [];
+    if (contentTypeFilter) {
+      fallbackQuery += ' AND b.content_type = ?';
+      fallbackBinds.push(contentTypeFilter);
+    }
+    fallbackQuery += ' ORDER BY b.created_at DESC LIMIT ?';
+    fallbackBinds.push(PAGE_SIZE);
+    const fallback = await env.DB.prepare(fallbackQuery).bind(...fallbackBinds).all();
+    results = fallback.results;
+    usedTrendFallback = results.length > 0;
+  }
 
   // Attach trend-points and tagged users to each Bleep in two extra
   // queries rather than N+1.
@@ -116,7 +148,7 @@ export async function handleBleepsGet(request, env) {
 
   const nextCursor = results.length === PAGE_SIZE ? results[results.length - 1].created_at : null;
 
-  return new Response(JSON.stringify({ bleeps: results, nextCursor }), {
+  return new Response(JSON.stringify({ bleeps: results, nextCursor, usedTrendFallback }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
@@ -141,6 +173,7 @@ export async function handleBleepsPost(request, env) {
   const media = form.get('media');
   const isBreaking = (form.get('isBreaking') || '').toString() === 'true' ? 1 : 0;
   const postAsFlick = (form.get('postAsFlick') || '').toString() === 'true';
+  const flickLength = (form.get('flickLength') || 'short').toString() === 'long' ? 'long' : 'short';
 
   // trendPoints arrives as a JSON array string, e.g. '["Sustainable Tech","Urban Design"]'
   let trendPoints = [];
@@ -184,7 +217,7 @@ export async function handleBleepsPost(request, env) {
   }
 
   const isVideo = hasMedia && (media.type || '').startsWith('video/');
-  const contentType = postAsFlick && isVideo ? 'flick_short' : 'bleep';
+  const contentType = postAsFlick && isVideo ? (flickLength === 'long' ? 'flick_long' : 'flick_short') : 'bleep';
 
   const bleepId = newId();
   let mediaKey = null;

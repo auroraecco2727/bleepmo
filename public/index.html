@@ -1671,6 +1671,17 @@ body::after {
   </div>
 </div>
 
+<!-- ══ TREND FEED — category view a trend-point chip pushes you into ══ -->
+<div class="notif-screen" id="trendFeedScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeTrendFeedScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span id="trendFeedTitle" style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Trend</span>
+  </div>
+  <div class="notif-list" id="trendFeedList" style="padding:10px 12px;"></div>
+</div>
+
 <!-- ── Nav ── -->
 <nav class="top-nav">
   <div class="nav-row">
@@ -2354,8 +2365,16 @@ body::after {
     </div>
     <div class="compose-media-filename" id="composeMediaFilename" style="margin-top:6px;"></div>
     <label class="compose-checkbox" id="composeFlickToggleWrap" style="display:none; margin-top:8px; color:var(--gold); font-weight:700;">
-      <input type="checkbox" id="composeFlickToggle" /> Post as a Flick (full-screen video)
+      <input type="checkbox" id="composeFlickToggle" onchange="toggleFlickLengthChoice()" /> Post as a Flick (full-screen video)
     </label>
+    <div id="composeFlickLengthWrap" style="display:none; margin-top:6px; gap:8px; align-items:center;">
+      <label class="compose-checkbox" style="font-weight:600; font-size:11.5px;">
+        <input type="radio" name="composeFlickLength" value="short" id="composeFlickLengthShort" checked /> Short Flick
+      </label>
+      <label class="compose-checkbox" style="font-weight:600; font-size:11.5px;">
+        <input type="radio" name="composeFlickLength" value="long" id="composeFlickLengthLong" /> Long-Flick
+      </label>
+    </div>
     <div id="composeTrendInputWrap" style="display:none;">
       <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
       <div class="compose-trend-chips" id="composeTrendChips"></div>
@@ -2896,16 +2915,66 @@ body::after {
     }
     if (b.trend_points && b.trend_points.length) {
       b.trend_points.forEach(function (t) {
-        parts.push('<span class="btag hi">' + escapeHtml(t) + '</span>');
+        var safe = escapeHtml(t).replace(/'/g, "\\'");
+        parts.push('<span class="btag hi" style="cursor:pointer;" onclick="event.stopPropagation(); openTrendFeed(\'' + safe + '\')">' + escapeHtml(t) + '</span>');
       });
     }
     if (b.tagged_handles && b.tagged_handles.length) {
       b.tagged_handles.forEach(function (h) {
-        parts.push('<span class="btag hi tag-chip">' + escapeHtml(h) + '</span>');
+        var safe = escapeHtml(h).replace(/'/g, "\\'");
+        parts.push('<span class="btag hi tag-chip" style="cursor:pointer;" onclick="event.stopPropagation(); openTaggedUserProfile(\'' + safe + '\')">' + escapeHtml(h) + '</span>');
       });
     }
     if (parts.length === 0) return '';
     return '<div class="bullet-tags">' + parts.join('') + '</div>';
+  }
+
+  /* ── Chip destinations: trend-point -> topic feed, tagged handle -> profile ── */
+  async function openTaggedUserProfile(handleTag) {
+    if (!handleTag || handleTag.length < 2) return;
+    var rawHandle = handleTag.slice(1); // drop the leading @/*/~/^/>/& symbol
+    try {
+      var res = await fetch('/api/search?q=' + encodeURIComponent(rawHandle), { credentials: 'include' });
+      if (!res.ok) { showToast('Couldn\'t look up that user.'); return; }
+      var data = await res.json();
+      var match = (data.users || []).find(function (u) {
+        return u.handle.toLowerCase() === rawHandle.toLowerCase();
+      });
+      if (!match) { showToast('That user couldn\'t be found.'); return; }
+      openProfileScreen(match.id, match.handle_symbol, match.handle, match.full_name, 'bleeps');
+    } catch (err) {
+      showToast('Couldn\'t reach the server.');
+    }
+  }
+
+  async function openTrendFeed(topic) {
+    if (!topic) return;
+    document.getElementById('trendFeedTitle').textContent = '#' + topic;
+    var list = document.getElementById('trendFeedList');
+    list.innerHTML = '<div class="profile-loading">Loading…</div>';
+    document.getElementById('trendFeedScreen').classList.add('show');
+    try {
+      var res = await fetch('/api/bleeps?trend=' + encodeURIComponent(topic), { credentials: 'include' });
+      if (!res.ok) {
+        list.innerHTML = '<div class="profile-empty-state">Couldn\'t load this topic right now.</div>';
+        return;
+      }
+      var data = await res.json();
+      list.innerHTML = '';
+      if (!data.bleeps || data.bleeps.length === 0) {
+        list.innerHTML = '<div class="profile-empty-state">No posts tagged #' + escapeHtml(topic) + ' yet.</div>';
+        return;
+      }
+      data.bleeps.forEach(function (b) {
+        list.appendChild(renderCompactCard(b, 'trend-'));
+      });
+    } catch (err) {
+      list.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function closeTrendFeedScreen() {
+    document.getElementById('trendFeedScreen').classList.remove('show');
   }
 
   function buildBleepCardInner(b, idPrefix) {
@@ -4172,6 +4241,7 @@ body::after {
       wrap.className = 'card-wrap';
       card.className = 'card' + cardStatusClass(b);
     }
+    wrap.dataset.trend = (b.trend_points && b.trend_points[0]) || '';
     card.innerHTML = buildBleepCardInner(b);
     wrap.appendChild(card);
     attachBleepMedia(card, b);
@@ -4235,32 +4305,290 @@ body::after {
     }
   }
 
-  function toggleFlickRail() {
-    var rail = document.getElementById('flickRail');
-    var toggle = document.getElementById('flickRailToggle');
+  /* ══ FLICK PANES (Short + Long) — immersive JARVIS-ring player ══
+     Both panes share one engine, parameterized by paneKey ('short'/'long').
+     Loading a pane pulls in whatever trend topic is currently "in focus"
+     (see activeTrendContext below) so swiping Bleep -> Flick -> Long-Flick
+     feels like following one thread across formats, not three unrelated tabs. */
+  var flickPaneState = {
+    short: { contentType: 'flick_short', items: [], activeIndex: 0, recommended: false, loaded: false },
+    long: { contentType: 'flick_long', items: [], activeIndex: 0, recommended: false, loaded: false },
+  };
+  var activeTrendContext = null; // topic string, or null if nothing to carry forward
+
+  function buildFlickPlayerHtml(paneKey) {
+    var p = paneKey; // short-hand for id prefixes below
+    return (
+      '<div class="flick-hero-row">' +
+        '<div class="flick-player" id="' + p + 'FlickPlayer">' +
+          '<video id="' + p + 'FlickVideo" muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#05070f;"></video>' +
+          '<div class="flick-scanlines"></div>' +
+          '<div class="jarvis-ring r1"></div>' +
+          '<div class="jarvis-ring r2"></div>' +
+          '<div class="jarvis-ring r3"></div>' +
+          '<div class="flick-center" id="' + p + 'FlickCenter" onclick="toggleFlickPlayback(\'' + p + '\')">' +
+            '<div class="flick-play" id="' + p + 'FlickPlayBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg></div>' +
+          '</div>' +
+          '<div class="flick-actions">' +
+            '<div class="flick-act" id="' + p + 'FlickLikeAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label" id="' + p + 'FlickLikeCount">0</span></div>' +
+            '<div class="flick-act" id="' + p + 'FlickCommentAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount">0</span></div>' +
+            '<div class="flick-act" id="' + p + 'BingeAct" onclick="event.stopPropagation(); openBingeSettings()" title="Binge Mode settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span class="flick-act-label" id="' + p + 'BingeLabel">Binge</span></div>' +
+          '</div>' +
+          '<div class="visor-bar" id="' + p + 'FlickVisorBar" style="display:none;">' +
+            '<div class="visor-dot"></div>' +
+            '<div class="visor-text" id="' + p + 'FlickVisorLine"></div>' +
+          '</div>' +
+          '<div class="flick-info">' +
+            '<div class="flick-creator-row">' +
+              '<div id="' + p + 'FlickAvatar"></div>' +
+              '<span style="font-size:11px;color:rgba(255,255,255,0.7);" id="' + p + 'FlickCreator">—</span>' +
+              '<span style="margin-left:auto;" class="flick-tag" id="' + p + 'FlickBadge">' + (p === 'long' ? 'LONG-FLICK' : 'FLICK') + '</span>' +
+            '</div>' +
+            '<div class="syne" style="font-size:15px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:6px;" id="' + p + 'FlickTitle"></div>' +
+            '<div id="' + p + 'FlickTagsRow"></div>' +
+          '</div>' +
+          '<div class="binge-progress" id="' + p + 'BingeProgress" style="display:none;"><div class="binge-progress-fill" id="' + p + 'BingeProgressFill"></div></div>' +
+        '</div>' +
+        '<div class="flick-rail" id="' + p + 'FlickRail"></div>' +
+        '<div class="flick-rail-toggle" id="' + p + 'FlickRailToggle" onclick="toggleFlickRail(\'' + p + '\')" title="Show/hide clip list">' +
+          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  async function loadFlickPane(paneKey, trendTopic) {
+    var state = flickPaneState[paneKey];
+    var container = document.getElementById(paneKey + 'FlickPaneContent');
+    if (!container) return;
+    container.innerHTML = '<div class="profile-loading">Loading…</div>';
+
+    var url = '/api/bleeps?contentType=' + state.contentType + (trendTopic ? '&trend=' + encodeURIComponent(trendTopic) : '');
+    try {
+      var res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) { container.innerHTML = ''; return; }
+      var data = await res.json();
+      state.recommended = !!data.usedTrendFallback;
+      if (!data.bleeps || data.bleeps.length === 0) {
+        state.items = [];
+        state.loaded = true;
+        var kindLabel = paneKey === 'long' ? 'Long-Flicks' : 'Flicks';
+        container.innerHTML = '<div class="profile-empty-state" style="padding:30px 10px;">No ' + kindLabel + ' yet — be the first by attaching a video and checking "Post as a Flick."</div>';
+        return;
+      }
+      state.items = data.bleeps;
+      state.activeIndex = 0;
+      state.loaded = true;
+      container.innerHTML = buildFlickPlayerHtml(paneKey);
+      renderFlickRail(paneKey);
+      setActiveFlick(paneKey, 0);
+      attachFlickVerticalSwipe(paneKey);
+    } catch (err) {
+      container.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function renderFlickRail(paneKey) {
+    var state = flickPaneState[paneKey];
+    var rail = document.getElementById(paneKey + 'FlickRail');
+    if (!rail) return;
+    rail.innerHTML = state.items.map(function (b, i) {
+      var title = b.title || (b.body ? b.body.slice(0, 40) : 'Untitled');
+      var tag = (b.trend_points && b.trend_points[0]) || (b.handle_symbol + b.handle);
+      return (
+        '<div class="flick-thumb' + (i === 0 ? ' active-thumb' : '') + '" data-idx="' + i + '" onclick="setActiveFlick(\'' + paneKey + '\', ' + i + ')" style="background:linear-gradient(135deg,rgba(20,30,60,0.9),rgba(30,15,45,0.85));">' +
+        (b.media_key ? '<video src="/media/' + b.media_key + '" muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;"></video>' : '') +
+        '  <div class="thumb-visor">' +
+        '    <div class="thumb-visor-title">' + escapeHtml(title) + '</div>' +
+        '    <div class="thumb-visor-tag">' + escapeHtml(tag) + '</div>' +
+        '  </div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function setActiveFlick(paneKey, idx) {
+    var state = flickPaneState[paneKey];
+    if (!state.items.length) return;
+    idx = ((idx % state.items.length) + state.items.length) % state.items.length;
+    state.activeIndex = idx;
+    var b = state.items[idx];
+
+    // This Flick's trend topic becomes the context carried into whatever
+    // pane you swipe into next (Bleep <- this -> Long-Flick, or vice versa).
+    activeTrendContext = (b.trend_points && b.trend_points[0]) || null;
+
+    document.querySelectorAll('#' + paneKey + 'FlickRail .flick-thumb').forEach(function (el) {
+      el.classList.toggle('active-thumb', parseInt(el.getAttribute('data-idx'), 10) === idx);
+    });
+
+    var video = document.getElementById(paneKey + 'FlickVideo');
+    if (video) {
+      video.src = b.media_key ? '/media/' + b.media_key : '';
+      video.currentTime = 0;
+      video.pause();
+    }
+    var playBtn = document.getElementById(paneKey + 'FlickPlayBtn');
+    if (playBtn) playBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg>';
+
+    document.getElementById(paneKey + 'FlickAvatar').innerHTML = buildAvatarHtml(b, 26);
+    document.getElementById(paneKey + 'FlickCreator').textContent = b.handle_symbol + b.handle;
+    document.getElementById(paneKey + 'FlickTitle').textContent = b.title || (b.body ? b.body.slice(0, 60) : 'Untitled');
+    document.getElementById(paneKey + 'FlickLikeCount').textContent = b.like_count || 0;
+    document.getElementById(paneKey + 'FlickCommentCount').textContent = b.comment_count || 0;
+
+    var likeAct = document.getElementById(paneKey + 'FlickLikeAct');
+    likeAct.onclick = function (e) { e.stopPropagation(); toggleLike(b.id, likeAct); };
+    likeAct.classList.toggle('liked', !!b.liked_by_viewer);
+
+    document.getElementById(paneKey + 'FlickCommentAct').onclick = function (e) { e.stopPropagation(); openCommentsScreen(b.id); };
+
+    document.getElementById(paneKey + 'FlickTagsRow').innerHTML = buildTagsRowHtml(b);
+
+    var visorBar = document.getElementById(paneKey + 'FlickVisorBar');
+    var visorLine = document.getElementById(paneKey + 'FlickVisorLine');
+    if (state.recommended) {
+      visorLine.textContent = 'Recommended by Bleepmo';
+      visorBar.style.display = 'flex';
+    } else if (b.trend_points && b.trend_points.length) {
+      visorLine.textContent = b.trend_points.join(' · ');
+      visorBar.style.display = 'flex';
+    } else {
+      visorBar.style.display = 'none';
+    }
+
+    armBingeAutoAdvance(paneKey);
+  }
+
+  function toggleFlickPlayback(paneKey) {
+    var video = document.getElementById(paneKey + 'FlickVideo');
+    var playBtn = document.getElementById(paneKey + 'FlickPlayBtn');
+    if (!video || !video.src) return;
+    if (video.paused) {
+      video.play();
+      playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    } else {
+      video.pause();
+      playBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg>';
+    }
+  }
+
+  function toggleFlickRail(paneKey) {
+    var rail = document.getElementById(paneKey + 'FlickRail');
+    var toggle = document.getElementById(paneKey + 'FlickRailToggle');
+    if (!rail || !toggle) return;
     var hidden = rail.classList.toggle('hidden-rail');
     toggle.classList.toggle('rail-hidden', hidden);
   }
 
-  async function loadLiveFlicks() {
-    var container = document.getElementById('liveFlicksList');
-    if (!container) return;
-    container.innerHTML = '<div class="profile-loading">Loading…</div>';
+  // Vertical swipe/scroll moves between individual clips within a pane —
+  // mirrors the For You feed's vertical snap-scroll. Horizontal swipe is
+  // reserved for switching tabs (see the carousel logic below), so these
+  // stay on separate axes and don't fight each other.
+  function attachFlickVerticalSwipe(paneKey) {
+    var player = document.getElementById(paneKey + 'FlickPlayer');
+    if (!player || player.dataset.swipeBound) return;
+    player.dataset.swipeBound = '1';
+    var startY = null, startX = null;
+    player.addEventListener('touchstart', function (e) {
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+    player.addEventListener('touchend', function (e) {
+      if (startY === null) return;
+      var deltaY = e.changedTouches[0].clientY - startY;
+      var deltaX = e.changedTouches[0].clientX - startX;
+      if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2) {
+        setActiveFlick(paneKey, flickPaneState[paneKey].activeIndex + (deltaY < 0 ? 1 : -1));
+      }
+      startY = null; startX = null;
+    }, { passive: true });
+  }
+
+  /* ── Binge Mode: auto-advance to the next Flick after the current one ends ── */
+  var bingeSettings = { enabled: false, delaySeconds: 2, sessionLimit: 10 };
+  (function loadBingeSettings() {
     try {
-      var res = await fetch('/api/bleeps?contentType=flick_short', { credentials: 'include' });
-      if (!res.ok) { container.innerHTML = ''; return; }
-      var data = await res.json();
-      if (!data.bleeps || data.bleeps.length === 0) {
-        container.innerHTML = '<div class="profile-empty-state" style="padding:30px 10px;">No community Flicks yet — be the first by attaching a video and checking "Post as a Flick."</div>';
+      var saved = localStorage.getItem('bleepmo_binge_settings');
+      if (saved) bingeSettings = Object.assign(bingeSettings, JSON.parse(saved));
+    } catch (err) { /* ignore malformed/blocked storage */ }
+  })();
+  var bingeSessionCount = { short: 0, long: 0 };
+  var bingeTimer = { short: null, long: null };
+
+  function saveBingeSettings() {
+    try { localStorage.setItem('bleepmo_binge_settings', JSON.stringify(bingeSettings)); } catch (err) { /* ignore */ }
+  }
+
+  function armBingeAutoAdvance(paneKey) {
+    if (bingeTimer[paneKey]) { clearTimeout(bingeTimer[paneKey]); bingeTimer[paneKey] = null; }
+    var progressEl = document.getElementById(paneKey + 'BingeProgress');
+    var fillEl = document.getElementById(paneKey + 'BingeProgressFill');
+    if (progressEl) progressEl.style.display = 'none';
+    if (!bingeSettings.enabled) return;
+
+    var video = document.getElementById(paneKey + 'FlickVideo');
+    if (!video) return;
+
+    var advanceAfterEnd = function () {
+      bingeSessionCount[paneKey]++;
+      if (bingeSessionCount[paneKey] >= bingeSettings.sessionLimit) {
+        bingeSessionCount[paneKey] = 0;
+        showToast('Binge session complete — tap play to keep going.');
         return;
       }
-      container.innerHTML = '';
-      data.bleeps.forEach(function (b) {
-        container.appendChild(renderCompactCard(b, 'flicks-'));
-      });
-    } catch (err) {
-      container.innerHTML = '';
-    }
+      if (progressEl) progressEl.style.display = 'block';
+      if (fillEl) {
+        fillEl.style.transition = 'none';
+        fillEl.style.width = '0%';
+        requestAnimationFrame(function () {
+          fillEl.style.transition = 'width ' + bingeSettings.delaySeconds + 's linear';
+          fillEl.style.width = '100%';
+        });
+      }
+      bingeTimer[paneKey] = setTimeout(function () {
+        setActiveFlick(paneKey, flickPaneState[paneKey].activeIndex + 1);
+      }, Math.max(0, bingeSettings.delaySeconds) * 1000);
+    };
+
+    video.onended = advanceAfterEnd;
+    video.play().catch(function () { /* autoplay may be blocked until the user first interacts — fine, they can tap play */ });
+    var playBtn = document.getElementById(paneKey + 'FlickPlayBtn');
+    if (playBtn) playBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="#D4AF37"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+  }
+
+  function openBingeSettings() {
+    document.getElementById('bingeEnabledToggle').checked = bingeSettings.enabled;
+    document.getElementById('bingeDelaySlider').value = bingeSettings.delaySeconds;
+    document.getElementById('bingeDelayLabel').textContent = bingeSettings.delaySeconds + 's';
+    document.getElementById('bingeCountSlider').value = bingeSettings.sessionLimit;
+    document.getElementById('bingeCountLabel').textContent = bingeSettings.sessionLimit;
+    document.getElementById('bingeSettingsSheet').classList.add('show');
+  }
+
+  function closeBingeSettings() {
+    document.getElementById('bingeSettingsSheet').classList.remove('show');
+  }
+
+  function updateBingeDelayPreview(val) {
+    document.getElementById('bingeDelayLabel').textContent = val + 's';
+  }
+  function updateBingeCountPreview(val) {
+    document.getElementById('bingeCountLabel').textContent = val;
+  }
+
+  function saveBingeSettingsFromSheet() {
+    bingeSettings.enabled = document.getElementById('bingeEnabledToggle').checked;
+    bingeSettings.delaySeconds = parseFloat(document.getElementById('bingeDelaySlider').value);
+    bingeSettings.sessionLimit = parseInt(document.getElementById('bingeCountSlider').value, 10);
+    saveBingeSettings();
+    bingeSessionCount.short = 0;
+    bingeSessionCount.long = 0;
+    closeBingeSettings();
+    showToast(bingeSettings.enabled ? 'Binge Mode on — auto-advancing between Flicks.' : 'Binge Mode off.');
+    ['short', 'long'].forEach(function (paneKey) {
+      if (flickPaneState[paneKey].loaded) armBingeAutoAdvance(paneKey);
+    });
   }
 
   /* ── Compose box ── */
@@ -4450,7 +4778,15 @@ body::after {
     var flickWrap = document.getElementById('composeFlickToggleWrap');
     var isVideo = file && file.type && file.type.indexOf('video/') === 0;
     flickWrap.style.display = isVideo ? 'flex' : 'none';
-    if (!isVideo) document.getElementById('composeFlickToggle').checked = false;
+    if (!isVideo) {
+      document.getElementById('composeFlickToggle').checked = false;
+      toggleFlickLengthChoice();
+    }
+  }
+
+  function toggleFlickLengthChoice() {
+    var checked = document.getElementById('composeFlickToggle').checked;
+    document.getElementById('composeFlickLengthWrap').style.display = checked ? 'flex' : 'none';
   }
 
   function showComposeError(msg) {
@@ -4470,6 +4806,7 @@ body::after {
     var title = titleInput.value.trim();
     var isBreaking = document.getElementById('composeBreaking').checked;
     var postAsFlick = document.getElementById('composeFlickToggle').checked;
+    var flickLength = document.getElementById('composeFlickLengthLong').checked ? 'long' : 'short';
 
     if (!body && !composeMediaFile && !title) {
       showComposeError('Write something or attach a photo/video first.');
@@ -4481,6 +4818,7 @@ body::after {
     fd.append('title', title);
     fd.append('isBreaking', isBreaking ? 'true' : 'false');
     fd.append('postAsFlick', postAsFlick ? 'true' : 'false');
+    if (postAsFlick) fd.append('flickLength', flickLength);
     if (composeTrendPoints.length) fd.append('trendPoints', JSON.stringify(composeTrendPoints));
     if (composeTaggedHandles.length) fd.append('taggedHandles', JSON.stringify(composeTaggedHandles));
     if (composeMediaFile) fd.append('media', composeMediaFile);
@@ -4499,16 +4837,15 @@ body::after {
         return;
       }
 
-      // Flicks land in the Flicks tab's live list, not the For You feed.
+      // Flicks land in the Flicks panes (Short or Long), not the For You feed.
       if (data.bleep.content_type === 'bleep') {
         var feedContainer = document.getElementById('liveFeedList');
         if (feedContainer) feedContainer.insertBefore(renderBleepCard(data.bleep), feedContainer.firstChild);
       } else {
-        var flicksContainer = document.getElementById('liveFlicksList');
-        if (flicksContainer) {
-          var emptyState = flicksContainer.querySelector('.profile-empty-state');
-          if (emptyState) flicksContainer.innerHTML = '';
-          flicksContainer.insertBefore(renderCompactCard(data.bleep, 'flicks-'), flicksContainer.firstChild);
+        var paneKey = data.bleep.content_type === 'flick_long' ? 'long' : 'short';
+        flickPaneState[paneKey].loaded = false; // force a fresh pull next time that pane is viewed
+        if (currentSlideKey === (paneKey === 'long' ? 'flicksLong' : 'flicksShort')) {
+          loadFlickPane(paneKey, activeTrendContext);
         }
       }
 
@@ -4518,6 +4855,8 @@ body::after {
       document.getElementById('composeBreaking').checked = false;
       document.getElementById('composeFlickToggle').checked = false;
       document.getElementById('composeFlickToggleWrap').style.display = 'none';
+      document.getElementById('composeFlickLengthShort').checked = true;
+      document.getElementById('composeFlickLengthWrap').style.display = 'none';
       document.getElementById('composeTrendToggle').checked = false;
       document.getElementById('composeTrendInputWrap').style.display = 'none';
       composeTrendPoints = [];
@@ -4585,29 +4924,91 @@ body::after {
   }
 
   const COMING_SOON_TABS = ['e-Store', 'Calendar', 'Special Offers'];
+  // Slide order for horizontal swipe. Only the first 3 carry trend context
+  // forward between each other; the rest are plain unrelated tabs.
+  const SLIDE_ORDER = ['forYou', 'flicksShort', 'flicksLong', 'eStore', 'calendar', 'offers'];
+  const SLIDE_LABELS = { eStore: 'e-Store', calendar: 'Calendar', offers: 'Special Offers' };
+  var currentSlideKey = 'forYou';
 
-  function switchTab(el) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    const label = el.textContent.trim();
-    const isFlicks = label === 'Flicks';
-    const isComingSoon = COMING_SOON_TABS.includes(label);
-    const showFeed = !isFlicks && !isComingSoon;
+  function tabPillForSlide(slideKey) {
+    if (slideKey === 'forYou') return 0;
+    if (slideKey === 'flicksShort' || slideKey === 'flicksLong') return 1;
+    if (slideKey === 'eStore') return 2;
+    if (slideKey === 'calendar') return 3;
+    return 4; // offers
+  }
+
+  function pauseFlickPane(paneKey) {
+    var video = document.getElementById(paneKey + 'FlickVideo');
+    if (video) video.pause();
+    if (bingeTimer[paneKey]) { clearTimeout(bingeTimer[paneKey]); bingeTimer[paneKey] = null; }
+    var progressEl = document.getElementById(paneKey + 'BingeProgress');
+    if (progressEl) progressEl.style.display = 'none';
+  }
+
+  function goToSlide(slideKey) {
+    var previousKey = currentSlideKey;
+    currentSlideKey = slideKey;
+
+    if (previousKey === 'flicksShort' && slideKey !== 'flicksShort') pauseFlickPane('short');
+    if (previousKey === 'flicksLong' && slideKey !== 'flicksLong') pauseFlickPane('long');
+
+    var pills = document.querySelectorAll('.tab');
+    pills.forEach(function (t, i) { t.classList.toggle('active', i === tabPillForSlide(slideKey)); });
+
+    var showFeed = slideKey === 'forYou';
+    var showShort = slideKey === 'flicksShort';
+    var showLong = slideKey === 'flicksLong';
+    var isComingSoon = slideKey === 'eStore' || slideKey === 'calendar' || slideKey === 'offers';
 
     document.getElementById('feed').style.display = showFeed ? '' : 'none';
     document.getElementById('scrollDots').style.display = showFeed ? '' : 'none';
-    document.getElementById('flicksView').style.display = isFlicks ? 'flex' : 'none';
-    if (isFlicks) loadLiveFlicks();
+    document.getElementById('flicksShortPane').style.display = showShort ? 'flex' : 'none';
+    document.getElementById('flicksLongPane').style.display = showLong ? 'flex' : 'none';
 
-    const csView = document.getElementById('comingSoonView');
+    var csView = document.getElementById('comingSoonView');
     if (isComingSoon) {
-      document.getElementById('comingSoonLabel').textContent = label;
+      document.getElementById('comingSoonLabel').textContent = SLIDE_LABELS[slideKey];
       csView.style.display = 'flex';
     } else {
       csView.style.display = 'none';
     }
 
+    updateFlicksSubToggle(slideKey);
+
+    // Moving into (or between) the trend-linked trio: carry the topic that
+    // was in focus on the pane you're leaving into the one you're entering.
+    if (showShort && !flickPaneState.short.loaded) {
+      loadFlickPane('short', activeTrendContext);
+    } else if (showShort && previousKey !== 'flicksShort') {
+      loadFlickPane('short', activeTrendContext);
+    }
+    if (showLong && (!flickPaneState.long.loaded || previousKey !== 'flicksLong')) {
+      loadFlickPane('long', activeTrendContext);
+    }
+
     if (showFeed) document.getElementById('feed').scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateFlicksSubToggle(slideKey) {
+    var toggle = document.getElementById('flicksSubToggle');
+    if (!toggle) return;
+    var onFlicksPane = slideKey === 'flicksShort' || slideKey === 'flicksLong';
+    toggle.style.display = onFlicksPane ? 'flex' : 'none';
+    if (!onFlicksPane) return;
+    document.getElementById('flicksSubShortBtn').classList.toggle('active', slideKey === 'flicksShort');
+    document.getElementById('flicksSubLongBtn').classList.toggle('active', slideKey === 'flicksLong');
+  }
+
+  // Tab pills still work by tap — "Flicks" always lands on Shorts first;
+  // swiping (or the in-pane toggle) reaches Long from there.
+  function switchTab(el) {
+    const label = el.textContent.trim();
+    if (label === 'For You') return goToSlide('forYou');
+    if (label === 'Flicks') return goToSlide(currentSlideKey === 'flicksLong' ? 'flicksLong' : 'flicksShort');
+    if (label === 'e-Store') return goToSlide('eStore');
+    if (label === 'Calendar') return goToSlide('calendar');
+    if (label === 'Special Offers') return goToSlide('offers');
   }
 
   const feedEl = document.getElementById('feed');
@@ -4617,36 +5018,45 @@ body::after {
     dots.forEach((d, i) => d.classList.toggle('active', i === idx));
   });
 
-  // Flicks thumbnail selection
-  document.querySelectorAll('.flick-thumb').forEach((thumb, i) => {
-    thumb.addEventListener('click', () => {
-      document.querySelectorAll('.flick-thumb').forEach(t => t.classList.remove('active-thumb'));
-      thumb.classList.add('active-thumb');
-      const data = flicksData[i];
-      document.getElementById('flickTitle').textContent = data.title;
-      document.getElementById('flickCreator').textContent = data.creator;
-      document.getElementById('flickTag1').textContent = data.tag1;
-      document.getElementById('flickTag2').textContent = data.tag2;
-      document.getElementById('flickDuration').textContent = data.duration;
-      document.getElementById('flickCategory').textContent = data.category;
-      document.getElementById('flickVisorLine').textContent = data.visor;
-      document.getElementById('flickGradient').style.background = data.gradient;
-      document.getElementById('flickGrid').style.opacity = data.gridOpacity;
-    });
-  });
+  // Track which Bleep is centered in the For You feed, so its trend topic
+  // is what gets carried forward if the person swipes into Flicks next.
+  feedEl.addEventListener('scroll', function () {
+    var wraps = document.querySelectorAll('#feed .card-wrap');
+    if (!wraps.length) return;
+    var idx = Math.round(feedEl.scrollTop / feedEl.clientHeight);
+    idx = Math.max(0, Math.min(wraps.length - 1, idx));
+    var topic = wraps[idx].dataset.trend;
+    if (topic) activeTrendContext = topic;
+  }, { passive: true });
 
-  const flicksData = [
-    { title: 'Neural City 2047', creator: '@futureframes', tag1: 'Sci-Fi · Architecture', tag2: 'World-building', duration: '0:38', category: 'FLICK', visor: 'AI-generated · immersive world-build · trending in Sci-Fi', gradient: 'linear-gradient(135deg,rgba(10,18,50,0.9),rgba(30,10,60,0.85))', gridOpacity: '0.7' },
-    { title: 'Zero-G Ballet', creator: '@cosmicmotion', tag1: 'Dance · Space', tag2: 'Performance', duration: '1:02', category: 'FLICK', visor: 'Choreographed in microgravity · high concept · 98k views', gradient: 'linear-gradient(135deg,rgba(8,25,45,0.9),rgba(10,40,50,0.85))', gridOpacity: '0.5' },
-    { title: 'Desert Protocol', creator: '@sandstormvfx', tag1: 'Action · VFX', tag2: 'Cinematic', duration: '0:52', category: 'FLICK', visor: 'Award-winning VFX · short-form cinema · 4K mastered', gradient: 'linear-gradient(135deg,rgba(30,15,5,0.9),rgba(50,25,5,0.85))', gridOpacity: '0.4' },
-    { title: 'Bioluminescent', creator: '@deepoceanlab', tag1: 'Nature · Science', tag2: 'Documentary', duration: '0:44', category: 'FLICK', visor: 'Captured 800m depth · rare species · narrated by AI', gradient: 'linear-gradient(135deg,rgba(0,20,30,0.9),rgba(0,40,35,0.85))', gridOpacity: '0.6' },
-    { title: 'The Last Signal', creator: '@voidstudios', tag1: 'Drama · Space', tag2: 'Short Film', duration: '1:18', category: 'FLICK', visor: 'Sundance selection · emotional · no dialogue · pure visual', gradient: 'linear-gradient(135deg,rgba(5,5,20,0.9),rgba(20,5,30,0.85))', gridOpacity: '0.3' },
-  ];
+  // Horizontal swipe switches slides; a swipe that's mostly vertical is
+  // left alone so it doesn't fight the feed's / Flick pane's own vertical
+  // scrolling.
+  (function attachTabSwipe() {
+    var zone = document.querySelector('.app-shell') || document.body;
+    var startX = null, startY = null;
+    zone.addEventListener('touchstart', function (e) {
+      if (!e.touches || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
+    zone.addEventListener('touchend', function (e) {
+      if (startX === null) return;
+      var deltaX = e.changedTouches[0].clientX - startX;
+      var deltaY = e.changedTouches[0].clientY - startY;
+      startX = null; startY = null;
+      if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+      var idx = SLIDE_ORDER.indexOf(currentSlideKey);
+      var next = deltaX < 0 ? idx + 1 : idx - 1;
+      if (next < 0 || next >= SLIDE_ORDER.length) return;
+      goToSlide(SLIDE_ORDER[next]);
+    }, { passive: true });
+  })();
 </script>
 
 <!-- ══ FLICKS VIEW ══ -->
 <style>
-  #flicksView {
+  #flicksShortPane, #flicksLongPane {
     display: none;
     flex-direction: column;
     height: calc(100vh - 108px);
@@ -4654,7 +5064,53 @@ body::after {
     scrollbar-width: none;
     z-index: 1;
   }
-  #flicksView::-webkit-scrollbar { display: none; }
+  #flicksShortPane::-webkit-scrollbar, #flicksLongPane::-webkit-scrollbar { display: none; }
+
+  .flicks-sub-toggle {
+    display: none;
+    position: fixed; top: 116px; left: 50%; transform: translateX(-50%);
+    z-index: 45; gap: 4px; padding: 3px;
+    background: rgba(8,12,28,0.65); backdrop-filter: blur(10px);
+    border: 1px solid rgba(212,175,55,0.25); border-radius: 20px;
+  }
+  .flicks-sub-btn {
+    padding: 5px 14px; border-radius: 16px; font-size: 10.5px; font-weight: 600;
+    color: rgba(255,255,255,0.55); cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+  .flicks-sub-btn.active { background: rgba(212,175,55,0.22); color: var(--gold); }
+
+  .binge-progress {
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: rgba(255,255,255,0.08); z-index: 6;
+  }
+  .binge-progress-fill { height: 100%; width: 0%; background: var(--gold); box-shadow: 0 0 8px var(--gold-glow); }
+
+  .binge-sheet {
+    position: fixed; left: 0; right: 0; bottom: -100%; max-width: 480px; margin: 0 auto;
+    background: rgba(9,14,34,0.98); backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(212,175,55,0.3);
+    border-radius: 20px 20px 0 0; padding: 18px 20px 26px;
+    z-index: 90; transition: bottom 0.32s cubic-bezier(0.16,1,0.3,1);
+  }
+  .binge-sheet.show { bottom: 0; }
+  .binge-row { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 6px; }
+  .binge-row-label { font-size: 12.5px; color: var(--text-hi); font-weight: 600; }
+  .binge-row-value { font-size: 11px; color: var(--gold); }
+  .binge-slider { width: 100%; accent-color: #D4AF37; }
+
+  .switch-toggle { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch-toggle input { opacity: 0; width: 0; height: 0; }
+  .switch-slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background: rgba(255,255,255,0.12); border-radius: 22px; transition: 0.2s;
+  }
+  .switch-slider::before {
+    content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+    background: #fff; border-radius: 50%; transition: 0.2s;
+  }
+  .switch-toggle input:checked + .switch-slider { background: rgba(212,175,55,0.55); }
+  .switch-toggle input:checked + .switch-slider::before { transform: translateX(18px); background: var(--gold); }
   .flick-hero-row {
     display: flex; flex-direction: row;
     height: calc(100vh - 108px); flex-shrink: 0;
@@ -4892,134 +5348,44 @@ body::after {
   .flick-tag::before { content: '•'; font-size: 8px; }
 </style>
 
-<div id="flicksView">
-  <div class="flick-hero-row">
-  <!-- ── Main player ── -->
-  <div class="flick-player">
-    <div class="flick-bg" id="flickGradient" style="background:linear-gradient(135deg,rgba(10,18,50,0.9),rgba(30,10,60,0.85));"></div>
-    <div class="flick-scanlines"></div>
-    <div class="flick-player-grid" id="flickGrid" style="opacity:0.7;"></div>
-
-    <!-- JARVIS ambient rings -->
-    <div class="jarvis-ring r1"></div>
-    <div class="jarvis-ring r2"></div>
-    <div class="jarvis-ring r3"></div>
-
-    <!-- Center play -->
-    <div class="flick-center">
-      <div class="flick-play">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg>
-      </div>
-    </div>
-
-    <!-- Action strip -->
-    <div class="flick-actions">
-      <div class="flick-act">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span class="flick-act-label">4.2k</span>
-      </div>
-      <div class="flick-act">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span class="flick-act-label">312</span>
-      </div>
-      <div class="flick-act">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        <span class="flick-act-label">Share</span>
-      </div>
-      <div class="flick-act">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span class="flick-act-label">Save</span>
-      </div>
-    </div>
-
-    <!-- Visor data bar — the etched glass descriptor -->
-    <div class="visor-bar">
-      <div class="visor-dot"></div>
-      <div class="visor-text" id="flickVisorLine">AI-generated · immersive world-build · trending in Sci-Fi</div>
-    </div>
-
-    <!-- Bottom info -->
-    <div class="flick-info">
-      <div class="flick-creator-row">
-        <div class="flick-avatar">FC</div>
-        <span style="font-size:11px;color:rgba(255,255,255,0.7);" id="flickCreator">@futureframes</span>
-        <span style="margin-left:auto;" class="flick-tag" id="flickCategory">FLICK</span>
-      </div>
-      <div class="syne" style="font-size:15px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:6px;" id="flickTitle">Neural City 2047</div>
-      <div>
-        <span class="flick-tag" id="flickTag1">Sci-Fi · Architecture</span>
-        <span class="flick-tag" id="flickTag2">World-building</span>
-        <span style="font-size:10px;color:rgba(212,175,55,0.5);margin-left:4px;" id="flickDuration">0:38</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Thumbnail rail ── -->
-  <div class="flick-rail" id="flickRail">
-    <!-- Thumb 1 (active) -->
-    <div class="flick-thumb active-thumb" style="background:linear-gradient(135deg,rgba(10,18,50,0.9),rgba(30,10,60,0.85));">
-      <div class="thumb-grid"></div>
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);opacity:0.35;">
-        <div class="jarvis-ring r1" style="width:40px;height:40px;animation-duration:8s;position:relative;transform:none;top:auto;left:auto;"></div>
-      </div>
-      <div class="thumb-duration">0:38</div>
-      <div class="thumb-visor">
-        <div class="thumb-visor-title">Neural City 2047</div>
-        <div class="thumb-visor-tag">Sci-Fi · World-build</div>
-      </div>
-    </div>
-    <!-- Thumb 2 -->
-    <div class="flick-thumb" style="background:linear-gradient(135deg,rgba(8,25,45,0.9),rgba(10,40,50,0.85));">
-      <div class="thumb-grid"></div>
-      <div class="thumb-duration">1:02</div>
-      <div class="thumb-visor">
-        <div class="thumb-visor-title">Zero-G Ballet</div>
-        <div class="thumb-visor-tag">Dance · Space</div>
-      </div>
-    </div>
-    <!-- Thumb 3 -->
-    <div class="flick-thumb" style="background:linear-gradient(135deg,rgba(30,15,5,0.9),rgba(50,25,5,0.85));">
-      <div class="thumb-grid"></div>
-      <div class="thumb-duration">0:52</div>
-      <div class="thumb-visor">
-        <div class="thumb-visor-title">Desert Protocol</div>
-        <div class="thumb-visor-tag">Action · VFX</div>
-      </div>
-    </div>
-    <!-- Thumb 4 -->
-    <div class="flick-thumb" style="background:linear-gradient(135deg,rgba(0,20,30,0.9),rgba(0,40,35,0.85));">
-      <div class="thumb-grid"></div>
-      <div class="thumb-duration">0:44</div>
-      <div class="thumb-visor">
-        <div class="thumb-visor-title">Bioluminescent</div>
-        <div class="thumb-visor-tag">Nature · Science</div>
-      </div>
-    </div>
-    <!-- Thumb 5 -->
-    <div class="flick-thumb" style="background:linear-gradient(135deg,rgba(5,5,20,0.9),rgba(20,5,30,0.85));">
-      <div class="thumb-grid"></div>
-      <div class="thumb-duration">1:18</div>
-      <div class="thumb-visor">
-        <div class="thumb-visor-title">The Last Signal</div>
-        <div class="thumb-visor-tag">Drama · Space</div>
-      </div>
-    </div>
-    <!-- Up next label -->
-    <div style="text-align:center;padding:4px 0;">
-      <span style="font-size:9px;color:rgba(212,175,55,0.35);letter-spacing:0.08em;text-transform:uppercase;">Up next</span>
-    </div>
-  </div>
-
-  <div class="flick-rail-toggle" id="flickRailToggle" onclick="toggleFlickRail()" title="Show/hide clip list">
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </div>
-  </div>
-
-  <!-- ═══ LIVE FLICKS — real video posts from the database ═══ -->
-  <div style="padding:16px 14px 4px;">
-    <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-lo);margin-bottom:10px;">Community Flicks</div>
-    <div id="liveFlicksList"></div>
-  </div>
+<div class="flicks-sub-toggle" id="flicksSubToggle">
+  <div class="flicks-sub-btn active" id="flicksSubShortBtn" onclick="goToSlide('flicksShort')">Shorts</div>
+  <div class="flicks-sub-btn" id="flicksSubLongBtn" onclick="goToSlide('flicksLong')">Long</div>
 </div>
+
+<!-- ══ BINGE MODE settings sheet ══ -->
+<div class="binge-sheet" id="bingeSettingsSheet">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text-hi);">Binge Mode</span>
+    <span onclick="closeBingeSettings()" style="cursor:pointer;color:var(--text-lo);font-size:13px;">✕</span>
+  </div>
+  <div class="binge-row">
+    <span class="binge-row-label">Auto-advance between Flicks</span>
+    <label class="switch-toggle">
+      <input type="checkbox" id="bingeEnabledToggle" />
+      <span class="switch-slider"></span>
+    </label>
+  </div>
+  <div class="binge-row">
+    <span class="binge-row-label">Delay before next Flick</span>
+    <span class="binge-row-value" id="bingeDelayLabel">2s</span>
+  </div>
+  <input class="binge-slider" type="range" id="bingeDelaySlider" min="0" max="5" step="0.5" oninput="updateBingeDelayPreview(this.value)" />
+  <div class="binge-row">
+    <span class="binge-row-label">Flicks per binge session</span>
+    <span class="binge-row-value" id="bingeCountLabel">10</span>
+  </div>
+  <input class="binge-slider" type="range" id="bingeCountSlider" min="3" max="50" step="1" oninput="updateBingeCountPreview(this.value)" />
+  <button type="button" class="voice-btn" style="width:100%;justify-content:center;padding:11px;margin-top:18px;" onclick="saveBingeSettingsFromSheet()">Save</button>
+</div>
+
+<div id="flicksShortPane">
+  <div id="shortFlickPaneContent"></div>
+</div>
+
+<div id="flicksLongPane">
+  <div id="longFlickPaneContent"></div>
+</div>
+
 </body>
 </html>
