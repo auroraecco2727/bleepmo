@@ -144,3 +144,42 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read
 CREATE INDEX IF NOT EXISTS idx_conversations_user_a ON conversations(user_a_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user_b ON conversations(user_b_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at);
+
+-- ══════════════════════════════════════
+-- CALENDAR: public Events (followers see/like/comment) + private Vault
+-- (personal saved links/Bleeps with a "key takeaway" note, own-eyes-only).
+-- ══════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS calendar_events (
+  id            TEXT PRIMARY KEY,
+  author_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title         TEXT NOT NULL,
+  description   TEXT,
+  event_date    TEXT NOT NULL,   -- 'YYYY-MM-DD'
+  event_time    TEXT,            -- optional 'HH:MM'
+  location      TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  deleted_at    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS event_likes (
+  event_id    TEXT NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS vault_entries (
+  id                   TEXT PRIMARY KEY,
+  user_id              TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,  -- private, own-eyes-only
+  entry_date           TEXT NOT NULL,   -- 'YYYY-MM-DD'
+  reference_type       TEXT NOT NULL,   -- 'link' | 'bleep'
+  reference_url        TEXT,
+  referenced_bleep_id  TEXT REFERENCES bleeps(id) ON DELETE SET NULL,
+  key_takeaway         TEXT NOT NULL,
+  created_at           TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_author ON calendar_events(author_id, event_date);
+CREATE INDEX IF NOT EXISTS idx_vault_entries_user_date ON vault_entries(user_id, entry_date);

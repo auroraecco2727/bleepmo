@@ -28,6 +28,17 @@ import {
 import { handleGoogleAuthStart, handleGoogleAuthCallback } from './routes/oauth-google.js';
 import { handleAppleAuthStart, handleAppleAuthCallback } from './routes/oauth-apple.js';
 import { handlePendingOAuthGet, handleCompleteOAuthSignup } from './routes/oauth-complete.js';
+import {
+  handleCalendarEventsGet,
+  handleCalendarEventsPost,
+  handleEventDetailGet,
+  handleEventLikeToggle,
+  handleEventCommentsGet,
+  handleEventCommentsPost,
+  handleVaultGet,
+  handleVaultPost,
+  handleVaultDelete,
+} from './routes/calendar.js';
 import { handleMedia } from './routes/media.js';
 
 function notFound() {
@@ -110,6 +121,27 @@ export default {
       if (path === '/api/auth/apple/callback' && method === 'POST') return await handleAppleAuthCallback(request, env);
       if (path === '/api/auth/pending' && method === 'GET') return await handlePendingOAuthGet(request, env);
       if (path === '/api/auth/complete' && method === 'POST') return await handleCompleteOAuthSignup(request, env);
+
+      // ── Calendar: Events (public) ──
+      if (path === '/api/calendar/events' && method === 'GET') return await handleCalendarEventsGet(request, env);
+      if (path === '/api/calendar/events' && method === 'POST') return await handleCalendarEventsPost(request, env);
+
+      const eventDetailMatch = path.match(/^\/api\/calendar\/events\/([^/]+)$/);
+      if (eventDetailMatch && method === 'GET') return await handleEventDetailGet(request, env, eventDetailMatch[1]);
+
+      const eventLikeMatch = path.match(/^\/api\/calendar\/events\/([^/]+)\/like$/);
+      if (eventLikeMatch && method === 'POST') return await handleEventLikeToggle(request, env, eventLikeMatch[1]);
+
+      const eventCommentsMatch = path.match(/^\/api\/calendar\/events\/([^/]+)\/comments$/);
+      if (eventCommentsMatch && method === 'GET') return await handleEventCommentsGet(request, env, eventCommentsMatch[1]);
+      if (eventCommentsMatch && method === 'POST') return await handleEventCommentsPost(request, env, eventCommentsMatch[1]);
+
+      // ── Calendar: Vault (private) ──
+      if (path === '/api/vault' && method === 'GET') return await handleVaultGet(request, env);
+      if (path === '/api/vault' && method === 'POST') return await handleVaultPost(request, env);
+
+      const vaultDeleteMatch = path.match(/^\/api\/vault\/([^/]+)$/);
+      if (vaultDeleteMatch && method === 'DELETE') return await handleVaultDelete(request, env, vaultDeleteMatch[1]);
 
       // ── Media (private R2 objects) ──
       const mediaMatch = path.match(/^\/media\/(.+)$/);
