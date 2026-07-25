@@ -17,8 +17,11 @@ export async function handleNotificationsGet(request, env) {
   const { results } = await env.DB
     .prepare(
       `SELECT n.id, n.type, n.source_type, n.source_id, n.read_at, n.created_at,
-              a.id AS actor_id, a.full_name AS actor_name, a.handle_symbol AS actor_symbol, a.handle AS actor_handle
-       FROM notifications n JOIN users a ON a.id = n.actor_id
+              a.id AS actor_id, a.full_name AS actor_name, a.handle_symbol AS actor_symbol, a.handle AS actor_handle,
+              t.amount_cents AS tip_amount_cents, t.message AS tip_message
+       FROM notifications n
+       JOIN users a ON a.id = n.actor_id
+       LEFT JOIN tips t ON n.type = 'tip' AND t.id = n.source_id
        WHERE n.user_id = ?
        ORDER BY n.created_at DESC
        LIMIT 50`

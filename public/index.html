@@ -1445,6 +1445,9 @@ body::after {
     </div>
     <button class="profile-follow-btn" id="profileFollowBtn" onclick="toggleFollow()" onmouseenter="followBtnHover(true)" onmouseleave="followBtnHover(false)" style="display:none;">Follow</button>
     <button class="profile-follow-btn" id="profileMessageBtn" onclick="startConversationFromProfile()" style="display:none;background:transparent;">Message</button>
+    <button class="profile-follow-btn" id="profileTipBtn" onclick="openTipModalForProfile()" style="display:none;background:transparent;color:var(--gold);border-color:rgba(212,175,55,0.4);">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:-2px;margin-right:3px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg>Tip
+    </button>
   </div>
 
   <div class="profile-tabs">
@@ -3201,6 +3204,8 @@ body::after {
     followBtn.textContent = 'Follow';
     var messageBtn = document.getElementById('profileMessageBtn');
     messageBtn.style.display = (currentUser && authorId === currentUser.id) ? 'none' : 'inline-block';
+    var tipBtn = document.getElementById('profileTipBtn');
+    tipBtn.style.display = (currentUser && authorId === currentUser.id) ? 'none' : 'inline-block';
     document.getElementById('profileScreen').classList.add('show');
 
     fetch('/api/users/' + encodeURIComponent(authorId) + '/relationship', { credentials: 'include' })
@@ -3720,6 +3725,9 @@ body::after {
     if (type === 'follow') {
       return { verb: 'started following you', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/>', suffixSourceType: false };
     }
+    if (type === 'tip') {
+      return { verb: 'sent you a tip', icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/>', suffixSourceType: false };
+    }
     return { verb: 'commented on your', icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', suffixSourceType: true };
   }
 
@@ -3756,10 +3764,14 @@ body::after {
       var meta = notifVerbAndIcon(n.type);
       var row = document.createElement('div');
       row.className = 'notif-row' + (n.read_at ? '' : ' unread');
+      var verbText = meta.verb + (meta.suffixSourceType ? ' ' + escapeHtml(n.source_type) : '');
+      if (n.type === 'tip' && n.tip_amount_cents) {
+        verbText = 'sent you a ' + formatPriceCents(n.tip_amount_cents, 'usd') + ' tip' + (n.tip_message ? ': "' + escapeHtml(n.tip_message) + '"' : '');
+      }
       row.innerHTML =
         '<div class="notif-row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + meta.icon + '</svg></div>' +
         '<div>' +
-        '  <div class="notif-row-text"><b>' + escapeHtml(n.actor_symbol + n.actor_handle) + '</b> ' + meta.verb + (meta.suffixSourceType ? ' ' + escapeHtml(n.source_type) : '') + '</div>' +
+        '  <div class="notif-row-text"><b>' + escapeHtml(n.actor_symbol + n.actor_handle) + '</b> ' + verbText + '</div>' +
         '  <div class="notif-row-time">' + relativeTime(n.created_at) + ' ago</div>' +
         '</div>';
       list.appendChild(row);
@@ -4266,6 +4278,102 @@ body::after {
     switchStoreSegment('platform_upgrade');
   }
 
+  /* ══ Bleep Tips / Gifting ══ */
+  var tipModalState = { recipientId: null, recipientName: null, sourceType: null, sourceId: null, amountCents: 500 };
+
+  function selectTipAmount(cents) {
+    var customInput = document.getElementById('tipCustomAmountInput');
+    document.querySelectorAll('.tip-amount-chip').forEach(function (chip) {
+      chip.classList.toggle('active', cents !== null && parseInt(chip.getAttribute('data-amount'), 10) === cents);
+    });
+    if (cents === null) {
+      var custom = parseFloat(customInput.value);
+      tipModalState.amountCents = Number.isFinite(custom) && custom > 0 ? Math.round(custom * 100) : 0;
+    } else {
+      customInput.value = '';
+      tipModalState.amountCents = cents;
+    }
+  }
+
+  function openTipModal(recipientId, recipientName, sourceType, sourceId) {
+    if (!currentUser || recipientId === currentUser.id) { showToast('You can\'t tip yourself.'); return; }
+    tipModalState = { recipientId: recipientId, recipientName: recipientName, sourceType: sourceType || null, sourceId: sourceId || null, amountCents: 500 };
+    document.getElementById('tipModalRecipientName').textContent = recipientName;
+    document.getElementById('tipModalStatus').style.display = 'none';
+    document.getElementById('tipMessageInput').value = '';
+    document.getElementById('tipCustomAmountInput').value = '';
+    document.querySelectorAll('.tip-amount-chip').forEach(function (chip) {
+      chip.classList.toggle('active', parseInt(chip.getAttribute('data-amount'), 10) === 500);
+    });
+    document.getElementById('tipModalSheet').classList.add('show');
+  }
+
+  function closeTipModal() {
+    document.getElementById('tipModalSheet').classList.remove('show');
+  }
+
+  function openTipModalForProfile() {
+    if (!profileScreenState.authorId) return;
+    var name = document.getElementById('profileName').textContent;
+    openTipModal(profileScreenState.authorId, name, 'profile', profileScreenState.authorId);
+  }
+
+  function openTipModalFromFlick(paneKey) {
+    var state = flickPaneState[paneKey];
+    if (!state || !state.items.length) return;
+    var b = state.items[state.activeIndex];
+    openTipModal(b.author_id, b.handle_symbol + b.handle, 'flick', b.id);
+  }
+
+  function showTipModalStatus(message, isError) {
+    var el = document.getElementById('tipModalStatus');
+    el.textContent = message;
+    el.style.display = 'block';
+    el.style.background = isError ? 'rgba(255,80,50,0.1)' : 'rgba(120,220,150,0.1)';
+    el.style.color = isError ? '#ff6644' : '#7fe0a0';
+    el.style.border = '1px solid ' + (isError ? 'rgba(255,80,50,0.3)' : 'rgba(120,220,150,0.3)');
+  }
+
+  function playGiftBurst(label) {
+    var overlay = document.getElementById('giftBurstOverlay');
+    document.getElementById('giftBurstLabel').textContent = label;
+    overlay.classList.remove('play');
+    void overlay.offsetWidth; // restart the animation if it's already mid-play
+    overlay.classList.add('play');
+    setTimeout(function () { overlay.classList.remove('play'); }, 1700);
+  }
+
+  async function submitTip() {
+    if (!tipModalState.recipientId) return;
+    if (!tipModalState.amountCents || tipModalState.amountCents <= 0) {
+      showTipModalStatus('Pick or enter an amount first.', true);
+      return;
+    }
+    var btn = document.getElementById('tipSubmitBtn');
+    btn.disabled = true;
+    try {
+      var res = await fetch('/api/tips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          recipientId: tipModalState.recipientId,
+          amountCents: tipModalState.amountCents,
+          message: document.getElementById('tipMessageInput').value.trim(),
+          sourceType: tipModalState.sourceType,
+          sourceId: tipModalState.sourceId,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) { showTipModalStatus(data.error || 'Couldn\'t send that tip.', true); btn.disabled = false; return; }
+      closeTipModal();
+      playGiftBurst(formatPriceCents(tipModalState.amountCents, 'usd') + ' sent to ' + tipModalState.recipientName + '!');
+    } catch (err) {
+      showTipModalStatus('Couldn\'t reach the server.', true);
+    }
+    btn.disabled = false;
+  }
+
   function renderProfileContent() {
     var container = document.getElementById('profileContent');
     var tab = profileScreenState.activeTab;
@@ -4526,6 +4634,7 @@ body::after {
             '<div class="flick-act" id="' + p + 'FlickCommentAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount">0</span></div>' +
             '<div class="flick-act" id="' + p + 'BingeAct" onclick="event.stopPropagation(); openBingeSettings()" title="Binge Mode settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span class="flick-act-label" id="' + p + 'BingeLabel">Binge</span></div>' +
             '<div class="flick-act" id="' + p + 'VaultAct" onclick="event.stopPropagation(); openVaultFromFlick(\'' + p + '\')" title="Save to Vault"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label">Vault</span></div>' +
+            '<div class="flick-act" id="' + p + 'TipAct" onclick="event.stopPropagation(); openTipModalFromFlick(\'' + p + '\')" title="Send a tip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg><span class="flick-act-label">Tip</span></div>' +
           '</div>' +
           '<div class="visor-bar" id="' + p + 'FlickVisorBar" style="display:none;">' +
             '<div class="visor-dot"></div>' +
@@ -6162,6 +6271,64 @@ body::after {
     <button type="button" class="voice-btn" style="flex:1; justify-content:center;" onclick="submitMerchQuickBuy()">Add to Bag</button>
   </div>
   <div style="font-size:9.5px; color:var(--text-lo); text-align:center; margin-top:10px;">Demo checkout — no real payment is processed yet.</div>
+</div>
+
+<!-- ══ TIP / GIFT MODAL ══ -->
+<style>
+  .tip-amount-row { display: flex; gap: 8px; margin: 12px 0; }
+  .tip-amount-chip {
+    flex: 1; text-align: center; padding: 10px 4px; border-radius: 12px; cursor: pointer;
+    background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.2);
+    font-size: 13px; font-weight: 700; color: var(--text-hi); transition: all 0.15s;
+  }
+  .tip-amount-chip.active { background: rgba(212,175,55,0.22); border-color: var(--gold); color: var(--gold); }
+  .gift-burst-overlay {
+    position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; opacity: 0;
+  }
+  .gift-burst-overlay.play { animation: giftBurstFade 1.6s ease-out forwards; }
+  @keyframes giftBurstFade {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .gift-burst-coin {
+    font-size: 54px; animation: giftBurstPop 1.6s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  @keyframes giftBurstPop {
+    0% { transform: scale(0.3) translateY(20px); }
+    30% { transform: scale(1.15) translateY(-10px); }
+    50% { transform: scale(1) translateY(-14px); }
+    100% { transform: scale(1) translateY(-60px); }
+  }
+  .gift-burst-label {
+    position: absolute; bottom: 40%; left: 50%; transform: translateX(-50%);
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; color: var(--gold);
+    text-shadow: 0 0 14px rgba(212,175,55,0.6); white-space: nowrap;
+  }
+</style>
+<div class="cal-sheet" id="tipModalSheet">
+  <div class="cal-sheet-header">
+    <span class="cal-sheet-title">Send a Tip</span>
+    <span class="cal-sheet-close" onclick="closeTipModal()">✕</span>
+  </div>
+  <div id="tipModalStatus" style="display:none;font-size:12px;padding:8px 11px;border-radius:9px;margin-bottom:10px;"></div>
+  <div style="font-size:12px;color:var(--text-mid);margin-bottom:2px;">To <span id="tipModalRecipientName" style="color:var(--gold);font-weight:700;">—</span></div>
+  <div class="tip-amount-row">
+    <div class="tip-amount-chip" data-amount="100" onclick="selectTipAmount(100)">$1</div>
+    <div class="tip-amount-chip active" data-amount="500" onclick="selectTipAmount(500)">$5</div>
+    <div class="tip-amount-chip" data-amount="1000" onclick="selectTipAmount(1000)">$10</div>
+  </div>
+  <div class="cal-form-field"><label>Custom amount (USD)</label><input class="auth-input" type="number" min="1" step="1" id="tipCustomAmountInput" placeholder="e.g. 20" oninput="selectTipAmount(null)" /></div>
+  <div class="cal-form-field"><label>Message (optional)</label><input class="auth-input" type="text" id="tipMessageInput" placeholder="Say something nice…" /></div>
+  <button type="button" class="voice-btn" style="width:100%; justify-content:center; padding:11px;" id="tipSubmitBtn" onclick="submitTip()">Send Tip</button>
+  <div style="font-size:9.5px; color:var(--text-lo); text-align:center; margin-top:10px;">Demo — no real payment is processed yet.</div>
+</div>
+
+<div class="gift-burst-overlay" id="giftBurstOverlay">
+  <div class="gift-burst-coin">🪙</div>
+  <div class="gift-burst-label" id="giftBurstLabel">Tip sent!</div>
 </div>
 
 </body>
