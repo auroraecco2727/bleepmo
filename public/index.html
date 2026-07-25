@@ -387,6 +387,18 @@ body::after {
 .creator-sub { font-size: 11px; color: var(--text-lo); margin-top: 1px; }
 
 .bullet-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.merch-banner {
+  display: flex; align-items: center; gap: 9px;
+  margin: 8px 0 2px; padding: 8px 11px; border-radius: 11px;
+  background: rgba(212,175,55,0.06); border: 0.5px solid rgba(212,175,55,0.18);
+  cursor: pointer; transition: background 0.15s;
+}
+.merch-banner:hover { background: rgba(212,175,55,0.1); }
+.merch-banner-icon { flex-shrink: 0; opacity: 0.85; }
+.merch-banner-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(212,175,55,0.7); }
+.merch-banner-title { font-size: 11.5px; color: var(--text-hi); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.merch-banner-price { font-size: 12px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
 .btag {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 10px; border-radius: 20px; font-size: 11px;
@@ -2994,9 +3006,78 @@ body::after {
     document.getElementById('trendFeedScreen').classList.remove('show');
   }
 
+  /* ══ Contextual Merch — non-intrusive banner + quick-view sheet ══ */
+  function formatPriceCents(cents, currency) {
+    var amount = (cents / 100).toFixed(2);
+    var symbol = (currency || 'usd').toLowerCase() === 'usd' ? '$' : (currency || '').toUpperCase() + ' ';
+    return symbol + amount;
+  }
+
+  var merchLookup = {}; // itemId -> merch object, populated as banners render
+
+  function buildMerchBannerHtml(merch) {
+    if (!merch) return '';
+    merchLookup[merch.id] = merch;
+    return (
+      '<div class="merch-banner" onclick="openMerchQuickView(\'' + escapeHtml(merch.id).replace(/'/g, "\\'") + '\')">' +
+      '  <div class="merch-banner-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6"><path d="M6 2l1.5 4h9L18 2M3.5 6h17l-1.6 13a2 2 0 0 1-2 1.8H7.1a2 2 0 0 1-2-1.8z"/></svg></div>' +
+      '  <div style="flex:1;min-width:0;">' +
+      '    <div class="merch-banner-label">Featured Merch</div>' +
+      '    <div class="merch-banner-title">' + escapeHtml(merch.title) + '</div>' +
+      '  </div>' +
+      '  <div class="merch-banner-price">' + formatPriceCents(merch.price_cents, merch.currency) + '</div>' +
+      '</div>'
+    );
+  }
+
+  var activeMerchItem = null;
+
+  function openMerchQuickView(itemId) {
+    var merch = merchLookup[itemId];
+    if (!merch) return;
+    activeMerchItem = merch;
+    document.getElementById('merchQuickViewTitle').textContent = merch.title;
+    document.getElementById('merchQuickViewDesc').textContent = merch.description || '';
+    document.getElementById('merchQuickViewPrice').textContent = formatPriceCents(merch.price_cents, merch.currency);
+    document.getElementById('merchQuickViewStatus').style.display = 'none';
+    document.getElementById('merchQuickViewSheet').classList.add('show');
+  }
+
+  function closeMerchQuickView() {
+    document.getElementById('merchQuickViewSheet').classList.remove('show');
+    activeMerchItem = null;
+  }
+
+  function showMerchQuickViewStatus(message, isError) {
+    var el = document.getElementById('merchQuickViewStatus');
+    el.textContent = message;
+    el.style.display = 'block';
+    el.style.background = isError ? 'rgba(255,80,50,0.1)' : 'rgba(120,220,150,0.1)';
+    el.style.color = isError ? '#ff6644' : '#7fe0a0';
+    el.style.border = '1px solid ' + (isError ? 'rgba(255,80,50,0.3)' : 'rgba(120,220,150,0.3)');
+  }
+
+  async function submitMerchQuickBuy() {
+    if (!activeMerchItem) return;
+    try {
+      var res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ storeItemId: activeMerchItem.id }),
+      });
+      var data = await res.json();
+      if (!res.ok) { showMerchQuickViewStatus(data.error || 'Couldn\'t process that.', true); return; }
+      showMerchQuickViewStatus('Demo checkout — no real payment was processed. (' + (data.note || '') + ')', false);
+    } catch (err) {
+      showMerchQuickViewStatus('Couldn\'t reach the server.', true);
+    }
+  }
+
   function buildBleepCardInner(b, idPrefix) {
     var expandId = 'liveExpand-' + (idPrefix || '') + b.id;
     var tagsRowHtml = buildTagsRowHtml(b);
+    var merchBannerHtml = buildMerchBannerHtml(b.recommended_merch);
 
     var bodyHtml;
     if (b.title) {
@@ -3026,6 +3107,7 @@ body::after {
       '<div class="live-media-slot"></div>' +
       bodyHtml +
       tagsRowHtml +
+      merchBannerHtml +
       '<div class="action-row">' +
       '  <div class="act like-btn' + (b.liked_by_viewer ? ' liked' : '') + '" data-bleep-id="' + escapeHtml(b.id) + '" onclick="toggleLike(\'' + escapeHtml(b.id) + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (b.liked_by_viewer ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count-badge">' + (b.like_count || 0) + '</span></div>' +
       '  <div class="act" onclick="openCommentsScreen(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="comment-count-badge" data-bleep-id="' + escapeHtml(b.id) + '">' + (b.comment_count || 0) + '</span></div>' +
@@ -4461,7 +4543,7 @@ body::after {
 
     document.getElementById(paneKey + 'FlickCommentAct').onclick = function (e) { e.stopPropagation(); openCommentsScreen(b.id); };
 
-    document.getElementById(paneKey + 'FlickTagsRow').innerHTML = buildTagsRowHtml(b);
+    document.getElementById(paneKey + 'FlickTagsRow').innerHTML = buildTagsRowHtml(b) + buildMerchBannerHtml(b.recommended_merch);
 
     var visorBar = document.getElementById(paneKey + 'FlickVisorBar');
     var visorLine = document.getElementById(paneKey + 'FlickVisorLine');
@@ -5938,6 +6020,23 @@ body::after {
   <div class="cal-form-field"><label>Date</label><input class="auth-input" type="date" id="vaultDateInput" /></div>
   <div class="cal-form-field"><label>Key takeaway — why does this matter?</label><input class="auth-input" type="text" id="vaultTakeawayInput" placeholder="Explain its significance" /></div>
   <button type="button" class="voice-btn" style="width:100%; justify-content:center; padding:11px;" id="vaultSubmitBtn" onclick="submitVaultEntry()">Save to Vault</button>
+</div>
+
+<!-- ══ MERCH QUICK VIEW ══ -->
+<div class="cal-sheet" id="merchQuickViewSheet">
+  <div class="cal-sheet-header">
+    <span class="cal-sheet-title">Featured Merch</span>
+    <span class="cal-sheet-close" onclick="closeMerchQuickView()">✕</span>
+  </div>
+  <div id="merchQuickViewStatus" style="display:none;font-size:12px;padding:8px 11px;border-radius:9px;margin-bottom:10px;"></div>
+  <div style="font-size:15px;font-weight:700;color:var(--text-hi);margin-bottom:4px;" id="merchQuickViewTitle">—</div>
+  <div style="font-size:12.5px;color:var(--text-mid);line-height:1.5;margin-bottom:10px;" id="merchQuickViewDesc"></div>
+  <div style="font-size:17px;font-weight:800;color:var(--gold);margin-bottom:16px;" id="merchQuickViewPrice">—</div>
+  <div style="display:flex; gap:8px;">
+    <button type="button" class="voice-btn" style="flex:1; justify-content:center;" onclick="submitMerchQuickBuy()">Buy Now</button>
+    <button type="button" class="voice-btn" style="flex:1; justify-content:center;" onclick="submitMerchQuickBuy()">Add to Bag</button>
+  </div>
+  <div style="font-size:9.5px; color:var(--text-lo); text-align:center; margin-top:10px;">Demo checkout — no real payment is processed yet.</div>
 </div>
 
 </body>

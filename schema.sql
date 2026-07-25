@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   voice_clip_key  TEXT,             -- R2 object key for the 15s genuine-voice clip
   google_sub      TEXT UNIQUE,      -- Google's stable per-user id ('sub' claim), set once linked
   apple_sub       TEXT UNIQUE,      -- Apple's stable per-user id ('sub' claim), set once linked
+  has_store       INTEGER NOT NULL DEFAULT 0,  -- manually flipped for now; gates the profile "Showcase" storefront tab
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -183,3 +184,53 @@ CREATE TABLE IF NOT EXISTS vault_entries (
 CREATE INDEX IF NOT EXISTS idx_calendar_events_date ON calendar_events(event_date);
 CREATE INDEX IF NOT EXISTS idx_calendar_events_author ON calendar_events(author_id, event_date);
 CREATE INDEX IF NOT EXISTS idx_vault_entries_user_date ON vault_entries(user_id, entry_date);
+
+-- ══════════════════════════════════════
+-- E-STORE: store_items (platform upgrades, creator merch, Bleepmo gear),
+-- orders (checkout — placeholder/demo status until real Stripe is wired),
+-- tips (fan-to-creator micro-tips — same placeholder status for now).
+-- ══════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS store_items (
+  id            TEXT PRIMARY KEY,
+  owner_id      TEXT REFERENCES users(id) ON DELETE CASCADE, -- NULL = Bleepmo platform item; set = creator's own merch
+  category      TEXT NOT NULL,   -- 'platform_upgrade' | 'creator_merch' | 'bleepmo_gear'
+  title         TEXT NOT NULL,
+  description   TEXT,
+  price_cents   INTEGER NOT NULL,
+  currency      TEXT NOT NULL DEFAULT 'usd',
+  image_key     TEXT,            -- R2 object key
+  tags          TEXT,            -- comma-separated topic keywords for contextual matching, e.g. "gaming,pc-building"
+  is_active     INTEGER NOT NULL DEFAULT 1,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id                TEXT PRIMARY KEY,
+  buyer_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  store_item_id     TEXT NOT NULL REFERENCES store_items(id) ON DELETE CASCADE,
+  price_cents       INTEGER NOT NULL,   -- snapshot of price at purchase time
+  currency          TEXT NOT NULL DEFAULT 'usd',
+  status            TEXT NOT NULL DEFAULT 'demo_placeholder', -- 'demo_placeholder' until Stripe is connected; later: 'paid' | 'failed' | 'refunded'
+  stripe_session_id TEXT,               -- populated once real Stripe Checkout is wired
+  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS tips (
+  id                TEXT PRIMARY KEY,
+  sender_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_cents      INTEGER NOT NULL,
+  currency          TEXT NOT NULL DEFAULT 'usd',
+  message           TEXT,
+  source_type       TEXT,               -- 'profile' | 'flick' | 'bleep', optional context
+  source_id         TEXT,
+  status            TEXT NOT NULL DEFAULT 'demo_placeholder',
+  stripe_session_id TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_store_items_category ON store_items(category, is_active);
+CREATE INDEX IF NOT EXISTS idx_store_items_owner ON store_items(owner_id);
+CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_tips_recipient ON tips(recipient_id);

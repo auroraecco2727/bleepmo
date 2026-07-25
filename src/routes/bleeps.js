@@ -3,6 +3,7 @@
 // POST /api/bleeps  -> create a new Bleep (caption + optional media)
 
 import { getSessionUser, newId } from '../shared/auth.js';
+import { getRecommendedMerchForTopics } from './store.js';
 import { applyMentions } from '../shared/mentions.js';
 
 function badRequest(message, status = 400) {
@@ -137,12 +138,21 @@ export async function handleBleepsGet(request, env) {
       .all();
     const followedAuthorSet = new Set(allFollows.map((f) => f.followee_id));
 
+    // Contextual Merch: one batched query for every trend topic on this
+    // page, rather than a query per post.
+    const allTopicsOnPage = results.flatMap((b) => trendByBleepId[b.id] || []);
+    const merchByTopic = await getRecommendedMerchForTopics(env.DB, allTopicsOnPage);
+
     for (const b of results) {
       b.trend_points = trendByBleepId[b.id] || [];
       b.tagged_handles = tagsByBleepId[b.id] || [];
       b.like_count = likeCountByBleepId[b.id] || 0;
       b.liked_by_viewer = likedByViewerSet.has(b.id);
       b.followed_by_viewer = b.author_id !== viewer.id && followedAuthorSet.has(b.author_id);
+      b.recommended_merch = null;
+      for (const topic of b.trend_points) {
+        if (merchByTopic.has(topic)) { b.recommended_merch = merchByTopic.get(topic); break; }
+      }
     }
   }
 

@@ -39,6 +39,13 @@ import {
   handleVaultPost,
   handleVaultDelete,
 } from './routes/calendar.js';
+import {
+  handleStoreItemsGet,
+  handleStoreItemsPost,
+  handleStoreItemDetailGet,
+  handleOrderCreate,
+  handleTipCreate,
+} from './routes/store.js';
 import { handleMedia } from './routes/media.js';
 
 function notFound() {
@@ -142,6 +149,16 @@ export default {
 
       const vaultDeleteMatch = path.match(/^\/api\/vault\/([^/]+)$/);
       if (vaultDeleteMatch && method === 'DELETE') return await handleVaultDelete(request, env, vaultDeleteMatch[1]);
+
+      // ── e-Store ──
+      if (path === '/api/store/items' && method === 'GET') return await handleStoreItemsGet(request, env);
+      if (path === '/api/store/items' && method === 'POST') return await handleStoreItemsPost(request, env);
+
+      const storeItemDetailMatch = path.match(/^\/api\/store\/items\/([^/]+)$/);
+      if (storeItemDetailMatch && method === 'GET') return await handleStoreItemDetailGet(request, env, storeItemDetailMatch[1]);
+
+      if (path === '/api/orders' && method === 'POST') return await handleOrderCreate(request, env);
+      if (path === '/api/tips' && method === 'POST') return await handleTipCreate(request, env);
 
       // ── Media (private R2 objects) ──
       const mediaMatch = path.match(/^\/media\/(.+)$/);
