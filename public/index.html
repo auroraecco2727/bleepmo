@@ -537,6 +537,10 @@ body::after {
 }
 .card.compact { min-height: 0; padding-bottom: 20px; }
 .card::-webkit-scrollbar { display: none; }
+.card.snap-focused {
+  box-shadow: inset 0 0 0 1px rgba(212,175,55,0.16), 0 10px 40px rgba(212,175,55,0.05);
+  transition: box-shadow 0.45s ease;
+}
 
 /* Card-level relationship/status accents — restrained by design: same
    shape and padding as a regular card, differentiated only by a left
@@ -4600,6 +4604,8 @@ body::after {
       data.bleeps.forEach(function (b) {
         container.appendChild(renderBleepCard(b));
       });
+      var firstCard = document.querySelector('#feed .card-wrap .card');
+      if (firstCard) firstCard.classList.add('snap-focused');
     } catch (err) {
       // network hiccup — leave whatever's already there, don't break the page
     }
@@ -4618,6 +4624,7 @@ body::after {
 
   function buildFlickPlayerHtml(paneKey) {
     var p = paneKey; // short-hand for id prefixes below
+    if (p === 'long') return buildLongFlickPlayerHtml(p);
     return (
       '<div class="flick-hero-row">' +
         '<div class="flick-player" id="' + p + 'FlickPlayer">' +
@@ -4644,7 +4651,7 @@ body::after {
             '<div class="flick-creator-row">' +
               '<div id="' + p + 'FlickAvatar"></div>' +
               '<span style="font-size:11px;color:rgba(255,255,255,0.7);" id="' + p + 'FlickCreator">—</span>' +
-              '<span style="margin-left:auto;" class="flick-tag" id="' + p + 'FlickBadge">' + (p === 'long' ? 'LONG-FLICK' : 'FLICK') + '</span>' +
+              '<span style="margin-left:auto;" class="flick-tag" id="' + p + 'FlickBadge">FLICK</span>' +
             '</div>' +
             '<div class="syne" style="font-size:15px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:6px;" id="' + p + 'FlickTitle"></div>' +
             '<div id="' + p + 'FlickTagsRow"></div>' +
@@ -4655,6 +4662,51 @@ body::after {
         '<div class="flick-rail-toggle" id="' + p + 'FlickRailToggle" onclick="toggleFlickRail(\'' + p + '\')" title="Show/hide clip list">' +
           '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
         '</div>' +
+      '</div>'
+    );
+  }
+
+  // Long-Flicks get a distinct, more cinematic hierarchy — video on top at a
+  // fixed 16:9 ratio (not full-bleed with overlaid text), title/description
+  // in normal document flow below it, and an "Up Next" row instead of a
+  // cramped side rail. Same element IDs as the short variant wherever
+  // setActiveFlick() touches them, so that function needs zero changes.
+  function buildLongFlickPlayerHtml(p) {
+    return (
+      '<div class="flick-hero-row long-layout">' +
+        '<div class="flick-player long-player" id="' + p + 'FlickPlayer">' +
+          '<video id="' + p + 'FlickVideo" muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#05070f;"></video>' +
+          '<div class="flick-scanlines"></div>' +
+          '<div class="jarvis-ring r1 thin"></div>' +
+          '<div class="jarvis-ring r2 thin"></div>' +
+          '<div class="flick-center" id="' + p + 'FlickCenter" onclick="toggleFlickPlayback(\'' + p + '\')">' +
+            '<div class="flick-play" id="' + p + 'FlickPlayBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg></div>' +
+          '</div>' +
+          '<div class="flick-actions">' +
+            '<div class="flick-act" id="' + p + 'FlickLikeAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label" id="' + p + 'FlickLikeCount">0</span></div>' +
+            '<div class="flick-act" id="' + p + 'FlickCommentAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount">0</span></div>' +
+            '<div class="flick-act" id="' + p + 'BingeAct" onclick="event.stopPropagation(); openBingeSettings()" title="Binge Mode settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span class="flick-act-label" id="' + p + 'BingeLabel">Binge</span></div>' +
+            '<div class="flick-act" id="' + p + 'VaultAct" onclick="event.stopPropagation(); openVaultFromFlick(\'' + p + '\')" title="Save to Vault"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label">Vault</span></div>' +
+            '<div class="flick-act" id="' + p + 'TipAct" onclick="event.stopPropagation(); openTipModalFromFlick(\'' + p + '\')" title="Send a tip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg><span class="flick-act-label">Tip</span></div>' +
+          '</div>' +
+          '<div class="binge-progress" id="' + p + 'BingeProgress" style="display:none;"><div class="binge-progress-fill" id="' + p + 'BingeProgressFill"></div></div>' +
+        '</div>' +
+        '<div class="long-flick-info">' +
+          '<div class="visor-bar long-visor" id="' + p + 'FlickVisorBar" style="display:none;">' +
+            '<div class="visor-dot"></div>' +
+            '<div class="visor-text" id="' + p + 'FlickVisorLine"></div>' +
+          '</div>' +
+          '<div class="syne long-flick-title" id="' + p + 'FlickTitle"></div>' +
+          '<div class="flick-creator-row" style="margin:10px 0;">' +
+            '<div id="' + p + 'FlickAvatar"></div>' +
+            '<span style="font-size:12px;color:rgba(255,255,255,0.75);" id="' + p + 'FlickCreator">—</span>' +
+            '<span style="margin-left:auto;" class="flick-tag" id="' + p + 'FlickBadge">LONG-FLICK</span>' +
+          '</div>' +
+          '<div class="long-flick-desc" id="' + p + 'FlickDesc"></div>' +
+          '<div id="' + p + 'FlickTagsRow"></div>' +
+        '</div>' +
+        '<div class="up-next-label">Up Next</div>' +
+        '<div class="flick-rail long-rail" id="' + p + 'FlickRail"></div>' +
       '</div>'
     );
   }
@@ -4694,12 +4746,19 @@ body::after {
     var state = flickPaneState[paneKey];
     var rail = document.getElementById(paneKey + 'FlickRail');
     if (!rail) return;
+    var isLong = paneKey === 'long';
     rail.innerHTML = state.items.map(function (b, i) {
       var title = b.title || (b.body ? b.body.slice(0, 40) : 'Untitled');
       var tag = (b.trend_points && b.trend_points[0]) || (b.handle_symbol + b.handle);
+      var durationBadge = isLong ? '<div class="long-duration-badge" id="' + paneKey + 'ThumbDur-' + i + '">--:--</div>' : '';
+      var videoTag = b.media_key
+        ? '<video src="/media/' + b.media_key + '" muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;" ' +
+          (isLong ? 'onloadedmetadata="updateThumbDuration(\'' + paneKey + '\', ' + i + ', this.duration)"' : '') + '></video>'
+        : '';
       return (
         '<div class="flick-thumb' + (i === 0 ? ' active-thumb' : '') + '" data-idx="' + i + '" onclick="setActiveFlick(\'' + paneKey + '\', ' + i + ')" style="background:linear-gradient(135deg,rgba(20,30,60,0.9),rgba(30,15,45,0.85));">' +
-        (b.media_key ? '<video src="/media/' + b.media_key + '" muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;"></video>' : '') +
+        videoTag +
+        durationBadge +
         '  <div class="thumb-visor">' +
         '    <div class="thumb-visor-title">' + escapeHtml(title) + '</div>' +
         '    <div class="thumb-visor-tag">' + escapeHtml(tag) + '</div>' +
@@ -4707,6 +4766,14 @@ body::after {
         '</div>'
       );
     }).join('');
+  }
+
+  function updateThumbDuration(paneKey, idx, seconds) {
+    var el = document.getElementById(paneKey + 'ThumbDur-' + idx);
+    if (!el || !Number.isFinite(seconds)) return;
+    var m = Math.floor(seconds / 60);
+    var s = Math.floor(seconds % 60);
+    el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
   }
 
   function setActiveFlick(paneKey, idx) {
@@ -4736,6 +4803,8 @@ body::after {
     document.getElementById(paneKey + 'FlickAvatar').innerHTML = buildAvatarHtml(b, 26);
     document.getElementById(paneKey + 'FlickCreator').textContent = b.handle_symbol + b.handle;
     document.getElementById(paneKey + 'FlickTitle').textContent = b.title || (b.body ? b.body.slice(0, 60) : 'Untitled');
+    var descEl = document.getElementById(paneKey + 'FlickDesc');
+    if (descEl) descEl.textContent = b.title && b.body ? b.body : '';
     document.getElementById(paneKey + 'FlickLikeCount').textContent = b.like_count || 0;
     document.getElementById(paneKey + 'FlickCommentCount').textContent = b.comment_count || 0;
 
@@ -5720,7 +5789,10 @@ body::after {
   });
 
   // Track which Bleep is centered in the For You feed, so its trend topic
-  // is what gets carried forward if the person swipes into Flicks next.
+  // is what gets carried forward if the person swipes into Flicks next —
+  // and give that centered card the same restrained gold "in-focus" glow
+  // the Flicks rail already uses for its active clip, so the two feel like
+  // one consistent visual language rather than two different apps.
   feedEl.addEventListener('scroll', function () {
     var wraps = document.querySelectorAll('#feed .card-wrap');
     if (!wraps.length) return;
@@ -5728,6 +5800,11 @@ body::after {
     idx = Math.max(0, Math.min(wraps.length - 1, idx));
     var topic = wraps[idx].dataset.trend;
     if (topic) activeTrendContext = topic;
+
+    wraps.forEach(function (w, i) {
+      var card = w.querySelector('.card');
+      if (card) card.classList.toggle('snap-focused', i === idx);
+    });
   }, { passive: true });
 
   // Horizontal swipe switches slides; a swipe that's mostly vertical is
@@ -5855,6 +5932,44 @@ body::after {
   .jarvis-ring.r2 { width: 240px; height: 240px; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-duration: 28s; animation-direction: reverse; }
   .jarvis-ring.r3 { width: 320px; height: 320px; top: 50%; left: 50%; transform: translate(-50%,-50%); animation-duration: 40s; border-color: rgba(212,175,55,0.06); }
   @keyframes ringRotate { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+  .jarvis-ring.thin { border-color: rgba(212,175,55,0.08); }
+  .jarvis-ring.thin.r1 { width: 110px; height: 110px; }
+  .jarvis-ring.thin.r2 { width: 170px; height: 170px; border-color: rgba(212,175,55,0.05); }
+
+  /* ── Long-Flick: cinematic, YouTube-hierarchy layout ── */
+  .flick-hero-row.long-layout {
+    flex-direction: column; height: auto; min-height: calc(100vh - 108px);
+  }
+  .flick-player.long-player {
+    flex: none; width: 100%; aspect-ratio: 16 / 9; border-right: none;
+    border-bottom: 0.5px solid rgba(212,175,55,0.12);
+  }
+  .long-flick-info { padding: 14px 16px 6px; }
+  .long-flick-title {
+    font-size: 17px; font-weight: 800; color: var(--text-hi); line-height: 1.3;
+  }
+  .long-flick-desc {
+    font-size: 12.5px; color: var(--text-mid); line-height: 1.5; margin: 8px 0 4px;
+    max-width: 100%;
+  }
+  .visor-bar.long-visor { position: static; margin-bottom: 8px; }
+  .up-next-label {
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-lo);
+    padding: 16px 16px 8px;
+  }
+  .flick-rail.long-rail {
+    flex-direction: row; flex-wrap: wrap; width: auto; height: auto;
+    padding: 0 12px 16px; background: transparent; overflow: visible; order: 0;
+    gap: 10px;
+  }
+  .flick-rail.long-rail .flick-thumb {
+    width: calc(50% - 5px); height: auto; aspect-ratio: 16 / 9; border-radius: 12px;
+  }
+  .flick-rail.long-rail .flick-thumb:hover { transform: translateY(-3px) scale(1.01); }
+  .long-duration-badge {
+    position: absolute; bottom: 5px; right: 5px; font-size: 9px; font-weight: 700;
+    padding: 1px 5px; border-radius: 5px; background: rgba(0,0,0,0.65); color: #fff;
+  }
 
   /* Grid overlay on player */
   .flick-player-grid {
