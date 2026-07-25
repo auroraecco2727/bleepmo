@@ -67,6 +67,7 @@ export async function handleUserRelationship(request, env, targetUserId) {
     .prepare('SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?')
     .bind(targetUserId, viewer.id)
     .first();
+  const targetUser = await env.DB.prepare('SELECT has_store FROM users WHERE id = ?').bind(targetUserId).first();
 
   return new Response(
     JSON.stringify({
@@ -74,6 +75,7 @@ export async function handleUserRelationship(request, env, targetUserId) {
       followingCount: followingCountRow ? followingCountRow.n : 0,
       isFollowing: !!isFollowingRow,
       isFollowedBy: !!isFollowedByRow,
+      hasStore: !!(targetUser && targetUser.has_store),
     }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   );

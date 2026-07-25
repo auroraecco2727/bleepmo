@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS store_items (
   image_key     TEXT,            -- R2 object key
   tags          TEXT,            -- comma-separated topic keywords for contextual matching, e.g. "gaming,pc-building"
   is_active     INTEGER NOT NULL DEFAULT 1,
+  grants_store_access INTEGER NOT NULL DEFAULT 0, -- buying this item flips the buyer's has_store to 1 (e.g. "Storefront Unlock")
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

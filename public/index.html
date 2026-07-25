@@ -399,6 +399,16 @@ body::after {
 .merch-banner-label { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(212,175,55,0.7); }
 .merch-banner-title { font-size: 11.5px; color: var(--text-hi); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .merch-banner-price { font-size: 12px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+
+.showcase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+.showcase-card {
+  padding: 14px 12px; border-radius: 14px; cursor: pointer;
+  background: rgba(212,175,55,0.05); border: 0.5px solid rgba(212,175,55,0.18);
+  transition: background 0.15s;
+}
+.showcase-card:hover { background: rgba(212,175,55,0.09); }
+.showcase-card-title { font-size: 12.5px; font-weight: 700; color: var(--text-hi); margin-bottom: 6px; }
+.showcase-card-price { font-size: 13px; font-weight: 800; color: var(--gold); }
 .btag {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 10px; border-radius: 20px; font-size: 11px;
@@ -1440,6 +1450,7 @@ body::after {
   <div class="profile-tabs">
     <div class="profile-tab active" id="profileTabBleeps" onclick="setProfileTab('bleeps')">Bleeps</div>
     <div class="profile-tab" id="profileTabFlicks" onclick="setProfileTab('flicks')">Flicks</div>
+    <div class="profile-tab" id="profileTabShowcase" onclick="setProfileTab('showcase')" style="display:none;">Showcase</div>
   </div>
 
   <div class="profile-content" id="profileContent"></div>
@@ -1779,6 +1790,10 @@ body::after {
     <div class="nav-drawer-item" onclick="closeNavDrawer(); openOwnProfile();">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>
       Profile
+    </div>
+    <div class="nav-drawer-item" id="drawerOpenStorefrontItem" style="display:none;" onclick="closeNavDrawer(); openPlatformUpgrades();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      Open Your Storefront
     </div>
     <div class="nav-drawer-item" onclick="drawerSettings()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -3175,6 +3190,8 @@ body::after {
     document.getElementById('profileHandle').innerHTML = '<span class="sym">' + escapeHtml(handleSymbol) + '</span>' + escapeHtml(handle);
     document.getElementById('profileTabBleeps').classList.toggle('active', profileScreenState.activeTab === 'bleeps');
     document.getElementById('profileTabFlicks').classList.toggle('active', profileScreenState.activeTab === 'flicks');
+    document.getElementById('profileTabShowcase').style.display = 'none';
+    document.getElementById('profileTabShowcase').classList.remove('active');
     document.getElementById('profileContent').innerHTML = '<div class="profile-loading">Loading…</div>';
     document.getElementById('profileFollowerCount').textContent = '0';
     document.getElementById('profileFollowingCount').textContent = '0';
@@ -3188,7 +3205,11 @@ body::after {
 
     fetch('/api/users/' + encodeURIComponent(authorId) + '/relationship', { credentials: 'include' })
       .then(function (res) { return res.ok ? res.json() : null; })
-      .then(function (rel) { if (rel) updateProfileFollowUI(rel); })
+      .then(function (rel) {
+        if (!rel) return;
+        updateProfileFollowUI(rel);
+        document.getElementById('profileTabShowcase').style.display = rel.hasStore ? 'block' : 'none';
+      })
       .catch(function () {});
 
     try {
@@ -3268,6 +3289,7 @@ body::after {
       document.getElementById('drawerAvatar').innerHTML = buildAvatarHtml(currentUser, 42);
       document.getElementById('drawerName').textContent = currentUser.full_name;
       document.getElementById('drawerHandle').innerHTML = '<span style="color:var(--gold);font-weight:800;">' + escapeHtml(currentUser.handle_symbol) + '</span>' + escapeHtml(currentUser.handle);
+      document.getElementById('drawerOpenStorefrontItem').style.display = currentUser.has_store ? 'none' : 'flex';
     }
   }
 
@@ -4170,7 +4192,78 @@ body::after {
     profileScreenState.activeTab = tab;
     document.getElementById('profileTabBleeps').classList.toggle('active', tab === 'bleeps');
     document.getElementById('profileTabFlicks').classList.toggle('active', tab === 'flicks');
-    if (profileScreenState.posts) renderProfileContent();
+    document.getElementById('profileTabShowcase').classList.toggle('active', tab === 'showcase');
+    if (tab === 'showcase') {
+      loadProfileShowcase();
+    } else if (profileScreenState.posts) {
+      renderProfileContent();
+    }
+  }
+
+  async function loadProfileShowcase() {
+    var container = document.getElementById('profileContent');
+    container.innerHTML = '<div class="profile-loading">Loading…</div>';
+    try {
+      var res = await fetch('/api/store/items?owner=' + encodeURIComponent(profileScreenState.authorId) + '&category=creator_merch', { credentials: 'include' });
+      var data = res.ok ? await res.json() : { items: [] };
+      var items = data.items || [];
+      if (!items.length) {
+        container.innerHTML = '<div class="profile-empty-state">No items in the Showcase yet.</div>';
+        return;
+      }
+      container.innerHTML = '<div class="showcase-grid">' + items.map(buildShowcaseItemHtml).join('') + '</div>';
+    } catch (err) {
+      container.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function buildShowcaseItemHtml(item) {
+    merchLookup[item.id] = item; // reuse the existing quick-view sheet
+    return (
+      '<div class="showcase-card" onclick="openMerchQuickView(\'' + escapeHtml(item.id) + '\')">' +
+      '  <div class="showcase-card-title">' + escapeHtml(item.title) + '</div>' +
+      '  <div class="showcase-card-price">' + formatPriceCents(item.price_cents, item.currency) + '</div>' +
+      '</div>'
+    );
+  }
+
+  /* ══ e-Store pane (minimal v1) ══ */
+  var storeState = { activeSegment: 'platform_upgrade' };
+
+  function switchStoreSegment(segment) {
+    storeState.activeSegment = segment;
+    document.getElementById('storeSegPlatform').classList.toggle('active', segment === 'platform_upgrade');
+    document.getElementById('storeSegMerch').classList.toggle('active', segment === 'creator_merch');
+    document.getElementById('storeSegGear').classList.toggle('active', segment === 'bleepmo_gear');
+    loadStoreSegment(segment);
+  }
+
+  async function loadStoreSegment(segment) {
+    var container = document.getElementById('storeItemsContainer');
+    container.innerHTML = '<div class="profile-loading">Loading…</div>';
+
+    if (segment === 'bleepmo_gear') {
+      container.innerHTML = '<div class="profile-empty-state" style="padding:30px 20px;">Bleepmo Gear is coming soon.</div>';
+      return;
+    }
+
+    try {
+      var res = await fetch('/api/store/items?category=' + segment, { credentials: 'include' });
+      var data = res.ok ? await res.json() : { items: [] };
+      var items = data.items || [];
+      if (!items.length) {
+        container.innerHTML = '<div class="profile-empty-state" style="padding:30px 20px;">Nothing here yet.</div>';
+        return;
+      }
+      container.innerHTML = '<div class="store-items-grid">' + items.map(buildShowcaseItemHtml).join('') + '</div>';
+    } catch (err) {
+      container.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function openPlatformUpgrades() {
+    goToSlide('eStore');
+    switchStoreSegment('platform_upgrade');
   }
 
   function renderProfileContent() {
@@ -5449,13 +5542,15 @@ body::after {
     var showShort = slideKey === 'flicksShort';
     var showLong = slideKey === 'flicksLong';
     var showCalendar = slideKey === 'calendar';
-    var isComingSoon = slideKey === 'eStore' || slideKey === 'offers';
+    var showStore = slideKey === 'eStore';
+    var isComingSoon = slideKey === 'offers';
 
     document.getElementById('feed').style.display = showFeed ? '' : 'none';
     document.getElementById('scrollDots').style.display = showFeed ? '' : 'none';
     document.getElementById('flicksShortPane').style.display = showShort ? 'flex' : 'none';
     document.getElementById('flicksLongPane').style.display = showLong ? 'flex' : 'none';
     document.getElementById('calendarPane').style.display = showCalendar ? 'flex' : 'none';
+    document.getElementById('storePane').style.display = showStore ? 'flex' : 'none';
 
     var csView = document.getElementById('comingSoonView');
     if (isComingSoon) {
@@ -5479,6 +5574,9 @@ body::after {
     }
     if (showCalendar && previousKey !== 'calendar') {
       loadCalendarMonth(calendarState.year, calendarState.month);
+    }
+    if (showStore && previousKey !== 'eStore') {
+      loadStoreSegment(storeState.activeSegment);
     }
 
     if (showFeed) document.getElementById('feed').scrollTo({ top: 0, behavior: 'smooth' });
@@ -5973,6 +6071,33 @@ body::after {
     <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div><div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div><div class="cal-dow">S</div>
   </div>
   <div class="cal-grid" id="calDaysGrid"></div>
+</div>
+
+<!-- ══ E-STORE (minimal v1: Platform Upgrades functional, Creator Merch browsable, Bleepmo Gear stub) ══ -->
+<style>
+  #storePane {
+    display: none; flex-direction: column;
+    height: calc(100vh - 108px); overflow-y: auto; scrollbar-width: none;
+  }
+  #storePane::-webkit-scrollbar { display: none; }
+  .store-segment-row {
+    display: flex; gap: 4px; margin: 14px 14px 4px; padding: 3px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.15); border-radius: 14px;
+  }
+  .store-segment-btn {
+    flex: 1; text-align: center; padding: 8px 4px; border-radius: 11px;
+    font-size: 11px; font-weight: 700; color: var(--text-mid); cursor: pointer; transition: all 0.2s;
+  }
+  .store-segment-btn.active { background: rgba(212,175,55,0.18); color: var(--gold); }
+  .store-items-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; }
+</style>
+<div id="storePane">
+  <div class="store-segment-row">
+    <div class="store-segment-btn active" id="storeSegPlatform" onclick="switchStoreSegment('platform_upgrade')">Platform Upgrades</div>
+    <div class="store-segment-btn" id="storeSegMerch" onclick="switchStoreSegment('creator_merch')">Creator Merch</div>
+    <div class="store-segment-btn" id="storeSegGear" onclick="switchStoreSegment('bleepmo_gear')">Bleepmo Gear</div>
+  </div>
+  <div id="storeItemsContainer"><div class="profile-loading">Loading…</div></div>
 </div>
 
 <!-- Day detail sheet: Events + Vault entries for the tapped date -->

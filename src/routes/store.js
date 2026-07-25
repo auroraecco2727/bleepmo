@@ -154,14 +154,18 @@ export async function handleStoreItemsPost(request, env) {
   const ownerId = category === 'creator_merch' ? viewer.id : null;
   const description = (payload.description || '').toString().trim() || null;
   const tags = (payload.tags || '').toString().trim().toLowerCase() || null;
+  // Only platform-authored items (no owner) can be configured to grant
+  // storefront access — a creator selling their own merch shouldn't be able
+  // to hand out storefront access to buyers.
+  const grantsStoreAccess = ownerId === null && payload.grantsStoreAccess ? 1 : 0;
 
   const id = newId();
   await env.DB
     .prepare(
-      `INSERT INTO store_items (id, owner_id, category, title, description, price_cents, currency, tags)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO store_items (id, owner_id, category, title, description, price_cents, currency, tags, grants_store_access)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(id, ownerId, category, title, description, priceCents, (payload.currency || 'usd').toString(), tags)
+    .bind(id, ownerId, category, title, description, priceCents, (payload.currency || 'usd').toString(), tags, grantsStoreAccess)
     .run();
 
   const item = await env.DB.prepare('SELECT * FROM store_items WHERE id = ?').bind(id).first();
@@ -197,8 +201,15 @@ export async function handleOrderCreate(request, env) {
     .bind(id, viewer.id, storeItemId, item.price_cents, item.currency)
     .run();
 
+  let storeAccessGranted = false;
+  if (item.grants_store_access && !viewer.has_store) {
+    await env.DB.prepare('UPDATE users SET has_store = 1 WHERE id = ?').bind(viewer.id).run();
+    storeAccessGranted = true;
+  }
+
   return ok({
     order: { id, storeItemId, priceCents: item.price_cents, currency: item.currency, status: 'demo_placeholder' },
+    storeAccessGranted,
     note: 'No real payment was processed — checkout is a placeholder until Stripe is connected.',
   }, 201);
 }
