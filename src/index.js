@@ -46,6 +46,7 @@ import {
   handleOrderCreate,
   handleTipCreate,
 } from './routes/store.js';
+import { handleAiAssistPost } from './routes/ai.js';
 import { handleMedia } from './routes/media.js';
 
 function notFound() {
@@ -159,6 +160,9 @@ export default {
 
       if (path === '/api/orders' && method === 'POST') return await handleOrderCreate(request, env);
       if (path === '/api/tips' && method === 'POST') return await handleTipCreate(request, env);
+
+      // ── AI Assist ──
+      if (path === '/api/ai/assist-post' && method === 'POST') return await handleAiAssistPost(request, env);
 
       // ── Media (private R2 objects) ──
       const mediaMatch = path.match(/^\/media\/(.+)$/);

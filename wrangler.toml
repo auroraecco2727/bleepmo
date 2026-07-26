@@ -34,3 +34,10 @@ bucket_name = "bleepmo-media"
 #   Apple  : https://<your-domain-or-workers.dev>/api/auth/apple/callback
 # Register both your workers.dev URL and bleepmo.com if you test on both.
 # ══════════════════════════════════════
+
+# ══════════════════════════════════════
+# AI Assist — NOT set yet. Powers the "AI Assist" button in the Bleep
+# composer (suggests a headline + tightened body from the user's draft).
+# Get a key from console.anthropic.com, then:
+#   wrangler secret put ANTHROPIC_API_KEY
+# ══════════════════════════════════════

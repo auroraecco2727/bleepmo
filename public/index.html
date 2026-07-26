@@ -800,6 +800,90 @@ body::after {
 }
 .bot-bar.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
+/* ── Unified composer card ── */
+.composer-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.composer-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 8px; border-bottom: 0.5px solid rgba(212,175,55,0.12);
+}
+.composer-title {
+  font-family: 'Syne', sans-serif; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-mid);
+}
+.composer-close-btn {
+  background: transparent; border: none; color: var(--text-lo);
+  font-size: 20px; line-height: 1; cursor: pointer; transition: color 0.2s;
+}
+.composer-close-btn:hover { color: var(--text-hi); }
+
+.composer-inputs { display: flex; flex-direction: column; gap: 6px; }
+.composer-headline-input {
+  background: transparent; border: none; outline: none;
+  font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-hi);
+  padding: 0;
+}
+.composer-headline-input::placeholder { color: var(--text-lo); font-weight: 600; }
+.composer-body-input {
+  background: transparent; border: none; outline: none; resize: none;
+  font-size: 13.5px; color: var(--text-hi); line-height: 1.5; padding: 0;
+  font-family: 'DM Sans', sans-serif;
+}
+.composer-body-input::placeholder { color: var(--text-lo); }
+
+.composer-ai-panel {
+  border-radius: 12px; padding: 10px 12px;
+  background: rgba(56,189,248,0.06); border: 0.5px solid rgba(56,189,248,0.22);
+}
+.ai-panel-loading { font-size: 12px; color: #7dd3fc; }
+.ai-panel-error { font-size: 12px; color: #ff8f70; }
+.ai-panel-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: #7dd3fc; margin-bottom: 6px; }
+.ai-suggestion-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ai-suggestion-text { flex: 1; font-size: 12.5px; color: var(--text-hi); line-height: 1.4; }
+.ai-use-btn {
+  flex-shrink: 0; font-size: 10.5px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
+  background: rgba(56,189,248,0.16); border: 1px solid rgba(56,189,248,0.35); color: #7dd3fc; cursor: pointer;
+}
+.ai-panel-dismiss { font-size: 10.5px; color: var(--text-lo); cursor: pointer; text-decoration: underline; }
+
+.composer-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 10px; border-top: 0.5px solid rgba(212,175,55,0.12);
+}
+.tool-actions { display: flex; align-items: center; gap: 6px; }
+.tool-btn {
+  background: rgba(255,255,255,0.03); border: 0.5px solid rgba(212,175,55,0.15);
+  border-radius: 9px; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); font-weight: 700; font-size: 13px; cursor: pointer;
+  transition: all 0.15s; position: relative; flex-shrink: 0;
+}
+.tool-btn:hover { background: rgba(212,175,55,0.1); color: var(--text-hi); }
+.tool-btn.active { background: rgba(212,175,55,0.18); border-color: var(--gold); color: var(--gold); }
+.tool-btn .icon { display: block; }
+.tool-btn.ai-btn {
+  width: auto; padding: 0 10px; gap: 4px; font-size: 11px;
+  color: #7dd3fc; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.07);
+}
+.tool-btn.ai-btn:hover { background: rgba(56,189,248,0.16); box-shadow: 0 0 12px rgba(56,189,248,0.25); }
+.ai-sparkle { font-size: 12px; }
+
+.composer-post-btn {
+  background: linear-gradient(135deg, var(--gold), #b8901f);
+  border: none; border-radius: 10px; padding: 9px 18px;
+  color: #1a1408; font-weight: 800; font-size: 12.5px; cursor: pointer;
+  box-shadow: 0 0 14px rgba(212,175,55,0.3); transition: all 0.2s; flex-shrink: 0;
+}
+.composer-post-btn:hover { transform: translateY(-1px); box-shadow: 0 0 20px rgba(212,175,55,0.5); }
+
 .bot-expand-top { margin-bottom: 8px; }
 .bot-expand-bottom { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid rgba(212,175,55,0.12); }
 
@@ -2375,47 +2459,30 @@ body::after {
 </div>
 
 <div class="bot-bar" id="botBar" style="display:none;">
-  <div class="bot-expand-top" id="botExpandTop">
-    <input type="text" class="compose-title-input" id="composeTitleInput" placeholder="Add a bold headline (optional)" maxlength="120" />
-  </div>
+  <div class="composer-card">
+    <div class="composer-header">
+      <span class="composer-title">New Signal</span>
+      <span class="composer-close-btn" onclick="closeComposeBar()" title="Close">&times;</span>
+    </div>
 
-  <div class="bot-input">
-    <textarea class="bot-field-input" id="composeBody" placeholder="What's the signal?" rows="1" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
-    <div class="emoji-btn" id="emojiToggleBtn" onclick="toggleEmojiPicker(event)" title="Add an emoji">😊</div>
-    <div class="bot-send" id="composeSendBtn" onclick="submitCompose()">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    <div class="composer-inputs">
+      <input type="text" class="composer-headline-input" id="composeTitleInput" placeholder="Add a bold headline (optional)" maxlength="120" />
+      <textarea class="composer-body-input" id="composeBody" placeholder="What's the signal?" rows="2" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
     </div>
-    <div class="bot-icon" title="BleepBot" style="cursor:pointer;" onclick="showToast('BleepBot chat is coming soon.')">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-        <ellipse cx="12" cy="13" rx="6" ry="5" fill="rgba(212,175,55,0.7)"/>
-        <circle cx="10" cy="12.5" r="1" fill="#1a2540"/>
-        <circle cx="14" cy="12.5" r="1" fill="#1a2540"/>
-        <path d="M10 15.5 Q12 16.5 14 15.5" stroke="#1a2540" stroke-width="0.7" stroke-linecap="round" fill="none"/>
-        <path d="M9 8 Q12 6.5 15 8" stroke="rgba(212,175,55,0.5)" stroke-width="0.7" fill="none"/>
-      </svg>
-    </div>
-  </div>
-  <div class="emoji-picker" id="emojiPicker"></div>
 
-  <div class="bot-expand-bottom" id="botExpandBottom">
-    <div class="bot-expand-row">
-      <span class="bot-collapse" onclick="closeComposeBar()" title="Close">✕</span>
-      <label class="compose-icon-btn" title="Attach a photo or video">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-        <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
-      </label>
-      <label class="compose-checkbox" style="white-space:nowrap;">
-        <input type="checkbox" id="composeTrendToggle" onchange="toggleTrendInput()" /> Trend-points
-      </label>
-      <label class="compose-checkbox" style="white-space:nowrap;">
-        <input type="checkbox" id="composeTagToggle" onchange="toggleTagInput()" /> Tag people
-      </label>
-      <label class="compose-checkbox breaking" style="white-space:nowrap;">
-        <input type="checkbox" id="composeBreaking" /> 🔴 BREAKING
-      </label>
+    <div class="composer-ai-panel" id="composerAiPanel" style="display:none;"></div>
+
+    <div id="composeTrendInputWrap" style="display:none;">
+      <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
+      <div class="compose-trend-chips" id="composeTrendChips"></div>
     </div>
-    <div class="compose-media-filename" id="composeMediaFilename" style="margin-top:6px;"></div>
-    <label class="compose-checkbox" id="composeFlickToggleWrap" style="display:none; margin-top:8px; color:var(--gold); font-weight:700;">
+    <div id="composeTagInputWrap" style="display:none;">
+      <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a handle (no symbol needed), press Enter to add" onkeydown="handleTagInputKeydown(event)" />
+      <div class="compose-trend-chips" id="composeTagChips"></div>
+    </div>
+
+    <div class="compose-media-filename" id="composeMediaFilename"></div>
+    <label class="compose-checkbox" id="composeFlickToggleWrap" style="display:none; margin-top:4px; color:var(--gold); font-weight:700;">
       <input type="checkbox" id="composeFlickToggle" onchange="toggleFlickLengthChoice()" /> Post as a Flick (full-screen video)
     </label>
     <div id="composeFlickLengthWrap" style="display:none; margin-top:6px; gap:8px; align-items:center;">
@@ -2426,15 +2493,24 @@ body::after {
         <input type="radio" name="composeFlickLength" value="long" id="composeFlickLengthLong" /> Long-Flick
       </label>
     </div>
-    <div id="composeTrendInputWrap" style="display:none;">
-      <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
-      <div class="compose-trend-chips" id="composeTrendChips"></div>
-    </div>
-    <div id="composeTagInputWrap" style="display:none;">
-      <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a handle (no symbol needed), press Enter to add" onkeydown="handleTagInputKeydown(event)" />
-      <div class="compose-trend-chips" id="composeTagChips"></div>
-    </div>
+    <input type="checkbox" id="composeBreaking" style="display:none;" />
     <div class="auth-error" id="composeError" style="margin-top:6px;"></div>
+
+    <div class="composer-toolbar">
+      <div class="tool-actions">
+        <label class="tool-btn" title="Attach a photo or video">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
+        </label>
+        <div class="tool-btn" id="emojiToggleBtn" onclick="toggleEmojiPicker(event)" title="Add an emoji">😊</div>
+        <div class="tool-btn" id="trendToolBtn" onclick="toggleTrendInput()" title="Trend-points">#</div>
+        <div class="tool-btn" id="tagToolBtn" onclick="toggleTagInput()" title="Tag people">@</div>
+        <div class="tool-btn" id="breakingToolBtn" onclick="toggleBreakingBtn()" title="Mark as Breaking">🔴</div>
+        <div class="tool-btn ai-btn" id="aiAssistBtn" onclick="requestAiAssist()" title="AI Assist"><span class="ai-sparkle">✨</span> AI</div>
+      </div>
+      <button class="composer-post-btn" id="composeSendBtn" onclick="submitCompose()">Post Signal</button>
+    </div>
+    <div class="emoji-picker" id="emojiPicker"></div>
   </div>
 </div>
 
@@ -5417,8 +5493,11 @@ body::after {
   }
 
   function toggleTrendInput() {
-    var checked = document.getElementById('composeTrendToggle').checked;
-    document.getElementById('composeTrendInputWrap').style.display = checked ? 'block' : 'none';
+    var wrap = document.getElementById('composeTrendInputWrap');
+    var showing = wrap.style.display === 'block';
+    wrap.style.display = showing ? 'none' : 'block';
+    document.getElementById('trendToolBtn').classList.toggle('active', !showing);
+    if (!showing) document.getElementById('composeTrendInput').focus();
   }
 
   function renderComposeTrendChips() {
@@ -5453,8 +5532,11 @@ body::after {
   var composeTaggedHandles = [];
 
   function toggleTagInput() {
-    var checked = document.getElementById('composeTagToggle').checked;
-    document.getElementById('composeTagInputWrap').style.display = checked ? 'block' : 'none';
+    var wrap = document.getElementById('composeTagInputWrap');
+    var showing = wrap.style.display === 'block';
+    wrap.style.display = showing ? 'none' : 'block';
+    document.getElementById('tagToolBtn').classList.toggle('active', !showing);
+    if (!showing) document.getElementById('composeTagInput').focus();
   }
 
   function renderComposeTagChips() {
@@ -5503,6 +5585,90 @@ body::after {
   function toggleFlickLengthChoice() {
     var checked = document.getElementById('composeFlickToggle').checked;
     document.getElementById('composeFlickLengthWrap').style.display = checked ? 'flex' : 'none';
+  }
+
+  function toggleBreakingBtn() {
+    var cb = document.getElementById('composeBreaking');
+    cb.checked = !cb.checked;
+    document.getElementById('breakingToolBtn').classList.toggle('active', cb.checked);
+  }
+
+  /* ── AI Assist — real Claude API call, server-side ── */
+  async function requestAiAssist() {
+    var bodyInput = document.getElementById('composeBody');
+    var titleInput = document.getElementById('composeTitleInput');
+    var body = bodyInput.value.trim();
+    var panel = document.getElementById('composerAiPanel');
+
+    if (!body) {
+      showComposeError('Write a little something first — AI Assist needs a draft to work with.');
+      return;
+    }
+
+    var aiBtn = document.getElementById('aiAssistBtn');
+    aiBtn.style.opacity = '0.5';
+    aiBtn.style.pointerEvents = 'none';
+    panel.style.display = 'block';
+    panel.innerHTML = '<div class="ai-panel-loading">✨ Thinking…</div>';
+
+    try {
+      var res = await fetch('/api/ai/assist-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ title: titleInput.value.trim(), body: body }),
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        panel.innerHTML = '<div class="ai-panel-error">' + escapeHtml(data.error || 'AI Assist couldn\'t help this time.') + '</div>';
+        aiBtn.style.opacity = '';
+        aiBtn.style.pointerEvents = '';
+        return;
+      }
+      renderAiSuggestions(data.suggestedTitle, data.suggestedBody);
+    } catch (err) {
+      panel.innerHTML = '<div class="ai-panel-error">Couldn\'t reach the server.</div>';
+    }
+    aiBtn.style.opacity = '';
+    aiBtn.style.pointerEvents = '';
+  }
+
+  function renderAiSuggestions(suggestedTitle, suggestedBody) {
+    var panel = document.getElementById('composerAiPanel');
+    var html = '<div class="ai-panel-label">✨ AI Suggestions</div>';
+    if (suggestedTitle) {
+      html +=
+        '<div class="ai-suggestion-row">' +
+        '  <div class="ai-suggestion-text">' + escapeHtml(suggestedTitle) + '</div>' +
+        '  <button type="button" class="ai-use-btn" onclick="useAiSuggestion(\'title\')">Use headline</button>' +
+        '</div>';
+    }
+    if (suggestedBody) {
+      html +=
+        '<div class="ai-suggestion-row">' +
+        '  <div class="ai-suggestion-text">' + escapeHtml(suggestedBody) + '</div>' +
+        '  <button type="button" class="ai-use-btn" onclick="useAiSuggestion(\'body\')">Use body</button>' +
+        '</div>';
+    }
+    html += '<span class="ai-panel-dismiss" onclick="dismissAiPanel()">Dismiss</span>';
+    panel.innerHTML = html;
+    panel.dataset.suggestedTitle = suggestedTitle || '';
+    panel.dataset.suggestedBody = suggestedBody || '';
+  }
+
+  function useAiSuggestion(which) {
+    var panel = document.getElementById('composerAiPanel');
+    if (which === 'title') {
+      document.getElementById('composeTitleInput').value = panel.dataset.suggestedTitle || '';
+    } else {
+      var bodyInput = document.getElementById('composeBody');
+      bodyInput.value = panel.dataset.suggestedBody || '';
+      autoGrowComposeInput(bodyInput);
+    }
+  }
+
+  function dismissAiPanel() {
+    document.getElementById('composerAiPanel').style.display = 'none';
   }
 
   function showComposeError(msg) {
@@ -5573,14 +5739,16 @@ body::after {
       document.getElementById('composeFlickToggleWrap').style.display = 'none';
       document.getElementById('composeFlickLengthShort').checked = true;
       document.getElementById('composeFlickLengthWrap').style.display = 'none';
-      document.getElementById('composeTrendToggle').checked = false;
+      document.getElementById('trendToolBtn').classList.remove('active');
       document.getElementById('composeTrendInputWrap').style.display = 'none';
       composeTrendPoints = [];
       renderComposeTrendChips();
-      document.getElementById('composeTagToggle').checked = false;
+      document.getElementById('tagToolBtn').classList.remove('active');
       document.getElementById('composeTagInputWrap').style.display = 'none';
       composeTaggedHandles = [];
       renderComposeTagChips();
+      document.getElementById('breakingToolBtn').classList.remove('active');
+      document.getElementById('composerAiPanel').style.display = 'none';
       composeMediaFile = null;
       document.getElementById('composeMedia').value = '';
       document.getElementById('composeMediaFilename').textContent = '';
