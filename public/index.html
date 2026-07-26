@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bleepmo · v6</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=Racing+Sans+One&display=swap" rel="stylesheet"/>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -212,7 +212,7 @@ body::after {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 12px rgba(212,175,55,0.2), inset 0 1px 2px rgba(255,255,255,0.08);
 }
-.logo-text { font-family: 'Syne',sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-hi); }
+.logo-text { font-family: 'Racing Sans One', 'Syne', sans-serif; font-size: 19px; font-weight: 400; letter-spacing: 0.5px; color: var(--text-hi); }
 .logo-text span { color: var(--gold); }
 
 .tab-bar {
@@ -1851,18 +1851,7 @@ body::after {
 <nav class="top-nav">
   <div class="nav-row">
     <div style="display:flex;align-items:center;gap:8px;">
-      <div class="nav-hamburger" onclick="openNavDrawer()" title="Menu">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.75)" stroke-width="1.8" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </div>
-      <div class="logo-mark">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <ellipse cx="12" cy="13" rx="7" ry="6" fill="#D4AF37" opacity="0.9"/>
-          <circle cx="9.5" cy="12.5" r="1.2" fill="#1a2540"/>
-          <circle cx="14.5" cy="12.5" r="1.2" fill="#1a2540"/>
-          <path d="M9.5 16 Q12 17.5 14.5 16" stroke="#1a2540" stroke-width="0.8" stroke-linecap="round" fill="none"/>
-          <path d="M8 7 Q12 5 16 7" stroke="#D4AF37" stroke-width="0.8" fill="none" opacity="0.6"/>
-        </svg>
-      </div>
+      <div class="avatar" id="navAvatar" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;" onclick="openNavDrawer()" title="Menu">A</div>
       <span class="logo-text">Bleep<span>mo</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
@@ -1870,7 +1859,6 @@ body::after {
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.5)" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <div class="notif-dot" id="navNotifDot" style="width:5px;height:5px;border-radius:50%;background:#ff5566;position:absolute;top:-1px;right:-1px;box-shadow:0 0 4px #ff5566;display:none;"></div>
       </div>
-      <div class="avatar" id="navAvatar" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:11px;cursor:pointer;" onclick="openOwnProfile()">A</div>
     </div>
   </div>
   <div class="tab-bar">
@@ -1952,7 +1940,6 @@ body::after {
   <!-- ═══ CARD 1 · Video Bleep ═══ -->
   <div class="card-wrap" id="wrap0">
     <div class="card" id="card0">
-      <div style="margin-bottom:2px;"><span class="bleep-label">Bleep · Short</span></div>
       <div class="creator-row">
         <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);">QC</div>
         <div style="flex:1;">
@@ -2068,6 +2055,7 @@ body::after {
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>2.4k</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>148</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>
+        <span class="bleep-label" style="margin-left:auto;">Bleep · Short</span>
       </div>
     </div>
   </div>
@@ -2075,7 +2063,6 @@ body::after {
   <!-- ═══ CARD 2 · Opinion Bleep ═══ -->
   <div class="card-wrap" id="wrap1">
     <div class="card" id="card1">
-      <div style="margin-bottom:2px;"><span class="bleep-label">Bleep · Opinion</span></div>
       <div class="creator-row">
         <div class="avatar" style="background:rgba(212,175,55,0.1);color:#a08030;">EA</div>
         <div style="flex:1;">
@@ -2177,6 +2164,7 @@ body::after {
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>8.1k</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>391</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>Repost</span></div>
+        <span class="bleep-label" style="margin-left:auto;">Bleep · Opinion</span>
       </div>
     </div>
   </div>
@@ -2184,7 +2172,6 @@ body::after {
   <!-- ═══ CARD 3 · PDF Bleep ═══ -->
   <div class="card-wrap" id="wrap2">
     <div class="card" id="card2">
-      <div style="margin-bottom:2px;"><span class="bleep-label">Bleep · Report</span></div>
       <div class="creator-row">
         <div class="avatar" style="background:rgba(212,175,55,0.1);color:#c09020;">TB</div>
         <div style="flex:1;"><div class="screenname" style="color:#fff;">Tech Briefing Daily</div><div class="creator-handle"><span style="color:var(--gold);font-weight:800;">*</span>TechBriefDaily · 6h</div></div>
@@ -2288,6 +2275,7 @@ body::after {
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>5.7k</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>Save</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>
+        <span class="bleep-label" style="margin-left:auto;">Bleep · Report</span>
       </div>
     </div>
   </div>
@@ -2371,7 +2359,6 @@ body::after {
   <!-- ═══ CARD 5 · Subscriber Trends Bleep ═══ -->
   <div class="card-wrap" id="wrap4">
     <div class="card" id="card4">
-      <div style="margin-bottom:2px;"><span class="bleep-label">Bleep · Subscriber Trend</span></div>
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
         <div style="width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold-glow);"></div>
         <span style="font-size:10px;color:var(--gold-dim);letter-spacing:0.06em;">3 people you follow reacted</span>
@@ -2467,6 +2454,7 @@ body::after {
       <div class="action-row">
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Join thread</span></div>
         <div class="act"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>Repost</span></div>
+        <span class="bleep-label" style="margin-left:auto;">Bleep · Subscriber Trend</span>
       </div>
     </div>
   </div>
@@ -3232,13 +3220,13 @@ body::after {
       : '';
 
     var html =
-      '<div style="margin-bottom:2px; display:flex; align-items:center;"><span class="bleep-label">Bleep</span>' + deleteHtml + '</div>' +
       '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '">' +
       '  ' + buildAvatarHtml(b, 36) +
       '  <div style="flex:1;">' +
       '    <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
       '    <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
       '  </div>' +
+      deleteHtml +
       '</div>' +
       '<div class="live-media-slot"></div>' +
       bodyHtml +
@@ -3248,6 +3236,7 @@ body::after {
       '  <div class="act like-btn' + (b.liked_by_viewer ? ' liked' : '') + '" data-bleep-id="' + escapeHtml(b.id) + '" onclick="toggleLike(\'' + escapeHtml(b.id) + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (b.liked_by_viewer ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count-badge">' + (b.like_count || 0) + '</span></div>' +
       '  <div class="act" onclick="openCommentsScreen(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="comment-count-badge" data-bleep-id="' + escapeHtml(b.id) + '">' + (b.comment_count || 0) + '</span></div>' +
       '  <div class="act" onclick="shareBleep(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
+      '  <span class="bleep-label" style="margin-left:auto;">Bleep</span>' +
       '</div>' +
       '<div class="pulse-indicator" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
       '  <div class="pulse-line"></div>' +
