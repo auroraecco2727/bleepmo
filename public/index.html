@@ -1813,6 +1813,40 @@ body::after {
   </div>
 </div>
 
+<!-- ══ AI PROVIDER SETTINGS (admin-only) ══ -->
+<style>
+  .ai-provider-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,0.02); border: 0.5px solid rgba(212,175,55,0.12); margin-bottom: 8px;
+  }
+  .ai-provider-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .ai-provider-dot.on { background: #7fe0a0; box-shadow: 0 0 6px rgba(127,224,160,0.6); }
+  .ai-provider-dot.off { background: var(--text-lo); }
+  .ai-provider-name { font-size: 13px; font-weight: 700; color: var(--text-hi); text-transform: capitalize; }
+  .ai-provider-model { font-size: 10.5px; color: var(--text-lo); }
+  .ai-provider-order-badge {
+    margin-left: auto; width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(212,175,55,0.15); color: var(--gold); font-size: 11px; font-weight: 800;
+  }
+</style>
+<div class="notif-screen" id="aiSettingsScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeAiSettingsScreen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">AI Provider Settings</span>
+  </div>
+  <div style="padding:16px;">
+    <div style="font-size:11.5px;color:var(--text-mid);line-height:1.5;margin-bottom:14px;">
+      Tap providers in the order you want them tried. The first tap is the primary provider; if it fails or isn't configured, Bleepmo falls through to the next. Providers without a key set can't be selected — set their secret via <code>wrangler secret put</code> first.
+    </div>
+    <div id="aiSettingsStatus" style="display:none;font-size:12px;padding:8px 11px;border-radius:9px;margin-bottom:12px;"></div>
+    <div id="aiProviderList"><div class="profile-loading">Loading…</div></div>
+    <button type="button" class="voice-btn" style="width:100%;justify-content:center;padding:11px;margin-top:10px;" onclick="saveAiProviderOrder()">Save Order</button>
+  </div>
+</div>
+
 <!-- ── Nav ── -->
 <nav class="top-nav">
   <div class="nav-row">
@@ -1885,6 +1919,10 @@ body::after {
     <div class="nav-drawer-item" id="drawerOpenStorefrontItem" style="display:none;" onclick="closeNavDrawer(); openPlatformUpgrades();">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
       Open Your Storefront
+    </div>
+    <div class="nav-drawer-item" id="drawerAdminAiItem" style="display:none;" onclick="closeNavDrawer(); openAiSettingsScreen();">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6z"/><circle cx="18" cy="18" r="3"/></svg>
+      AI Provider Settings
     </div>
     <div class="nav-drawer-item" onclick="drawerSettings()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -3375,6 +3413,7 @@ body::after {
       document.getElementById('drawerName').textContent = currentUser.full_name;
       document.getElementById('drawerHandle').innerHTML = '<span style="color:var(--gold);font-weight:800;">' + escapeHtml(currentUser.handle_symbol) + '</span>' + escapeHtml(currentUser.handle);
       document.getElementById('drawerOpenStorefrontItem').style.display = currentUser.has_store ? 'none' : 'flex';
+      document.getElementById('drawerAdminAiItem').style.display = currentUser.is_admin ? 'flex' : 'none';
     }
   }
 
@@ -5669,6 +5708,93 @@ body::after {
 
   function dismissAiPanel() {
     document.getElementById('composerAiPanel').style.display = 'none';
+  }
+
+  /* ══ AI Provider Settings (admin-only) ══ */
+  var aiSettingsState = { providers: [], selectedOrder: [] };
+
+  async function openAiSettingsScreen() {
+    document.getElementById('aiSettingsStatus').style.display = 'none';
+    document.getElementById('aiSettingsScreen').classList.add('show');
+    var list = document.getElementById('aiProviderList');
+    list.innerHTML = '<div class="profile-loading">Loading…</div>';
+    try {
+      var res = await fetch('/api/admin/ai-settings', { credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        list.innerHTML = '<div class="profile-empty-state">' + escapeHtml(data.error || 'Couldn\'t load settings.') + '</div>';
+        return;
+      }
+      aiSettingsState.providers = data.providers || [];
+      aiSettingsState.selectedOrder = (data.order || []).filter(function (p) {
+        return aiSettingsState.providers.some(function (info) { return info.provider === p && info.configured; });
+      });
+      renderAiProviderList();
+    } catch (err) {
+      list.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
+    }
+  }
+
+  function closeAiSettingsScreen() {
+    document.getElementById('aiSettingsScreen').classList.remove('show');
+  }
+
+  function renderAiProviderList() {
+    var list = document.getElementById('aiProviderList');
+    list.innerHTML = aiSettingsState.providers.map(function (info) {
+      var orderIdx = aiSettingsState.selectedOrder.indexOf(info.provider);
+      var badge = orderIdx >= 0 ? '<div class="ai-provider-order-badge">' + (orderIdx + 1) + '</div>' : '';
+      var clickable = info.configured ? ' style="cursor:pointer;" onclick="toggleAiProviderSelection(\'' + info.provider + '\')"' : ' style="opacity:0.45;"';
+      return (
+        '<div class="ai-provider-row"' + clickable + '>' +
+        '  <div class="ai-provider-dot ' + (info.configured ? 'on' : 'off') + '"></div>' +
+        '  <div>' +
+        '    <div class="ai-provider-name">' + escapeHtml(info.provider) + '</div>' +
+        '    <div class="ai-provider-model">' + escapeHtml(info.model) + (info.configured ? '' : ' — no key configured') + '</div>' +
+        '  </div>' +
+        badge +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function toggleAiProviderSelection(provider) {
+    var idx = aiSettingsState.selectedOrder.indexOf(provider);
+    if (idx >= 0) {
+      aiSettingsState.selectedOrder.splice(idx, 1);
+    } else {
+      aiSettingsState.selectedOrder.push(provider);
+    }
+    renderAiProviderList();
+  }
+
+  function showAiSettingsStatus(message, isError) {
+    var el = document.getElementById('aiSettingsStatus');
+    el.textContent = message;
+    el.style.display = 'block';
+    el.style.background = isError ? 'rgba(255,80,50,0.1)' : 'rgba(120,220,150,0.1)';
+    el.style.color = isError ? '#ff6644' : '#7fe0a0';
+    el.style.border = '1px solid ' + (isError ? 'rgba(255,80,50,0.3)' : 'rgba(120,220,150,0.3)');
+  }
+
+  async function saveAiProviderOrder() {
+    if (!aiSettingsState.selectedOrder.length) {
+      showAiSettingsStatus('Select at least one configured provider first.', true);
+      return;
+    }
+    try {
+      var res = await fetch('/api/admin/ai-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ order: aiSettingsState.selectedOrder }),
+      });
+      var data = await res.json();
+      if (!res.ok) { showAiSettingsStatus(data.error || 'Couldn\'t save that.', true); return; }
+      showAiSettingsStatus('Saved — takes effect immediately, no redeploy needed.', false);
+    } catch (err) {
+      showAiSettingsStatus('Couldn\'t reach the server.', true);
+    }
   }
 
   function showComposeError(msg) {

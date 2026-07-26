@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   google_sub      TEXT UNIQUE,      -- Google's stable per-user id ('sub' claim), set once linked
   apple_sub       TEXT UNIQUE,      -- Apple's stable per-user id ('sub' claim), set once linked
   has_store       INTEGER NOT NULL DEFAULT 0,  -- manually flipped for now; gates the profile "Showcase" storefront tab
+  is_admin        INTEGER NOT NULL DEFAULT 0,  -- manually flipped; gates admin-only settings (e.g. AI provider config)
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -235,3 +236,24 @@ CREATE INDEX IF NOT EXISTS idx_store_items_category ON store_items(category, is_
 CREATE INDEX IF NOT EXISTS idx_store_items_owner ON store_items(owner_id);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_tips_recipient ON tips(recipient_id);
+
+-- ══════════════════════════════════════
+-- Generic runtime settings (key-value). First use: which AI provider(s)
+-- handle AI Assist and future AI features, changeable from Settings without
+-- a redeploy.
+-- ══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ══════════════════════════════════════
+-- App-wide settings (key/value) — currently just the AI provider order,
+-- but a natural home for future runtime-toggleable config too.
+-- ══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);

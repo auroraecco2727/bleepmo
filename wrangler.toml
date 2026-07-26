@@ -36,8 +36,24 @@ bucket_name = "bleepmo-media"
 # ══════════════════════════════════════
 
 # ══════════════════════════════════════
-# AI Assist — NOT set yet. Powers the "AI Assist" button in the Bleep
-# composer (suggests a headline + tightened body from the user's draft).
-# Get a key from console.anthropic.com, then:
-#   wrangler secret put ANTHROPIC_API_KEY
+# AI Assist / Unified AI Gateway — NOT set yet. Powers the "AI Assist"
+# button in the Bleep composer, routed through a provider-agnostic gateway
+# (src/shared/ai-gateway.js) so you can use one provider, several with
+# fallback, or switch later without touching feature code.
+#
+# Set at least one provider's key. Which provider(s) are actually tried, and
+# in what order, is controlled at runtime via the AI Provider Settings admin
+# screen (no redeploy needed) — the var below is only the fallback default
+# if no DB setting has been saved yet.
+#
+#   wrangler secret put ANTHROPIC_API_KEY     (console.anthropic.com)
+#   wrangler secret put OPENAI_API_KEY        (platform.openai.com)
+#   wrangler secret put GOOGLE_AI_API_KEY     (aistudio.google.com)
+#
+# Optional model overrides (plain vars, not secrets) if you want something
+# other than the defaults in ai-gateway.js:
+#   ANTHROPIC_MODEL, OPENAI_MODEL, GOOGLE_MODEL
 # ══════════════════════════════════════
+
+[vars]
+AI_PROVIDER_ORDER = "anthropic"
