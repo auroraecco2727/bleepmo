@@ -1791,7 +1791,10 @@ body::after {
     <span class="profile-back-btn" onclick="closeTrendFeedScreen()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </span>
-    <span id="trendFeedTitle" style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Trend</span>
+    <div style="display:flex; flex-direction:column; line-height:1.2;">
+      <span style="font-size:8.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-lo);">Trendpoint</span>
+      <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);"><span style="color:var(--gold); margin-right:4px;">•</span><span id="trendFeedTitle">—</span></span>
+    </div>
   </div>
   <div class="notif-list" id="trendFeedList" style="padding:10px 12px;"></div>
 </div>
@@ -3102,7 +3105,7 @@ body::after {
 
   async function openTrendFeed(topic) {
     if (!topic) return;
-    document.getElementById('trendFeedTitle').textContent = '#' + topic;
+    document.getElementById('trendFeedTitle').textContent = topic;
     var list = document.getElementById('trendFeedList');
     list.innerHTML = '<div class="profile-loading">Loading…</div>';
     document.getElementById('trendFeedScreen').classList.add('show');
@@ -3115,7 +3118,7 @@ body::after {
       var data = await res.json();
       list.innerHTML = '';
       if (!data.bleeps || data.bleeps.length === 0) {
-        list.innerHTML = '<div class="profile-empty-state">No posts tagged #' + escapeHtml(topic) + ' yet.</div>';
+        list.innerHTML = '<div class="profile-empty-state">No posts on this Trendpoint yet.</div>';
         return;
       }
       data.bleeps.forEach(function (b) {
@@ -4650,6 +4653,8 @@ body::after {
       card.className = 'card' + cardStatusClass(b);
     }
     wrap.dataset.trend = (b.trend_points && b.trend_points[0]) || '';
+    wrap.dataset.bleepId = b.id;
+    wrap.dataset.contentType = b.content_type || 'bleep';
     card.innerHTML = buildBleepCardInner(b);
     wrap.appendChild(card);
     attachBleepMedia(card, b);
@@ -6027,6 +6032,55 @@ body::after {
     dots.forEach((d, i) => d.classList.toggle('active', i === idx));
   });
 
+  // ══ Engagement instrumentation (groundwork only — no ad engine attached) ══
+  // Generic batched client: any future passive signal (hover, hesitation,
+  // scroll depth, Flick dwell) can reuse queueEngagementEvent() as-is —
+  // this is deliberately not specific to the one signal wired up below.
+  var engagementQueue = [];
+
+  function queueEngagementEvent(eventType, contentType, contentId, valueMs, metadata) {
+    if (!contentId) return;
+    engagementQueue.push({ eventType: eventType, contentType: contentType || null, contentId: contentId, valueMs: valueMs || null, metadata: metadata || null });
+    if (engagementQueue.length >= 20) flushEngagementEvents(false);
+  }
+
+  function flushEngagementEvents(useBeacon) {
+    if (!engagementQueue.length) return;
+    var batch = engagementQueue.splice(0, engagementQueue.length);
+    var body = JSON.stringify({ events: batch });
+    if (useBeacon && navigator.sendBeacon) {
+      navigator.sendBeacon('/api/engagement/events', new Blob([body], { type: 'application/json' }));
+    } else {
+      fetch('/api/engagement/events', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: body,
+      }).catch(function () { /* instrumentation is best-effort, never surfaced to the user */ });
+    }
+  }
+
+  setInterval(function () { flushEngagementEvents(false); }, 10000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') flushEngagementEvents(true);
+  });
+  window.addEventListener('pagehide', function () { flushEngagementEvents(true); });
+
+  // Card dwell time: how long a Bleep sat as the centered/focused card
+  // before the person scrolled past it. This is the one signal actually
+  // wired up right now; everything above is generic and ready for more.
+  var cardFocusState = { contentId: null, contentType: null, focusedAt: null };
+
+  function recordCardFocusChange(newContentId, newContentType) {
+    var now = Date.now();
+    if (cardFocusState.contentId && cardFocusState.contentId !== newContentId) {
+      var dwellMs = now - cardFocusState.focusedAt;
+      if (dwellMs > 300) { // ignore rapid scroll-throughs — not a meaningful "view"
+        queueEngagementEvent('card_dwell', cardFocusState.contentType, cardFocusState.contentId, dwellMs);
+      }
+    }
+    if (newContentId !== cardFocusState.contentId) {
+      cardFocusState = { contentId: newContentId, contentType: newContentType, focusedAt: now };
+    }
+  }
+
   // Track which Bleep is centered in the For You feed, so its trend topic
   // is what gets carried forward if the person swipes into Flicks next —
   // and give that centered card the same restrained gold "in-focus" glow
@@ -6044,6 +6098,10 @@ body::after {
       var card = w.querySelector('.card');
       if (card) card.classList.toggle('snap-focused', i === idx);
     });
+
+    if (wraps[idx].dataset.bleepId) {
+      recordCardFocusChange(wraps[idx].dataset.bleepId, wraps[idx].dataset.contentType || 'bleep');
+    }
   }, { passive: true });
 
   // Horizontal swipe switches slides; a swipe that's mostly vertical is
