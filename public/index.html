@@ -455,47 +455,14 @@ body::after {
 .prog-fill { height: 100%; width: 35%; background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
 
 /* ══════════════════════════════════════
-   HEART-PULSE INDICATOR
+   HEART-PULSE SUMMON BUTTON (lives in the creator row now, not a bottom bar)
 ══════════════════════════════════════ */
-.pulse-indicator {
-  display: flex; flex-direction: column; align-items: center;
-  gap: 0; cursor: pointer; position: relative;
-  padding: 0; transition: opacity 0.2s;
+.bleepbot-summon-btn {
+  margin-left: auto; flex-shrink: 0; cursor: pointer; padding: 4px;
+  border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;
 }
-.pulse-indicator:hover { opacity: 0.85; }
-
-.pulse-line {
-  width: 100%; height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(212,175,55,0.15) 15%,
-    rgba(212,175,55,0.7) 40%,
-    var(--gold) 50%,
-    rgba(212,175,55,0.7) 60%,
-    rgba(212,175,55,0.15) 85%,
-    transparent 100%
-  );
-  box-shadow: 0 0 8px rgba(212,175,55,0.5);
-  animation: linePulse 2.8s ease-in-out infinite;
-}
-@keyframes linePulse {
-  0%,100% { opacity: 0.7; box-shadow: 0 0 6px rgba(212,175,55,0.3); }
-  50% { opacity: 1; box-shadow: 0 0 12px rgba(212,175,55,0.7), 0 0 24px rgba(212,175,55,0.2); }
-}
-
-.pulse-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  width: 100%; padding: 8px 12px 6px;
-  background: rgba(20,40,100,0.25);
-  border-radius: 0 0 14px 14px;
-  border: 0.5px solid rgba(212,175,55,0.1);
-  border-top: none;
-}
-
-.heart-pulse-icon {
-  display: flex; align-items: center; gap: 6px;
-}
-.heart-pulse-icon svg { animation: heartbeat 2.4s ease-in-out infinite; }
+.bleepbot-summon-btn:hover { background: rgba(212,175,55,0.1); }
+.bleepbot-summon-btn svg { animation: heartbeat 2.4s ease-in-out infinite; }
 @keyframes heartbeat {
   0%,100% { transform: scale(1); filter: drop-shadow(0 0 3px rgba(212,175,55,0.4)); }
   15% { transform: scale(1.18); filter: drop-shadow(0 0 6px rgba(212,175,55,0.9)); }
@@ -504,25 +471,31 @@ body::after {
   60% { transform: scale(1); }
 }
 
-.pulse-hint-text { font-size: 11px; color: rgba(212,175,55,0.7); letter-spacing: 0.04em; }
-.pulse-hint-text strong { color: var(--gold); font-weight: 500; }
-
-/* ── BleepBot expansion (vertical) ── */
+/* ── BleepBot Contextual Intelligence — now a full overlay that covers the
+   card, rather than an inline strip pushing content down. ── */
 .bleepbot-expand {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
 }
-.bleepbot-expand.open { max-height: 340px; }
+.bleepbot-expand.open { opacity: 1; pointer-events: auto; }
+.bleepbot-expand::before {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(6,10,26,0.92); backdrop-filter: blur(10px);
+  border-radius: inherit;
+}
 
 .bleepbot-inner {
-  padding: 12px 14px 10px;
-  background: rgba(20,40,100,0.25);
-  border: 0.5px solid rgba(212,175,55,0.1);
-  border-top: none;
-  border-radius: 0 0 14px 14px;
-  overflow: hidden;
+  position: relative; z-index: 1;
+  padding: 16px 16px 14px;
+  background: rgba(20,40,100,0.4);
+  border: 0.5px solid rgba(212,175,55,0.25);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
   width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
   box-sizing: border-box;
 }
 
@@ -568,15 +541,30 @@ body::after {
 }
 
 .bb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.bb-header-label {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--gold); font-weight: 500; margin-bottom: 12px;
+  color: var(--gold); font-weight: 500;
   display: flex; align-items: center; gap: 6px;
 }
-.bb-header::before {
+.bb-header-label::before {
   content: '';
   display: inline-block; width: 18px; height: 1px;
   background: linear-gradient(90deg, var(--gold), transparent);
 }
+.bb-close-btn {
+  cursor: pointer; color: var(--text-lo); font-size: 14px; padding: 2px 6px;
+  transition: color 0.2s;
+}
+.bb-close-btn:hover { color: var(--text-hi); }
+
+.bb-action-danger {
+  color: #ff6f5a; border-color: rgba(255,90,60,0.3); background: rgba(255,80,50,0.06);
+  margin-top: 4px;
+}
+.bb-action-danger:hover { background: rgba(255,80,50,0.14); border-color: rgba(255,90,60,0.5); }
 
 /* ── Carousel container ── */
 .carousel-wrap {
@@ -1950,6 +1938,9 @@ body::after {
           <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">*</span>QuantumCity · 2h</div>
         </div>
         <span class="type-badge">SHORT</span>
+        <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleExpand(0)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/></svg>
+        </span>
       </div>
 
       <div class="video-thumb">
@@ -1973,24 +1964,10 @@ body::after {
         <span class="btag">Architecture</span>
       </div>
 
-      <!-- ── PULSE INDICATOR ── -->
-      <div class="pulse-indicator" onclick="toggleExpand(0)">
-        <div class="pulse-line"></div>
-        <div class="pulse-bar">
-          <div class="heart-pulse-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/>
-              <polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>
-          </div>
-        </div>
-      </div>
-
       <!-- ── BLEEPBOT EXPANSION ── -->
       <div class="bleepbot-expand" id="expand0">
         <div class="bleepbot-inner">
-          <div class="bb-header">Contextual Intelligence</div>
+          <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleExpand(0)">✕</span></div>
           
           <div class="carousel-wrap" id="carousel0">
             <!-- Slide 1: What This Means -->
@@ -2073,6 +2050,9 @@ body::after {
           <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">*</span>EthicsAI · 4h</div>
         </div>
         <span class="type-badge">OPINION</span>
+        <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleExpand(1)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/></svg>
+        </span>
       </div>
 
       <div class="glass-card" style="padding:16px;border-left:2px solid rgba(212,175,55,0.4);">
@@ -2084,22 +2064,9 @@ body::after {
         <span class="btag hi">AI Ethics</span><span class="btag">Alignment</span><span class="btag">Future of Tech</span>
       </div>
 
-      <div class="pulse-indicator" onclick="toggleExpand(1)">
-        <div class="pulse-line"></div>
-        <div class="pulse-bar">
-          <div class="heart-pulse-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/>
-              <polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>
-          </div>
-        </div>
-      </div>
-
       <div class="bleepbot-expand" id="expand1">
         <div class="bleepbot-inner">
-          <div class="bb-header">Contextual Intelligence</div>
+          <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleExpand(1)">✕</span></div>
           
           <div class="carousel-wrap" id="carousel1">
             <!-- Slide 1: What This Means -->
@@ -2179,6 +2146,9 @@ body::after {
         <div class="avatar" style="background:rgba(212,175,55,0.1);color:#c09020;">TB</div>
         <div style="flex:1;"><div class="screenname" style="color:#fff;">Tech Briefing Daily</div><div class="creator-handle"><span style="color:var(--gold);font-weight:800;">*</span>TechBriefDaily · 6h</div></div>
         <span class="type-badge">PDF</span>
+        <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleExpand(2)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/></svg>
+        </span>
       </div>
 
       <div class="doc-block">
@@ -2204,19 +2174,9 @@ body::after {
         </div>
       </div>
 
-      <div class="pulse-indicator" onclick="toggleExpand(2)">
-        <div class="pulse-line"></div>
-        <div class="pulse-bar">
-          <div class="heart-pulse-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>
-          </div>
-        </div>
-      </div>
-
       <div class="bleepbot-expand" id="expand2">
         <div class="bleepbot-inner">
-          <div class="bb-header">Contextual Intelligence</div>
+          <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleExpand(2)">✕</span></div>
           
           <div class="carousel-wrap" id="carousel2">
             <div class="carousel-slide">
@@ -2295,25 +2255,18 @@ body::after {
         <div class="creator-row" style="margin-bottom:12px;">
           <div class="avatar" style="background:rgba(212,175,55,0.12);color:var(--gold);border-radius:10px;">S↑</div>
           <div><div class="screenname" style="color:#fff;">Promoted · Clean Energy</div><div class="creator-handle"><span style="color:var(--gold);font-weight:800;">*</span>SolarTechPro</div></div>
+          <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleExpand(3)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/></svg>
+          </span>
         </div>
         <p class="syne" style="font-size:17px;font-weight:700;color:var(--text-hi);line-height:1.3;margin-bottom:8px;">Power your home.<br>Zero compromise.</p>
         <p style="font-size:13px;color:var(--text-mid);line-height:1.65;margin-bottom:13px;">Residential solar with AI-optimized load balancing. First 500 installs get lifetime monitoring free.</p>
         <button onclick="this.textContent='✓ Saved'" style="width:100%;padding:9px;background:rgba(212,175,55,0.1);border:0.5px solid rgba(212,175,55,0.3);border-radius:10px;color:var(--gold);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 0 6px rgba(212,175,55,0.1);">Learn More →</button>
       </div>
 
-      <div class="pulse-indicator" onclick="toggleExpand(3)">
-        <div class="pulse-line"></div>
-        <div class="pulse-bar">
-          <div class="heart-pulse-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>
-          </div>
-        </div>
-      </div>
-
       <div class="bleepbot-expand" id="expand3">
         <div class="bleepbot-inner">
-          <div class="bb-header">Contextual Intelligence</div>
+          <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleExpand(3)">✕</span></div>
           
           <div class="carousel-wrap" id="carousel3">
             <div class="carousel-slide">
@@ -2365,6 +2318,9 @@ body::after {
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
         <div style="width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold-glow);"></div>
         <span style="font-size:10px;color:var(--gold-dim);letter-spacing:0.06em;">3 people you follow reacted</span>
+        <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleExpand(4)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/></svg>
+        </span>
       </div>
 
       <div class="glass-card" style="padding:16px;">
@@ -2383,19 +2339,9 @@ body::after {
         <div class="bullet-tags"><span class="btag hi">AGI</span><span class="btag hi">AI</span><span class="btag">2030</span></div>
       </div>
 
-      <div class="pulse-indicator" onclick="toggleExpand(4)">
-        <div class="pulse-line"></div>
-        <div class="pulse-bar">
-          <div class="heart-pulse-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>
-          </div>
-        </div>
-      </div>
-
       <div class="bleepbot-expand" id="expand4">
         <div class="bleepbot-inner">
-          <div class="bb-header">Contextual Intelligence</div>
+          <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleExpand(4)">✕</span></div>
           
           <div class="carousel-wrap" id="carousel4">
             <div class="carousel-slide">
@@ -3218,8 +3164,8 @@ body::after {
     }
 
     var isOwner = currentUser && currentUser.id === b.author_id;
-    var deleteHtml = isOwner
-      ? '<span class="live-delete-btn" title="Delete this Bleep" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>'
+    var deleteActionHtml = isOwner
+      ? '<span class="bb-action-btn bb-action-danger" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete this Bleep</span>'
       : '';
 
     var html =
@@ -3229,7 +3175,9 @@ body::after {
       '    <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
       '    <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
       '  </div>' +
-      deleteHtml +
+      '  <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
+      '    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/></svg>' +
+      '  </span>' +
       '</div>' +
       '<div class="live-media-slot"></div>' +
       bodyHtml +
@@ -3241,23 +3189,15 @@ body::after {
       '  <div class="act" onclick="shareBleep(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share</span></div>' +
       '  <span class="bleep-label" style="margin-left:auto;">Bleep</span>' +
       '</div>' +
-      '<div class="pulse-indicator" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
-      '  <div class="pulse-line"></div>' +
-      '  <div class="pulse-bar">' +
-      '    <div class="heart-pulse-icon">' +
-      '      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.2"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-      '      <span class="pulse-hint-text"><strong>BleepBot</strong> · Swipe to explore</span>' +
-      '    </div>' +
-      '  </div>' +
-      '</div>' +
       '<div class="bleepbot-expand" id="' + expandId + '">' +
       '  <div class="bleepbot-inner">' +
-      '    <div class="bb-header">Contextual Intelligence</div>' +
+      '    <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleLiveExpand(\'' + expandId + '\')">✕</span></div>' +
       '    <div style="font-size:12.5px; color:var(--text-mid); line-height:1.6; padding:8px 0 12px;">BleepBot hasn\'t analyzed this post yet — live insights are still being trained. Check back soon.</div>' +
       '    <div class="bb-quick-actions">' +
       '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg>This person\'s Bleeps</span>' +
       '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg>This person\'s Flicks</span>' +
       '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>View Profile</span>' +
+      deleteActionHtml +
       '    </div>' +
       '  </div>' +
       '</div>';
