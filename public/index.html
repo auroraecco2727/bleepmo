@@ -288,12 +288,12 @@ body::after {
    panel for now, giving that space a job while there's no real AI analysis
    yet. Safe to rip out via this block + the .bb-quick-actions markup +
    filterFeedByAuthor/clearAuthorFilter/showToast if it doesn't feel right. */
-.bb-quick-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+.bb-quick-actions { display: flex; flex-direction: row; gap: 8px; margin-top: 2px; }
 .bb-action-btn {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 12px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 10px;
   background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.22);
-  color: var(--gold); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  color: var(--gold); cursor: pointer;
   transition: all 0.2s;
 }
 .bb-action-btn:hover { background: rgba(212,175,55,0.14); border-color: rgba(212,175,55,0.4); }
@@ -474,27 +474,24 @@ body::after {
 /* ── BleepBot Contextual Intelligence — now a full overlay that covers the
    card, rather than an inline strip pushing content down. ── */
 .bleepbot-expand {
-  position: absolute; inset: 0; z-index: 20;
-  display: flex; align-items: center; justify-content: center; padding: 16px;
+  position: absolute; left: 0; right: 0; top: 50%; z-index: 20;
+  padding: 0 16px;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.25s ease;
+  transform: translateY(-50%) scale(0.96);
+  transition: opacity 0.22s ease, transform 0.22s ease;
 }
-.bleepbot-expand.open { opacity: 1; pointer-events: auto; }
-.bleepbot-expand::before {
-  content: ''; position: absolute; inset: 0;
-  background: rgba(6,10,26,0.92); backdrop-filter: blur(10px);
-  border-radius: inherit;
-}
+.bleepbot-expand.open { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
 
 .bleepbot-inner {
-  position: relative; z-index: 1;
-  padding: 16px 16px 14px;
-  background: rgba(20,40,100,0.4);
-  border: 0.5px solid rgba(212,175,55,0.25);
+  position: relative;
+  padding: 14px 16px;
+  background: rgba(10,18,45,0.97);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(212,175,55,0.35);
   border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(212,175,55,0.06);
   width: 100%;
-  max-height: 100%;
+  max-height: 80vh;
   overflow-y: auto;
   box-sizing: border-box;
 }
@@ -559,12 +556,6 @@ body::after {
   transition: color 0.2s;
 }
 .bb-close-btn:hover { color: var(--text-hi); }
-
-.bb-action-danger {
-  color: #ff6f5a; border-color: rgba(255,90,60,0.3); background: rgba(255,80,50,0.06);
-  margin-top: 4px;
-}
-.bb-action-danger:hover { background: rgba(255,80,50,0.14); border-color: rgba(255,90,60,0.5); }
 
 /* ── Carousel container ── */
 .carousel-wrap {
@@ -3163,11 +3154,6 @@ body::after {
       bodyHtml = b.body ? '<div class="live-bleep-body">' + renderBleepMentions(b.body) + '</div>' : '';
     }
 
-    var isOwner = currentUser && currentUser.id === b.author_id;
-    var deleteActionHtml = isOwner
-      ? '<span class="bb-action-btn bb-action-danger" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete this Bleep</span>'
-      : '';
-
     var html =
       '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '">' +
       '  ' + buildAvatarHtml(b, 36) +
@@ -3192,12 +3178,10 @@ body::after {
       '<div class="bleepbot-expand" id="' + expandId + '">' +
       '  <div class="bleepbot-inner">' +
       '    <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleLiveExpand(\'' + expandId + '\')">✕</span></div>' +
-      '    <div style="font-size:12.5px; color:var(--text-mid); line-height:1.6; padding:8px 0 12px;">BleepBot hasn\'t analyzed this post yet — live insights are still being trained. Check back soon.</div>' +
       '    <div class="bb-quick-actions">' +
-      '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg>This person\'s Bleeps</span>' +
-      '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg>This person\'s Flicks</span>' +
-      '      <span class="bb-action-btn" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>View Profile</span>' +
-      deleteActionHtml +
+      '      <span class="bb-action-btn" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
+      '      <span class="bb-action-btn" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' +
+      '      <span class="bb-action-btn" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span>' +
       '    </div>' +
       '  </div>' +
       '</div>';
