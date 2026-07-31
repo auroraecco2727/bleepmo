@@ -331,8 +331,9 @@ body::after {
 
 .profile-follow-counts { display: flex; justify-content: center; gap: 20px; margin-top: 12px; font-size: 12px; color: var(--text-mid); }
 .profile-follow-counts b { color: var(--text-hi); font-weight: 800; }
+.profile-actions-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }
 .profile-follow-btn {
-  margin-top: 14px; padding: 9px 28px; border-radius: 999px; border: none; cursor: pointer;
+  padding: 9px 28px; border-radius: 999px; border: none; cursor: pointer;
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12.5px;
   background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
   color: #161225; box-shadow: 0 0 14px rgba(212,175,55,0.3); transition: all 0.2s;
@@ -345,7 +346,7 @@ body::after {
 .profile-follow-btn.following:hover { background: rgba(255,80,50,0.1); color: #ff6644; border-color: rgba(255,80,50,0.35); }
 
 .profile-msg-btn {
-  margin-top: 14px; padding: 9px 20px; border-radius: 999px; border: 1px solid rgba(212,175,55,0.35);
+  padding: 9px 20px; border-radius: 999px; border: 1px solid rgba(212,175,55,0.35);
   background: rgba(212,175,55,0.07); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   display: inline-flex; align-items: center; gap: 5px; justify-content: center; cursor: pointer; vertical-align: middle;
   color: var(--gold); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12.5px; transition: all 0.2s; position: relative; outline: none;
@@ -1525,13 +1526,15 @@ body::after {
       <span><b id="profileFollowerCount">0</b> Followers</span>
       <span><b id="profileFollowingCount">0</b> Following</span>
     </div>
-    <button class="profile-follow-btn" id="profileFollowBtn" onclick="toggleFollow()" onmouseenter="followBtnHover(true)" onmouseleave="followBtnHover(false)" style="display:none;">Follow</button>
-    <button class="profile-msg-btn" id="profileMessageBtn" onclick="startConversationFromProfile()" style="display:none;" title="Message" aria-label="Message">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9 22 2z"/></svg>DM
-    </button>
-    <button class="profile-follow-btn" id="profileTipBtn" onclick="openTipModalForProfile()" style="display:none;background:transparent;color:var(--gold);border-color:rgba(212,175,55,0.4);">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:-2px;margin-right:3px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg>Tip
-    </button>
+    <div class="profile-actions-row">
+      <button class="profile-follow-btn" id="profileFollowBtn" onclick="toggleFollow()" onmouseenter="followBtnHover(true)" onmouseleave="followBtnHover(false)" style="display:none;">Follow</button>
+      <button class="profile-msg-btn" id="profileMessageBtn" onclick="startConversationFromProfile()" style="display:none;" title="Message" aria-label="Message">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9 22 2z"/></svg>DM
+      </button>
+      <button class="profile-follow-btn" id="profileTipBtn" onclick="openTipModalForProfile()" style="display:none;background:transparent;color:var(--gold);border-color:rgba(212,175,55,0.4);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:-2px;margin-right:3px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg>Tip
+      </button>
+    </div>
   </div>
 
   <div class="profile-tabs">
