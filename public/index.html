@@ -247,7 +247,7 @@ body::after {
 
 .feed {
   height: calc(100vh - 108px);
-  overflow-y: scroll; scroll-snap-type: y mandatory;
+  overflow-y: scroll;
   scrollbar-width: none; position: relative; z-index: 1;
 }
 .feed::-webkit-scrollbar { display: none; }
@@ -274,12 +274,7 @@ body::after {
 .cs-sub { font-size: 13px; color: var(--text-mid); line-height: 1.6; max-width: 260px; }
 
 .card-wrap {
-  scroll-snap-align: start;
-  min-height: calc(100vh - 108px);
   position: relative;
-}
-.card-wrap.compact {
-  min-height: 0;
   margin-bottom: 4px;
 }
 
@@ -511,11 +506,10 @@ body::after {
 
 /* Card scrollable when BleepBot is open */
 .card {
-  padding: 14px 14px 88px;
+  padding: 14px 14px 20px;
   display: flex; flex-direction: column; gap: 11px;
-  min-height: calc(100vh - 108px);
   position: relative; z-index: 2;
-  overflow-y: auto;
+  overflow-y: visible;
   scrollbar-width: none;
 }
 .card.compact { min-height: 0; padding-bottom: 20px; }
@@ -741,19 +735,14 @@ body::after {
 
 .breaking-badge {
   display: inline-flex; align-items: center; gap: 6px;
-  font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 800;
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 800;
   letter-spacing: 0.1em; text-transform: uppercase;
-  color: #7fe8ff;
-  background: linear-gradient(135deg, rgba(0,220,255,0.14), rgba(255,140,0,0.08));
-  border: 1px solid rgba(0,220,255,0.55);
-  padding: 5px 11px 5px 9px;
-  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
-  box-shadow: 0 0 10px rgba(0,220,255,0.25), inset 0 0 10px rgba(0,220,255,0.06);
+  color: #ff8c3c;
   flex-shrink: 0;
 }
 .breaking-dot {
   width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
-  background: #ff9433; box-shadow: 0 0 6px #ff9433, 0 0 2px #ff9433;
+  background: #ff8c3c; box-shadow: 0 0 6px #ff8c3c, 0 0 2px #ff8c3c;
   animation: breakingDotPulse 1.7s ease-in-out infinite;
 }
 @keyframes breakingDotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
@@ -3051,9 +3040,6 @@ body::after {
 
   function buildTagsRowHtml(b) {
     var parts = [];
-    if (b.is_breaking) {
-      parts.push('<span class="breaking-badge"><span class="breaking-dot"></span>Breaking</span>');
-    }
     if (b.trend_points && b.trend_points.length) {
       b.trend_points.forEach(function (t) {
         var safe = escapeHtml(t).replace(/'/g, "\\'");
@@ -3218,6 +3204,7 @@ body::after {
       '    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
       '  </span>' +
       '</div>' +
+      (b.is_breaking ? '<div class="breaking-badge"><span class="breaking-dot"></span>Breaking</div>' : '') +
       '<div class="live-media-slot"></div>' +
       bodyHtml +
       tagsRowHtml +
@@ -6096,8 +6083,15 @@ body::after {
   feedEl.addEventListener('scroll', function () {
     var wraps = document.querySelectorAll('#feed .card-wrap');
     if (!wraps.length) return;
-    var idx = Math.round(feedEl.scrollTop / feedEl.clientHeight);
-    idx = Math.max(0, Math.min(wraps.length - 1, idx));
+    var feedRect = feedEl.getBoundingClientRect();
+    var centerY = feedRect.top + feedRect.height / 2;
+    var idx = 0;
+    var bestDist = Infinity;
+    wraps.forEach(function (w, i) {
+      var r = w.getBoundingClientRect();
+      var dist = Math.abs((r.top + r.height / 2) - centerY);
+      if (dist < bestDist) { bestDist = dist; idx = i; }
+    });
     var topic = wraps[idx].dataset.trend;
     if (topic) activeTrendContext = topic;
 

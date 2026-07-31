@@ -16,6 +16,62 @@ function badRequest(message, status = 400) {
 const MAX_MEDIA_BYTES = 60 * 1024 * 1024;
 const PAGE_SIZE = 20;
 
+// ────────────────────────────────────────────────────────────
+// Weighted feed-recommendation formula (per the onboarding/color-card
+// spec): Feed Score = W_local*S_location + W_interest*S_trend_match +
+// W_recency*T + W_engagement*E
+//
+// S_location and S_trend_match need user.location_anchor /
+// user.subscribed_trend_points, which don't exist in the schema yet
+// (that's the pending onboarding flow). Until then this code just reads
+// undefined off the viewer object and those two terms contribute 0 —
+// nothing breaks, and the moment those columns exist this scores for
+// real with zero further changes here.
+//
+// Assumed storage format for when that column lands:
+// users.subscribed_trend_points = JSON array of lowercase topic strings.
+//
+// Weights below are a reasonable starting point, not derived from any
+// real usage data (there isn't any yet) — expect to retune once you can
+// see how it behaves on a real feed.
+const W_LOCAL = 3;
+const W_INTEREST = 2;
+const W_RECENCY = 1.5;
+const W_ENGAGEMENT = 1;
+const RECENCY_HALFLIFE_HOURS = 36;
+const CANDIDATE_POOL_SIZE = 150; // how many recent posts we score against, before keeping the top PAGE_SIZE
+
+function scoreBleep(b, viewer) {
+  var ageHours = Math.max((Date.now() - new Date(b.created_at).getTime()) / 36e5, 0);
+  var recency = Math.exp(-ageHours / RECENCY_HALFLIFE_HOURS);
+  var engagement = Math.log(1 + (b.like_count || 0) + (b.comment_count || 0) * 2);
+
+  var locationMatch = 0;
+  if (viewer.location_anchor) {
+    var locSlug = String(viewer.location_anchor).toLowerCase();
+    locationMatch = (b.trend_points || []).some(function (t) { return String(t).toLowerCase() === locSlug; }) ? 1 : 0;
+  }
+
+  var trendMatchCount = 0;
+  if (viewer.subscribed_trend_points) {
+    var subscribed;
+    try { subscribed = JSON.parse(viewer.subscribed_trend_points); } catch (e) { subscribed = []; }
+    if (Array.isArray(subscribed) && subscribed.length) {
+      var subscribedSet = new Set(subscribed.map(function (t) { return String(t).toLowerCase(); }));
+      trendMatchCount = (b.trend_points || []).reduce(function (n, t) {
+        return n + (subscribedSet.has(String(t).toLowerCase()) ? 1 : 0);
+      }, 0);
+    }
+  }
+
+  return (
+    W_LOCAL * locationMatch +
+    W_INTEREST * trendMatchCount +
+    W_RECENCY * recency +
+    W_ENGAGEMENT * engagement
+  );
+}
+
 export async function handleBleepsGet(request, env) {
   if (!env.DB) return badRequest('DB binding not configured.', 500);
 
@@ -27,6 +83,14 @@ export async function handleBleepsGet(request, env) {
   const authorFilter = url.searchParams.get('author');
   const contentTypeFilter = url.searchParams.get('contentType');
   const trendFilter = url.searchParams.get('trend');
+
+  // The plain, unfiltered "For You" home-feed request (loadLiveFeed() on
+  // the client) — the only request this scoring applies to. Any filtered
+  // view (a profile's posts, a Flicks pane, a trend-filtered list) stays
+  // exactly as it was: plain reverse-chronological, since ranking those
+  // by "recommendation score" wouldn't make sense for what they're for.
+  const isPersonalizedFeed = !authorFilter && !contentTypeFilter && !trendFilter && !cursor;
+  const candidateLimit = isPersonalizedFeed ? CANDIDATE_POOL_SIZE : PAGE_SIZE;
 
   let query = `
     SELECT
@@ -55,7 +119,7 @@ export async function handleBleepsGet(request, env) {
     binds.push(cursor);
   }
   query += ' ORDER BY b.created_at DESC LIMIT ?';
-  binds.push(PAGE_SIZE);
+  binds.push(candidateLimit);
 
   let { results } = await env.DB.prepare(query).bind(...binds).all();
 
@@ -156,7 +220,25 @@ export async function handleBleepsGet(request, env) {
     }
   }
 
-  const nextCursor = results.length === PAGE_SIZE ? results[results.length - 1].created_at : null;
+  if (isPersonalizedFeed) {
+    for (const b of results) {
+      b.feed_score = Math.round(scoreBleep(b, viewer) * 1000) / 1000;
+    }
+    results.sort((a, b) => {
+      if (b.feed_score !== a.feed_score) return b.feed_score - a.feed_score;
+      return new Date(b.created_at) - new Date(a.created_at); // tiebreak: newest first
+    });
+    results = results.slice(0, PAGE_SIZE);
+  }
+
+  // Scored order isn't a valid "load more before this timestamp" cursor,
+  // so the personalized feed only supports its first (scored) page for
+  // now — which matches current reality: the client doesn't request a
+  // second page of the "For You" feed yet. Every other view (profile,
+  // Flicks, trend-filtered) keeps real cursor pagination unchanged.
+  const nextCursor = isPersonalizedFeed
+    ? null
+    : (results.length === PAGE_SIZE ? results[results.length - 1].created_at : null);
 
   return new Response(JSON.stringify({ bleeps: results, nextCursor, usedTrendFallback }), {
     status: 200,
