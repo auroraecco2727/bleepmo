@@ -550,6 +550,34 @@ body::after {
   padding-left: 17px;
 }
 
+/* Color-coded content-category accents (spec: Electric Cyan/local,
+   Neon Violet/interest, Amber Gold/commerce, Emerald Green/interactive).
+   Only applied when no relationship-status class above already claims
+   the card, so the two systems never compete for the same border.
+   Local/interest/interactive are reserved here — the classifier only
+   emits 'commerce' for now, since location_anchor/subscribed_trend_points/
+   polls don't exist in the schema yet. */
+.card.card-cat-local {
+  border-left: 3px solid rgba(0,240,255,0.5);
+  background: linear-gradient(90deg, rgba(0,240,255,0.07), transparent 45%);
+  padding-left: 17px;
+}
+.card.card-cat-interest {
+  border-left: 3px solid rgba(168,85,247,0.5);
+  background: linear-gradient(90deg, rgba(168,85,247,0.07), transparent 45%);
+  padding-left: 17px;
+}
+.card.card-cat-commerce {
+  border-left: 3px solid rgba(245,158,11,0.55);
+  background: linear-gradient(90deg, rgba(245,158,11,0.08), transparent 45%);
+  padding-left: 17px;
+}
+.card.card-cat-interactive {
+  border-left: 3px solid rgba(16,185,129,0.5);
+  background: linear-gradient(90deg, rgba(16,185,129,0.07), transparent 45%);
+  padding-left: 17px;
+}
+
 .bb-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 12px;
@@ -4600,12 +4628,24 @@ body::after {
     document.getElementById('legalScreen').classList.remove('show');
   }
 
+  function cardCategory(b) {
+    // Only 'commerce' is wired up for real right now — it reuses the
+    // existing contextual-merch match. 'local' and 'interest' need
+    // user.location_anchor / user.subscribed_trend_points, which don't
+    // exist yet (that's the onboarding flow, still pending). 'interactive'
+    // needs a polling feature that doesn't exist at all yet.
+    if (b.recommended_merch) return 'commerce';
+    return null;
+  }
+
   function cardStatusClass(b) {
     if (currentUser && b.tagged_handles && b.tagged_handles.indexOf(currentUser.handle_symbol + currentUser.handle) !== -1) {
       return ' card-tagged-you';
     }
     if (b.is_breaking) return ' card-breaking';
     if (b.followed_by_viewer) return ' card-following';
+    var cat = cardCategory(b);
+    if (cat) return ' card-cat-' + cat;
     return '';
   }
 
