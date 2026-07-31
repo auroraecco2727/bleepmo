@@ -3183,8 +3183,8 @@ body::after {
       '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '">' +
       '  ' + buildAvatarHtml(b, 36) +
       '  <div style="flex:1;">' +
-      '    <div class="screenname" style="color:#fff;">' + escapeHtml(b.full_name) + '</div>' +
-      '    <div class="creator-handle"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
+      '    <div class="screenname" style="color:#fff;cursor:pointer;" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')">' + escapeHtml(b.full_name) + '</div>' +
+      '    <div class="creator-handle" style="cursor:pointer;" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><span style="color:var(--gold);font-weight:800;">' + escapeHtml(b.handle_symbol) + '</span>' + escapeHtml(b.handle) + ' · ' + relativeTime(b.created_at) + '</div>' +
       '  </div>' +
       '  <span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleLiveExpand(\'' + expandId + '\')">' +
       '    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
