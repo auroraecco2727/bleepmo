@@ -4978,7 +4978,7 @@ body::after {
      feels like following one thread across formats, not three unrelated tabs. */
   var flickPaneState = {
     short: { contentType: 'flick_short', items: [], activeIndex: 0, recommended: false, loaded: false },
-    long: { contentType: 'flick_long', items: [], activeIndex: 0, recommended: false, loaded: false },
+    long: { contentType: 'flick_long', items: [], activeIndex: 0, recommended: false, loaded: false, recommendedPool: [], recommendedLoaded: false },
   };
   var activeTrendContext = null; // topic string, or null if nothing to carry forward
 
@@ -4993,8 +4993,12 @@ body::after {
           '</span>' +
         '</div>'
         : '') +
-      '<div class="flick-hero-row">' +
-        '<div class="flick-player" id="' + p + 'FlickPlayer">' +
+      '<div class="flick-hero-row' + (isLong ? ' long-stack' : '') + '">' +
+        (isLong ?
+          '<div class="long-rec-rail-label">Up next in this thread</div>' +
+          '<div class="long-rec-rail" id="' + p + 'UpNextRail"></div>'
+          : '') +
+        '<div class="flick-player' + (isLong ? ' long-player' : '') + '" id="' + p + 'FlickPlayer">' +
           '<video id="' + p + 'FlickVideo" muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#05070f;"></video>' +
           '<div class="flick-scanlines"></div>' +
           '<div class="jarvis-ring r1"></div>' +
@@ -5027,10 +5031,15 @@ body::after {
           '<div class="binge-progress" id="' + p + 'BingeProgress" style="display:none;"><div class="binge-progress-fill" id="' + p + 'BingeProgressFill"></div></div>' +
           (isLong ? '<div class="bleepbot-expand" id="' + p + 'FlickBleepbotExpand"><div class="bleepbot-inner" id="' + p + 'FlickBleepbotInner"></div></div>' : '') +
         '</div>' +
-        '<div class="flick-rail" id="' + p + 'FlickRail"></div>' +
-        '<div class="flick-rail-toggle" id="' + p + 'FlickRailToggle" onclick="toggleFlickRail(\'' + p + '\')" title="Show/hide clip list">' +
-          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
-        '</div>' +
+        (isLong ?
+          '<div class="long-rec-rail-label">Recommended by Bleepmo</div>' +
+          '<div class="long-rec-rail" id="' + p + 'RecommendedRail"></div>'
+          :
+          '<div class="flick-rail" id="' + p + 'FlickRail"></div>' +
+          '<div class="flick-rail-toggle" id="' + p + 'FlickRailToggle" onclick="toggleFlickRail(\'' + p + '\')" title="Show/hide clip list">' +
+            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
+          '</div>'
+        ) +
       '</div>'
     );
   }
@@ -5058,12 +5067,96 @@ body::after {
       state.activeIndex = 0;
       state.loaded = true;
       container.innerHTML = buildFlickPlayerHtml(paneKey);
-      renderFlickRail(paneKey);
+      if (paneKey === 'long') {
+        loadLongRecommendedPool();
+      } else {
+        renderFlickRail(paneKey);
+      }
       setActiveFlick(paneKey, 0);
       attachFlickVerticalSwipe(paneKey);
     } catch (err) {
       container.innerHTML = '<div class="profile-empty-state">Couldn\'t reach the server.</div>';
     }
+  }
+
+  function buildLongRecCardHtml(b, onclickAttr) {
+    var title = b.title || (b.body ? b.body.slice(0, 50) : 'Untitled');
+    var desc = (b.title && b.body) ? b.body.slice(0, 70) : ((b.handle_symbol || '') + (b.handle || ''));
+    var videoTag = b.media_key
+      ? '<video src="/media/' + b.media_key + '" muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;"></video>'
+      : '';
+    return (
+      '<div class="long-rec-card" ' + onclickAttr + '>' +
+      '  <div class="long-rec-thumb">' + videoTag + '</div>' +
+      '  <div class="long-rec-title">' + escapeHtml(title) + '</div>' +
+      '  <div class="long-rec-desc">' + escapeHtml(desc) + '</div>' +
+      '</div>'
+    );
+  }
+
+  // Top rail: the next few items already loaded in this thread (state.items),
+  // continuing forward from whatever's currently playing.
+  function renderFlickUpNextRail(paneKey) {
+    var rail = document.getElementById(paneKey + 'UpNextRail');
+    if (!rail) return;
+    var state = flickPaneState[paneKey];
+    var n = state.items.length;
+    if (n < 2) { rail.innerHTML = '<div style="font-size:11.5px;color:var(--text-lo);padding:0 14px 10px;">Nothing queued up yet.</div>'; return; }
+    var upNext = [];
+    for (var i = 1; i <= Math.min(4, n - 1); i++) {
+      upNext.push(state.items[(state.activeIndex + i) % n]);
+    }
+    rail.innerHTML = upNext.map(function (b) {
+      var idx = state.items.indexOf(b);
+      return buildLongRecCardHtml(b, 'onclick="setActiveFlick(\'' + paneKey + '\', ' + idx + ')"');
+    }).join('');
+  }
+
+  // Bottom rail: a separate, general recommendation pool — distinct from the
+  // "up next" queue above, fetched once per pane-load and re-filtered (not
+  // re-fetched) as the active item changes.
+  async function loadLongRecommendedPool() {
+    var state = flickPaneState.long;
+    if (state.recommendedLoaded) return;
+    state.recommendedLoaded = true; // set eagerly so a second call can't race a duplicate fetch
+    try {
+      var res = await fetch('/api/bleeps?contentType=flick_long', { credentials: 'include' });
+      if (!res.ok) return;
+      var data = await res.json();
+      state.recommendedPool = data.bleeps || [];
+      renderFlickRecommendedRail('long');
+    } catch (err) {
+      // Non-fatal — the bottom rail just stays empty if this fails.
+    }
+  }
+
+  function renderFlickRecommendedRail(paneKey) {
+    if (paneKey !== 'long') return;
+    var rail = document.getElementById(paneKey + 'RecommendedRail');
+    if (!rail) return;
+    var state = flickPaneState.long;
+    var current = state.items[state.activeIndex];
+    var pool = state.recommendedPool.filter(function (b) { return !current || b.id !== current.id; });
+    if (!pool.length) { rail.innerHTML = ''; return; }
+    rail.innerHTML = pool.slice(0, 4).map(function (b) {
+      return buildLongRecCardHtml(b, 'onclick="jumpToRecommendedFlick(\'' + escapeHtml(b.id) + '\')"');
+    }).join('');
+  }
+
+  // Clicking a bottom-rail "Recommended" card splices it into the thread
+  // right after whatever's currently playing, then jumps to it — so it
+  // naturally becomes part of "up next" too, rather than a dead-end.
+  function jumpToRecommendedFlick(bleepId) {
+    var state = flickPaneState.long;
+    var b = state.recommendedPool.find(function (x) { return x.id === bleepId; });
+    if (!b) return;
+    var existingIdx = state.items.findIndex(function (x) { return x.id === bleepId; });
+    if (existingIdx !== -1) {
+      setActiveFlick('long', existingIdx);
+      return;
+    }
+    state.items.splice(state.activeIndex + 1, 0, b);
+    setActiveFlick('long', state.activeIndex + 1);
   }
 
   function renderFlickRail(paneKey) {
@@ -5118,6 +5211,11 @@ body::after {
     document.querySelectorAll('#' + paneKey + 'FlickRail .flick-thumb').forEach(function (el) {
       el.classList.toggle('active-thumb', parseInt(el.getAttribute('data-idx'), 10) === idx);
     });
+
+    if (paneKey === 'long') {
+      renderFlickUpNextRail('long');
+      renderFlickRecommendedRail('long');
+    }
 
     var video = document.getElementById(paneKey + 'FlickVideo');
     if (video) {
@@ -6577,6 +6675,41 @@ body::after {
   .long-duration-badge {
     position: absolute; bottom: 5px; right: 5px; font-size: 9px; font-weight: 700;
     padding: 1px 5px; border-radius: 5px; background: rgba(0,0,0,0.65); color: #fff;
+  }
+
+  /* ── Long-Flick: stacked layout, top "Up Next" rail + bottom "Recommended" rail
+     replacing the vertical side rail (Long-Flicks only — Short keeps the shared
+     vertical rail mechanic unchanged) ── */
+  .flick-hero-row.long-stack {
+    flex-direction: column; height: auto; min-height: 0; overflow: visible;
+  }
+  .flick-player.long-player {
+    flex: none; width: 100%; aspect-ratio: 16 / 9; border-right: none;
+    border-bottom: 0.5px solid rgba(212,175,55,0.12);
+  }
+  .long-rec-rail-label {
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-lo);
+    padding: 14px 14px 8px;
+  }
+  .long-rec-rail {
+    display: flex; gap: 10px; overflow-x: auto; padding: 0 14px 14px;
+    scrollbar-width: none;
+  }
+  .long-rec-rail::-webkit-scrollbar { display: none; }
+  .long-rec-card { flex: 0 0 148px; cursor: pointer; }
+  .long-rec-thumb {
+    position: relative; width: 148px; height: 83px; border-radius: 10px; overflow: hidden;
+    background: linear-gradient(135deg, rgba(20,30,60,0.9), rgba(30,15,45,0.85));
+    border: 1px solid rgba(212,175,55,0.15); transition: border-color 0.2s, transform 0.2s;
+  }
+  .long-rec-card:hover .long-rec-thumb { border-color: rgba(212,175,55,0.4); transform: translateY(-2px); }
+  .long-rec-title {
+    font-size: 11.5px; font-weight: 700; color: var(--text-hi); margin-top: 6px; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .long-rec-desc {
+    font-size: 10.5px; color: var(--text-lo); margin-top: 2px; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
 
   /* Grid overlay on player */
