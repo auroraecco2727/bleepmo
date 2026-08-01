@@ -6251,18 +6251,19 @@ body::after {
   var flicksSubToggleHideTimer = null;
 
   function updateFlicksSubToggle(slideKey) {
+    var pos = document.getElementById('flicksSubTogglePos');
     var toggle = document.getElementById('flicksSubToggle');
-    if (!toggle) return;
+    if (!pos || !toggle) return;
     var onFlicksPane = slideKey === 'flicksShort' || slideKey === 'flicksLong';
     clearTimeout(flicksSubToggleHideTimer);
     if (!onFlicksPane) {
-      toggle.style.display = 'none';
+      pos.style.display = 'none';
       return;
     }
     document.getElementById('flicksSubShortBtn').classList.toggle('active', slideKey === 'flicksShort');
     document.getElementById('flicksSubLongBtn').classList.toggle('active', slideKey === 'flicksLong');
 
-    toggle.style.display = 'flex';
+    pos.style.display = 'block';
     toggle.classList.remove('fade-out');
     flicksSubToggleHideTimer = setTimeout(function () {
       toggle.classList.add('fade-out');
@@ -6403,12 +6404,16 @@ body::after {
   }
   #flicksShortPane::-webkit-scrollbar, #flicksLongPane::-webkit-scrollbar { display: none; }
 
-  .flicks-sub-toggle {
+  .flicks-sub-toggle-pos {
     display: none;
-    position: fixed; top: 116px; left: 16px;
-    z-index: 45; gap: 4px; padding: 3px;
+    position: fixed; top: 116px; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+    z-index: 45; pointer-events: none;
+  }
+  .flicks-sub-toggle {
+    display: inline-flex; margin-left: 16px; gap: 4px; padding: 3px;
     background: rgba(8,12,28,0.65); backdrop-filter: blur(10px);
     border: 1px solid rgba(212,175,55,0.25); border-radius: 20px;
+    pointer-events: auto;
     opacity: 1; transition: opacity 0.4s ease;
   }
   .flicks-sub-toggle.fade-out { opacity: 0; pointer-events: none; }
@@ -6725,9 +6730,11 @@ body::after {
   .flick-tag::before { content: '•'; font-size: 8px; }
 </style>
 
-<div class="flicks-sub-toggle" id="flicksSubToggle">
-  <div class="flicks-sub-btn active" id="flicksSubShortBtn" onclick="goToSlide('flicksShort')">Shorts</div>
-  <div class="flicks-sub-btn" id="flicksSubLongBtn" onclick="goToSlide('flicksLong')">Long</div>
+<div class="flicks-sub-toggle-pos" id="flicksSubTogglePos">
+  <div class="flicks-sub-toggle" id="flicksSubToggle">
+    <div class="flicks-sub-btn active" id="flicksSubShortBtn" onclick="goToSlide('flicksShort')">Shorts</div>
+    <div class="flicks-sub-btn" id="flicksSubLongBtn" onclick="goToSlide('flicksLong')">Long</div>
+  </div>
 </div>
 
 <!-- ══ BINGE MODE settings sheet ══ -->
