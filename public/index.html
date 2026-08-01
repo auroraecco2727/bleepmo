@@ -6382,6 +6382,13 @@ body::after {
     var startX = null, startY = null;
     zone.addEventListener('touchstart', function (e) {
       if (!e.touches || e.touches.length !== 1) return;
+      // A swipe/drag inside the open BleepBot panel is that panel's own
+      // gesture (e.g. swiping between AI takes) — never let it bubble up
+      // and change the main tab underneath it.
+      if (e.target.closest && e.target.closest('.bleepbot-expand.open')) {
+        startX = null; startY = null;
+        return;
+      }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
     }, { passive: true });
