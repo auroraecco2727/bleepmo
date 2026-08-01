@@ -88,8 +88,12 @@ body::after {
 }
 .nav-drawer-backdrop.open { display: block; opacity: 1; }
 
+.nav-drawer-pos {
+  position: fixed; inset: 0; max-width: 480px; margin: 0 auto; z-index: 2900;
+  pointer-events: none; overflow: hidden;
+}
 .nav-drawer {
-  position: fixed; top: 0; bottom: 0; left: 0; z-index: 2900;
+  position: absolute; top: 0; bottom: 0; left: 0;
   width: 78%; max-width: 300px;
   background: linear-gradient(165deg, rgba(9,16,42,0.99) 0%, rgba(7,11,30,0.99) 60%, rgba(11,19,46,0.98) 100%);
   border-right: 1px solid rgba(212,175,55,0.2);
@@ -98,6 +102,7 @@ body::after {
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
   display: flex; flex-direction: column;
   padding: 22px 0;
+  pointer-events: auto;
 }
 .nav-drawer.open { transform: translateX(0); }
 
@@ -1968,7 +1973,8 @@ body::after {
 
 <!-- ══ UNIVERSAL NAV DRAWER ══ -->
 <div class="nav-drawer-backdrop" id="navDrawerBackdrop" onclick="closeNavDrawer()"></div>
-<div class="nav-drawer" id="navDrawer">
+<div class="nav-drawer-pos">
+  <div class="nav-drawer" id="navDrawer">
   <div class="nav-drawer-header">
     <div class="nav-drawer-identity">
       <div class="nav-drawer-avatar" id="drawerAvatar">?</div>
@@ -2013,6 +2019,7 @@ body::after {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Settings
     </div>
+  </div>
   </div>
 </div>
 
