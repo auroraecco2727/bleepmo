@@ -1065,6 +1065,84 @@ body::after {
 }
 .auth-screen.hide { opacity: 0; transform: scale(1.03); pointer-events: none; }
 
+/* ══════════════════════════════════════
+   ONBOARDING: 3-STEP CALIBRATION MODAL
+══════════════════════════════════════ */
+.onboarding-modal {
+  position: fixed; inset: 0; max-width: 480px; margin: 0 auto; z-index: 3200;
+  display: none; flex-direction: column; overflow-y: auto;
+  background: linear-gradient(165deg, rgba(9,16,42,0.98) 0%, rgba(7,11,30,0.99) 55%, rgba(11,19,46,0.97) 100%);
+  padding: 40px 24px 32px;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+.onboarding-modal.show { display: flex; }
+.onboarding-modal.dissolve { opacity: 0; transform: scale(1.05); filter: blur(6px); pointer-events: none; }
+
+.onboarding-progress { display: flex; gap: 6px; justify-content: center; margin-bottom: 30px; flex-shrink: 0; }
+.onboarding-dot { width: 26px; height: 3px; border-radius: 2px; background: rgba(212,175,55,0.18); transition: background 0.3s; }
+.onboarding-dot.active { background: var(--gold); box-shadow: 0 0 8px rgba(212,175,55,0.5); }
+
+.onboarding-panel { display: none; flex-direction: column; flex: 1; animation: fadeUp 0.4s ease forwards; }
+.onboarding-panel.show { display: flex; }
+
+.onboarding-header { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 800; color: var(--text-hi); text-align: center; margin-bottom: 8px; }
+.onboarding-sub { font-size: 12.5px; color: var(--text-mid); text-align: center; line-height: 1.5; margin-bottom: 28px; }
+
+.onboarding-input-wrap { position: relative; margin-bottom: 20px; }
+.onboarding-input {
+  width: 100%; padding: 13px 16px 13px 38px; border-radius: 14px; border: 1px solid rgba(212,175,55,0.25);
+  background: rgba(255,255,255,0.04); color: var(--text-hi); font-size: 14px; backdrop-filter: blur(8px);
+}
+.onboarding-input::placeholder { color: var(--text-lo); }
+.onboarding-input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--gold); opacity: 0.75; pointer-events: none; }
+
+.onboarding-pill-grid { display: flex; flex-wrap: wrap; gap: 9px; }
+.onboarding-pill {
+  padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(212,175,55,0.25);
+  background: rgba(255,255,255,0.03); color: var(--text-mid); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, box-shadow 0.2s, color 0.2s, border-color 0.2s;
+  user-select: none;
+}
+.onboarding-pill .bullet { color: var(--gold); font-weight: 800; margin-right: 1px; }
+.onboarding-pill.selected {
+  transform: scale(1.05); color: #161225;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
+  border-color: transparent; box-shadow: 0 0 14px rgba(212,175,55,0.35);
+}
+.onboarding-pill.selected .bullet { color: #161225; }
+
+.onboarding-count { font-size: 11.5px; color: var(--text-lo); text-align: center; margin: 14px 0 4px; }
+
+.onboarding-continue {
+  width: 100%; margin-top: auto; padding: 13px; border-radius: 14px; border: none; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; color: #161225;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
+  opacity: 0.35; pointer-events: none; transition: opacity 0.25s, box-shadow 0.25s;
+}
+.onboarding-continue.enabled { opacity: 1; pointer-events: auto; box-shadow: 0 0 18px rgba(212,175,55,0.35); }
+
+.onboarding-skip { display: block; text-align: center; margin-top: 16px; font-size: 11.5px; color: var(--text-lo); cursor: pointer; }
+.onboarding-skip:hover { color: var(--text-mid); }
+
+.onboarding-preview-stack { display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
+.onboarding-preview-card {
+  border-radius: 12px; padding: 11px 14px; font-size: 12px; color: var(--text-mid);
+  background: rgba(15,23,42,0.6); backdrop-filter: blur(10px);
+}
+.onboarding-preview-card b { color: var(--text-hi); }
+
+.onboarding-glow-row { display: flex; gap: 10px; margin-bottom: 8px; }
+.onboarding-glow-opt {
+  flex: 1; text-align: center; padding: 11px 8px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.25);
+  background: rgba(255,255,255,0.03); color: var(--text-mid); font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.onboarding-glow-opt.selected {
+  transform: scale(1.04); color: #161225;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
+  border-color: transparent; box-shadow: 0 0 14px rgba(212,175,55,0.3);
+}
+
 .auth-glow-a {
   position: absolute; top: -130px; left: -70px;
   width: 320px; height: 320px; border-radius: 50%;
@@ -2517,6 +2595,75 @@ body::after {
   </div>
 </div>
 
+<div class="onboarding-modal" id="onboardingModal">
+  <div class="onboarding-progress">
+    <div class="onboarding-dot" id="obDot1"></div>
+    <div class="onboarding-dot" id="obDot2"></div>
+    <div class="onboarding-dot" id="obDot3"></div>
+  </div>
+
+  <!-- Step 1: Local Signal -->
+  <div class="onboarding-panel" id="obPanel1">
+    <div class="onboarding-header">Where is your local signal rooted?</div>
+    <div class="onboarding-sub">Tuning your regional feed, local trends, and proximity Flicks.</div>
+    <div class="onboarding-input-wrap">
+      <span class="onboarding-input-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.4-7-11a7 7 0 0 1 14 0c0 4.6-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+      </span>
+      <input type="text" class="onboarding-input" id="obLocationInput" placeholder="Search your metro area…" oninput="onboardingLocationTyped()" />
+    </div>
+    <div class="onboarding-pill-grid" id="obLocationPills">
+      <div class="onboarding-pill" data-slug="los-angeles" onclick="selectOnboardingLocation('los-angeles')"><span class="bullet">•</span>los-angeles</div>
+      <div class="onboarding-pill" data-slug="new-york" onclick="selectOnboardingLocation('new-york')"><span class="bullet">•</span>new-york</div>
+      <div class="onboarding-pill" data-slug="san-francisco" onclick="selectOnboardingLocation('san-francisco')"><span class="bullet">•</span>san-francisco</div>
+      <div class="onboarding-pill" data-slug="london" onclick="selectOnboardingLocation('london')"><span class="bullet">•</span>london</div>
+      <div class="onboarding-pill" data-slug="tokyo" onclick="selectOnboardingLocation('tokyo')"><span class="bullet">•</span>tokyo</div>
+      <div class="onboarding-pill" data-slug="austin" onclick="selectOnboardingLocation('austin')"><span class="bullet">•</span>austin</div>
+    </div>
+    <button class="onboarding-continue" id="obContinue1" onclick="onboardingGoToStep(2)">Continue</button>
+    <span class="onboarding-skip" onclick="skipOnboarding()">Skip for now</span>
+  </div>
+
+  <!-- Step 2: Frequency Calibration -->
+  <div class="onboarding-panel" id="obPanel2">
+    <div class="onboarding-header">Calibrate your frequency.</div>
+    <div class="onboarding-sub">Select 3 or more Trend-Points to prime your feed graph.</div>
+    <div class="onboarding-pill-grid" id="obTrendPills">
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'indie-tech')"><span class="bullet">•</span>indie-tech</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'streetwear')"><span class="bullet">•</span>streetwear</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'gaming')"><span class="bullet">•</span>gaming</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'film-production')"><span class="bullet">•</span>film-production</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'nightlife')"><span class="bullet">•</span>nightlife</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'creator-economy')"><span class="bullet">•</span>creator-economy</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'ai-tools')"><span class="bullet">•</span>ai-tools</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'music-gear')"><span class="bullet">•</span>music-gear</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'crypto-markets')"><span class="bullet">•</span>crypto-markets</div>
+      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'design-systems')"><span class="bullet">•</span>design-systems</div>
+    </div>
+    <div class="onboarding-count" id="obTrendCount">0 selected — pick at least 3</div>
+    <button class="onboarding-continue" id="obContinue2" onclick="onboardingGoToStep(3)">Continue</button>
+    <span class="onboarding-skip" onclick="skipOnboarding()">Skip for now</span>
+  </div>
+
+  <!-- Step 3: Visual Spectrum -->
+  <div class="onboarding-panel" id="obPanel3">
+    <div class="onboarding-header">Set your visual spectrum.</div>
+    <div class="onboarding-sub">Customize how content categories glow in your card feed.</div>
+    <div class="onboarding-preview-stack">
+      <div class="onboarding-preview-card card-cat-local"><b>Electric Cyan</b> — local metro signal</div>
+      <div class="onboarding-preview-card card-cat-interest"><b>Neon Violet</b> — your Trend-Point matches</div>
+      <div class="onboarding-preview-card card-cat-commerce"><b>Amber Gold</b> — storefront &amp; merch drops</div>
+      <div class="onboarding-preview-card card-cat-interactive"><b>Emerald Green</b> — live polls &amp; interactive cards</div>
+    </div>
+    <div class="onboarding-glow-row" id="obGlowRow">
+      <div class="onboarding-glow-opt" data-level="low" onclick="selectOnboardingGlow('low')">Low</div>
+      <div class="onboarding-glow-opt selected" data-level="medium" onclick="selectOnboardingGlow('medium')">Medium</div>
+      <div class="onboarding-glow-opt" data-level="high" onclick="selectOnboardingGlow('high')">High Glow</div>
+    </div>
+    <button class="onboarding-continue enabled" id="obContinue3" onclick="finishOnboarding()">Initialize HUD Feed</button>
+  </div>
+</div>
+
 <script>
   /* ── Global auth state ── */
   var currentUser = null;
@@ -2528,17 +2675,124 @@ body::after {
     if (navAvatar && currentUser) navAvatar.innerHTML = buildAvatarHtml(currentUser, 28);
   }
 
-  function enterApp() {
-    var a = document.getElementById('authScreen');
-    if (!a) return;
-    a.classList.add('hide');
-    setTimeout(function () { a.style.display = 'none'; }, 550);
+  function proceedPastAuth() {
+    if (currentUser && !currentUser.onboarding_completed_at) {
+      showOnboardingModal();
+      return;
+    }
     updateComposeIdentity();
     updateNavAvatar();
     loadLiveFeed();
     checkNotifBadge();
     checkMessagesBadge();
   }
+
+  function enterApp() {
+    var a = document.getElementById('authScreen');
+    if (!a) return;
+    a.classList.add('hide');
+    setTimeout(function () { a.style.display = 'none'; }, 550);
+    proceedPastAuth();
+  }
+
+  /* ── Onboarding: 3-step calibration modal ── */
+  var obSelectedLocation = '';
+  var obSelectedTrends = new Set();
+  var obGlowLevel = 'medium';
+
+  function showOnboardingModal() {
+    obSelectedLocation = '';
+    obSelectedTrends = new Set();
+    obGlowLevel = 'medium';
+    document.getElementById('obLocationInput').value = '';
+    document.querySelectorAll('#obLocationPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
+    document.querySelectorAll('#obTrendPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
+    document.getElementById('obTrendCount').textContent = '0 selected — pick at least 3';
+    document.getElementById('obContinue1').classList.remove('enabled');
+    document.getElementById('obContinue2').classList.remove('enabled');
+    document.querySelectorAll('#obGlowRow .onboarding-glow-opt').forEach(function (o) {
+      o.classList.toggle('selected', o.dataset.level === 'medium');
+    });
+    onboardingGoToStep(1);
+    document.getElementById('onboardingModal').classList.add('show');
+  }
+
+  function onboardingGoToStep(step) {
+    [1, 2, 3].forEach(function (n) {
+      document.getElementById('obPanel' + n).classList.toggle('show', n === step);
+      document.getElementById('obDot' + n).classList.toggle('active', n <= step);
+    });
+  }
+
+  function selectOnboardingLocation(slug) {
+    obSelectedLocation = slug;
+    document.getElementById('obLocationInput').value = slug;
+    document.querySelectorAll('#obLocationPills .onboarding-pill').forEach(function (p) {
+      p.classList.toggle('selected', p.dataset.slug === slug);
+    });
+    document.getElementById('obContinue1').classList.add('enabled');
+  }
+
+  function onboardingLocationTyped() {
+    var val = document.getElementById('obLocationInput').value.trim();
+    obSelectedLocation = val;
+    document.querySelectorAll('#obLocationPills .onboarding-pill').forEach(function (p) {
+      p.classList.toggle('selected', p.dataset.slug === val.toLowerCase());
+    });
+    document.getElementById('obContinue1').classList.toggle('enabled', val.length > 0);
+  }
+
+  function toggleOnboardingTrend(el, slug) {
+    if (obSelectedTrends.has(slug)) {
+      obSelectedTrends.delete(slug);
+      el.classList.remove('selected');
+    } else {
+      obSelectedTrends.add(slug);
+      el.classList.add('selected');
+    }
+    var n = obSelectedTrends.size;
+    document.getElementById('obTrendCount').textContent =
+      n + ' selected' + (n < 3 ? ' — pick at least 3' : '');
+    document.getElementById('obContinue2').classList.toggle('enabled', n >= 3);
+  }
+
+  function selectOnboardingGlow(level) {
+    obGlowLevel = level;
+    document.querySelectorAll('#obGlowRow .onboarding-glow-opt').forEach(function (o) {
+      o.classList.toggle('selected', o.dataset.level === level);
+    });
+  }
+
+  async function submitOnboarding(skipped) {
+    var fd = new FormData();
+    if (!skipped) {
+      fd.append('locationAnchor', obSelectedLocation);
+      fd.append('subscribedTrendPoints', JSON.stringify(Array.from(obSelectedTrends)));
+      fd.append('themeGlowIntensity', obGlowLevel);
+    }
+    fd.append('completeOnboarding', 'true');
+    try {
+      var res = await fetch('/api/me', { method: 'PATCH', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (res.ok) currentUser = data.user;
+    } catch (err) {
+      // Non-fatal — worst case, the modal shows again next login. Don't
+      // block the person from getting into the app over this.
+    }
+    var modal = document.getElementById('onboardingModal');
+    modal.classList.add('dissolve');
+    setTimeout(function () {
+      modal.classList.remove('show', 'dissolve');
+      updateComposeIdentity();
+      updateNavAvatar();
+      loadLiveFeed();
+      checkNotifBadge();
+      checkMessagesBadge();
+    }, 450);
+  }
+
+  function finishOnboarding() { submitOnboarding(false); }
+  function skipOnboarding() { submitOnboarding(true); }
 
   // If a valid session cookie already exists (returning user), skip the
   // auth screen entirely instead of making them log in again.
@@ -2899,11 +3153,7 @@ body::after {
       var signupScreen = document.getElementById('signupScreen');
       signupScreen.classList.add('hide');
       setTimeout(function () { signupScreen.style.display = 'none'; }, 550);
-      updateComposeIdentity();
-      updateNavAvatar();
-      loadLiveFeed();
-      checkNotifBadge();
-    checkMessagesBadge();
+      proceedPastAuth();
     } catch (err) {
       showSignupError('Couldn\'t reach the server. Is the backend deployed?');
       submitBtn.disabled = false;

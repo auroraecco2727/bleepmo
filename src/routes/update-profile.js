@@ -67,6 +67,36 @@ export async function handleUpdateProfile(request, env) {
   const avatarShape = form.has('avatarShape') ? (form.get('avatarShape') || '').toString().trim() : null;
   if (avatarShape) updates.avatar_shape = avatarShape;
 
+  // Onboarding Step 1 — location anchor (metro slug).
+  const locationAnchor = form.has('locationAnchor') ? (form.get('locationAnchor') || '').toString().trim() : null;
+  if (locationAnchor !== null) updates.location_anchor = locationAnchor || null;
+
+  // Onboarding Step 2 — subscribed trend-points, sent as a JSON array string.
+  if (form.has('subscribedTrendPoints')) {
+    let parsed;
+    try {
+      parsed = JSON.parse((form.get('subscribedTrendPoints') || '[]').toString());
+    } catch {
+      return badRequest('subscribedTrendPoints must be a JSON array.');
+    }
+    if (!Array.isArray(parsed)) return badRequest('subscribedTrendPoints must be a JSON array.');
+    updates.subscribed_trend_points = JSON.stringify(parsed.map((t) => String(t).toLowerCase()));
+  }
+
+  // Onboarding Step 3 — theme glow intensity.
+  const themeGlowIntensity = form.has('themeGlowIntensity') ? (form.get('themeGlowIntensity') || '').toString().trim() : null;
+  if (themeGlowIntensity) {
+    if (!['low', 'medium', 'high'].includes(themeGlowIntensity)) {
+      return badRequest('themeGlowIntensity must be low, medium, or high.');
+    }
+    updates.theme_glow_intensity = themeGlowIntensity;
+  }
+
+  // Marks onboarding as finished — sent by the modal's final step.
+  if ((form.get('completeOnboarding') || '').toString() === 'true') {
+    updates.onboarding_completed_at = new Date().toISOString();
+  }
+
   // Images: an uploaded file replaces the key; a 'removeXPic'='true' with
   // no file clears it back to null (falls back to initials in the UI).
   const mainPic = form.get('mainPic');

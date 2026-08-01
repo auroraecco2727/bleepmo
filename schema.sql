@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
   apple_sub       TEXT UNIQUE,      -- Apple's stable per-user id ('sub' claim), set once linked
   has_store       INTEGER NOT NULL DEFAULT 0,  -- manually flipped for now; gates the profile "Showcase" storefront tab
   is_admin        INTEGER NOT NULL DEFAULT 0,  -- manually flipped; gates admin-only settings (e.g. AI provider config)
+  location_anchor TEXT,             -- onboarding Step 1: metro slug, e.g. "los-angeles"
+  subscribed_trend_points TEXT,     -- onboarding Step 2: JSON array of lowercase trend-point strings
+  theme_glow_intensity TEXT DEFAULT 'medium',  -- onboarding Step 3: 'low' | 'medium' | 'high'
+  onboarding_completed_at TEXT,     -- set once the 3-step modal is finished; null skips it for pre-existing users
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -236,6 +240,26 @@ CREATE INDEX IF NOT EXISTS idx_store_items_category ON store_items(category, is_
 CREATE INDEX IF NOT EXISTS idx_store_items_owner ON store_items(owner_id);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_tips_recipient ON tips(recipient_id);
+
+-- ══════════════════════════════════════
+-- ENGAGEMENT EVENTS: generic, extensible instrumentation groundwork for
+-- future recommendation/ad-optimization work. Deliberately NOT an ad engine
+-- — just making sure passive signals (dwell time, scroll stops, hover) aren't
+-- thrown away if/when they matter later. New signal types plug into this
+-- same table via event_type + metadata; no schema changes needed per signal.
+-- ══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS engagement_events (
+  id            TEXT PRIMARY KEY,
+  user_id       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  event_type    TEXT NOT NULL,    -- 'card_dwell' | 'card_view' | 'scroll_stop' | 'hover' | ... (open-ended)
+  content_type  TEXT,             -- 'bleep' | 'flick_short' | 'flick_long' | 'store_item' | ...
+  content_id    TEXT,
+  value_ms      INTEGER,          -- duration in ms, when the event represents a span of time
+  metadata      TEXT,             -- optional JSON blob for anything event-specific (scroll %, position, etc.)
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_engagement_content ON engagement_events(content_type, content_id);
+CREATE INDEX IF NOT EXISTS idx_engagement_user_time ON engagement_events(user_id, created_at);
 
 -- ══════════════════════════════════════
 -- Generic runtime settings (key-value). First use: which AI provider(s)
