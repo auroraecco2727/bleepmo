@@ -6390,7 +6390,7 @@ body::after {
       var deltaX = e.changedTouches[0].clientX - startX;
       var deltaY = e.changedTouches[0].clientY - startY;
       startX = null; startY = null;
-      if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+      if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < Math.abs(deltaY) * 0.9) return;
       var idx = SLIDE_ORDER.indexOf(currentSlideKey);
       var next = deltaX < 0 ? idx + 1 : idx - 1;
       if (next < 0 || next >= SLIDE_ORDER.length) return;
