@@ -69,6 +69,17 @@ body::after {
   backdrop-filter: blur(28px);
   border-bottom: 0.5px solid rgba(212,175,55,0.12);
 }
+.tab-bar.hidden-tabs { height: 0; padding: 0; border: none; overflow: hidden; margin: 0; }
+.tab-bar-toggle {
+  position: absolute; bottom: -11px; left: 50%; transform: translateX(-50%);
+  width: 26px; height: 15px; border-radius: 0 0 8px 8px;
+  background: rgba(10,18,45,0.9); border: 1px solid rgba(212,175,55,0.3); border-top: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 61; transition: background 0.2s;
+}
+.tab-bar-toggle:hover { background: rgba(212,175,55,0.18); }
+.tab-bar-toggle svg { transition: transform 0.25s ease; }
+.tab-bar-toggle.tabs-hidden svg { transform: rotate(180deg); }
 .nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
 .nav-hamburger {
@@ -1963,12 +1974,15 @@ body::after {
       </div>
     </div>
   </div>
-  <div class="tab-bar">
-    <div class="tab active" onclick="switchTab(this)">For You</div>
+  <div class="tab-bar" id="mainTabBar">
+    <div class="tab active" onclick="switchTab(this)">Live</div>
     <div class="tab" onclick="switchTab(this)">Flicks</div>
-    <div class="tab" onclick="switchTab(this)">e-Store</div>
     <div class="tab" onclick="switchTab(this)">Calendar</div>
+    <div class="tab" onclick="switchTab(this)">e-Store</div>
     <div class="tab" onclick="switchTab(this)">Special Offers</div>  </div>
+  <div class="tab-bar-toggle" id="mainTabBarToggle" onclick="toggleMainTabBar()" title="Hide tabs">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  </div>
 </nav>
 
 <!-- ══ UNIVERSAL NAV DRAWER ══ -->
@@ -6335,18 +6349,26 @@ body::after {
   }
 
   const COMING_SOON_TABS = ['e-Store', 'Calendar', 'Special Offers'];
-  // Slide order for horizontal swipe. Only the first 3 carry trend context
-  // forward between each other; the rest are plain unrelated tabs.
-  const SLIDE_ORDER = ['forYou', 'flicksShort', 'flicksLong', 'eStore', 'calendar', 'offers'];
+  // Slide order for horizontal swipe, matching the new tab arrangement:
+  // Live -> Flicks (Long -> Short -> Live Streams) -> Calendar -> e-Store -> Special Offers.
+  const SLIDE_ORDER = ['forYou', 'flicksLong', 'flicksShort', 'flicksLive', 'calendar', 'eStore', 'offers'];
   const SLIDE_LABELS = { eStore: 'e-Store', calendar: 'Calendar', offers: 'Special Offers' };
   var currentSlideKey = 'forYou';
 
   function tabPillForSlide(slideKey) {
     if (slideKey === 'forYou') return 0;
-    if (slideKey === 'flicksShort' || slideKey === 'flicksLong') return 1;
-    if (slideKey === 'eStore') return 2;
-    if (slideKey === 'calendar') return 3;
+    if (slideKey === 'flicksShort' || slideKey === 'flicksLong' || slideKey === 'flicksLive') return 1;
+    if (slideKey === 'calendar') return 2;
+    if (slideKey === 'eStore') return 3;
     return 4; // offers
+  }
+
+  function toggleMainTabBar() {
+    var bar = document.getElementById('mainTabBar');
+    var btn = document.getElementById('mainTabBarToggle');
+    var hidden = bar.classList.toggle('hidden-tabs');
+    btn.classList.toggle('tabs-hidden', hidden);
+    btn.title = hidden ? 'Show tabs' : 'Hide tabs';
   }
 
   function pauseFlickPane(paneKey) {
@@ -6370,6 +6392,7 @@ body::after {
     var showFeed = slideKey === 'forYou';
     var showShort = slideKey === 'flicksShort';
     var showLong = slideKey === 'flicksLong';
+    var showLive = slideKey === 'flicksLive';
     var showCalendar = slideKey === 'calendar';
     var showStore = slideKey === 'eStore';
     var isComingSoon = slideKey === 'offers';
@@ -6378,6 +6401,7 @@ body::after {
     document.getElementById('scrollDots').style.display = showFeed ? '' : 'none';
     document.getElementById('flicksShortPane').style.display = showShort ? 'flex' : 'none';
     document.getElementById('flicksLongPane').style.display = showLong ? 'flex' : 'none';
+    document.getElementById('flicksLivePane').style.display = showLive ? 'flex' : 'none';
     document.getElementById('calendarPane').style.display = showCalendar ? 'flex' : 'none';
     document.getElementById('storePane').style.display = showStore ? 'flex' : 'none';
 
@@ -6417,14 +6441,15 @@ body::after {
     var pos = document.getElementById('flicksSubTogglePos');
     var toggle = document.getElementById('flicksSubToggle');
     if (!pos || !toggle) return;
-    var onFlicksPane = slideKey === 'flicksShort' || slideKey === 'flicksLong';
+    var onFlicksPane = slideKey === 'flicksShort' || slideKey === 'flicksLong' || slideKey === 'flicksLive';
     clearTimeout(flicksSubToggleHideTimer);
     if (!onFlicksPane) {
       pos.style.display = 'none';
       return;
     }
-    document.getElementById('flicksSubShortBtn').classList.toggle('active', slideKey === 'flicksShort');
     document.getElementById('flicksSubLongBtn').classList.toggle('active', slideKey === 'flicksLong');
+    document.getElementById('flicksSubShortBtn').classList.toggle('active', slideKey === 'flicksShort');
+    document.getElementById('flicksSubLiveBtn').classList.toggle('active', slideKey === 'flicksLive');
 
     pos.style.display = 'block';
     toggle.classList.remove('fade-out');
@@ -6433,14 +6458,17 @@ body::after {
     }, 3000);
   }
 
-  // Tab pills still work by tap — "Flicks" always lands on Shorts first;
-  // swiping (or the in-pane toggle) reaches Long from there.
+  // Tab pills still work by tap — "Flicks" lands on Long-Flicks first;
+  // swiping (or the in-pane toggle) reaches Short/Live from there.
   function switchTab(el) {
     const label = el.textContent.trim();
-    if (label === 'For You') return goToSlide('forYou');
-    if (label === 'Flicks') return goToSlide(currentSlideKey === 'flicksLong' ? 'flicksLong' : 'flicksShort');
-    if (label === 'e-Store') return goToSlide('eStore');
+    if (label === 'Live') return goToSlide('forYou');
+    if (label === 'Flicks') {
+      if (currentSlideKey === 'flicksShort' || currentSlideKey === 'flicksLive') return goToSlide(currentSlideKey);
+      return goToSlide('flicksLong');
+    }
     if (label === 'Calendar') return goToSlide('calendar');
+    if (label === 'e-Store') return goToSlide('eStore');
     if (label === 'Special Offers') return goToSlide('offers');
   }
 
@@ -6564,7 +6592,7 @@ body::after {
 
 <!-- ══ FLICKS VIEW ══ -->
 <style>
-  #flicksShortPane, #flicksLongPane {
+  #flicksShortPane, #flicksLongPane, #flicksLivePane {
     display: none;
     flex-direction: column;
     height: calc(100vh - 108px);
@@ -6572,7 +6600,7 @@ body::after {
     scrollbar-width: none;
     z-index: 1;
   }
-  #flicksShortPane::-webkit-scrollbar, #flicksLongPane::-webkit-scrollbar { display: none; }
+  #flicksShortPane::-webkit-scrollbar, #flicksLongPane::-webkit-scrollbar, #flicksLivePane::-webkit-scrollbar { display: none; }
 
   .flicks-sub-toggle-pos {
     display: none;
@@ -6945,8 +6973,9 @@ body::after {
 
 <div class="flicks-sub-toggle-pos" id="flicksSubTogglePos">
   <div class="flicks-sub-toggle" id="flicksSubToggle">
-    <div class="flicks-sub-btn active" id="flicksSubShortBtn" onclick="goToSlide('flicksShort')">Shorts</div>
-    <div class="flicks-sub-btn" id="flicksSubLongBtn" onclick="goToSlide('flicksLong')">Long</div>
+    <div class="flicks-sub-btn active" id="flicksSubLongBtn" onclick="goToSlide('flicksLong')">Long</div>
+    <div class="flicks-sub-btn" id="flicksSubShortBtn" onclick="goToSlide('flicksShort')">Shorts</div>
+    <div class="flicks-sub-btn" id="flicksSubLiveBtn" onclick="goToSlide('flicksLive')">Live</div>
   </div>
 </div>
 
@@ -6982,6 +7011,18 @@ body::after {
 
 <div id="flicksLongPane">
   <div id="longFlickPaneContent"></div>
+</div>
+
+<div id="flicksLivePane">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px;height:100%;">
+    <div class="cs-orb">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+    </div>
+    <div class="cs-title">Live Streams is coming soon</div>
+    <div class="cs-sub">Real-time broadcasts are on the way. Check back shortly.</div>
+  </div>
 </div>
 
 <!-- ══ CALENDAR ══ -->
