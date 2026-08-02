@@ -4988,8 +4988,8 @@ body::after {
     return (
       '<div class="flick-hero-row' + (isLong ? ' long-stack' : '') + '">' +
         (isLong ?
-          '<div class="long-rec-rail-label">Up next in this thread</div>' +
-          '<div class="long-rec-rail" id="' + p + 'UpNextRail"></div>'
+          '<div class="long-rec-rail-label long-rail-top">Up next in this thread</div>' +
+          '<div class="long-rec-rail long-rail-top" id="' + p + 'UpNextRail"></div>'
           : '') +
         '<div class="flick-player' + (isLong ? ' long-player' : '') + '" id="' + p + 'FlickPlayer">' +
           '<video id="' + p + 'FlickVideo" muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#05070f;"></video>' +
@@ -5043,8 +5043,8 @@ body::after {
           (isLong ? '<div class="bleepbot-expand" id="' + p + 'FlickBleepbotExpand"><div class="bleepbot-inner" id="' + p + 'FlickBleepbotInner"></div></div>' : '') +
         '</div>' +
         (isLong ?
-          '<div class="long-rec-rail-label">Recommended by Bleepmo</div>' +
-          '<div class="long-rec-rail" id="' + p + 'RecommendedRail"></div>'
+          '<div class="long-rec-rail-label long-rail-bottom">Recommended by Bleepmo</div>' +
+          '<div class="long-rec-rail long-rail-bottom" id="' + p + 'RecommendedRail"></div>'
           :
           '<div class="flick-rail" id="' + p + 'FlickRail"></div>' +
           '<div class="flick-rail-toggle" id="' + p + 'FlickRailToggle" onclick="toggleFlickRail(\'' + p + '\')" title="Show/hide clip list">' +
@@ -6715,7 +6715,10 @@ body::after {
   .flick-player.long-player {
     flex: none; width: 100%; height: 0; padding-bottom: 56.25%; border-right: none;
     border-bottom: 0.5px solid rgba(212,175,55,0.12);
+    order: 1;
   }
+  .long-rail-top { order: 0; }
+  .long-rail-bottom { order: 2; }
   .long-rec-rail-label {
     font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-lo);
     padding: 14px 14px 8px;
