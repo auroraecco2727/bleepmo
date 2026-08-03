@@ -116,6 +116,8 @@ export async function getSessionUser(request, db) {
     .bind(session.user_id)
     .first();
 
+  if (user && user.suspended_at) return null;
+
   return user || null;
 }
 

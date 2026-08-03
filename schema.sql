@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
   subscribed_trend_points TEXT,     -- onboarding Step 2: JSON array of lowercase trend-point strings
   theme_glow_intensity TEXT DEFAULT 'medium',  -- onboarding Step 3: 'low' | 'medium' | 'high'
   onboarding_completed_at TEXT,     -- set once the 3-step modal is finished; null skips it for pre-existing users
+  suspended_at    TEXT,             -- set by an admin; blocks login while non-null, reversible
   created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

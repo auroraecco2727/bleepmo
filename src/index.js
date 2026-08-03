@@ -12,7 +12,7 @@ import { handleUpdateProfile } from './routes/update-profile.js';
 import { handleUploadVoiceClip } from './routes/upload-voice-clip.js';
 import { handleNotificationsGet, handleNotificationsPost } from './routes/notifications.js';
 import { handleBleepsGet, handleBleepsPost } from './routes/bleeps.js';
-import { handleBleepDetailGet, handleBleepDetailDelete } from './routes/bleep-detail.js';
+import { handleBleepDetailGet, handleBleepDetailDelete, handleBleepDetailPatch } from './routes/bleep-detail.js';
 import { handleBleepCommentsGet, handleBleepCommentsPost } from './routes/bleep-comments.js';
 import { handleCommentDetailDelete } from './routes/comment-detail.js';
 import { handleBleepLikeToggle } from './routes/like.js';
@@ -47,7 +47,8 @@ import {
   handleTipCreate,
 } from './routes/store.js';
 import { handleAiAssistPost } from './routes/ai.js';
-import { handleAiSettingsGet, handleAiSettingsPost } from './routes/admin.js';
+import { handleEngagementEventsPost } from './routes/engagement.js';
+import { handleAiSettingsGet, handleAiSettingsPost, handleAdminSuspendUser, handleAdminDeleteUser } from './routes/admin.js';
 import { handleMedia } from './routes/media.js';
 
 function notFound() {
@@ -90,6 +91,7 @@ export default {
       const bleepDetailMatch = path.match(/^\/api\/bleeps\/([^/]+)$/);
       if (bleepDetailMatch && method === 'GET') return await handleBleepDetailGet(request, env, bleepDetailMatch[1]);
       if (bleepDetailMatch && method === 'DELETE') return await handleBleepDetailDelete(request, env, bleepDetailMatch[1]);
+      if (bleepDetailMatch && method === 'PATCH') return await handleBleepDetailPatch(request, env, bleepDetailMatch[1]);
 
       const bleepCommentsMatch = path.match(/^\/api\/bleeps\/([^/]+)\/comments$/);
       if (bleepCommentsMatch && method === 'GET') return await handleBleepCommentsGet(request, env, bleepCommentsMatch[1]);
@@ -165,9 +167,18 @@ export default {
       // ── AI Assist ──
       if (path === '/api/ai/assist-post' && method === 'POST') return await handleAiAssistPost(request, env);
 
+      // ── Engagement instrumentation (groundwork, no ad engine attached) ──
+      if (path === '/api/engagement/events' && method === 'POST') return await handleEngagementEventsPost(request, env);
+
       // ── Admin: AI provider settings ──
       if (path === '/api/admin/ai-settings' && method === 'GET') return await handleAiSettingsGet(request, env);
       if (path === '/api/admin/ai-settings' && method === 'POST') return await handleAiSettingsPost(request, env);
+
+      const adminSuspendMatch = path.match(/^\/api\/admin\/users\/([^/]+)\/suspend$/);
+      if (adminSuspendMatch && method === 'POST') return await handleAdminSuspendUser(request, env, adminSuspendMatch[1]);
+
+      const adminDeleteUserMatch = path.match(/^\/api\/admin\/users\/([^/]+)$/);
+      if (adminDeleteUserMatch && method === 'DELETE') return await handleAdminDeleteUser(request, env, adminDeleteUserMatch[1]);
 
       // ── Media (private R2 objects) ──
       const mediaMatch = path.match(/^\/media\/(.+)$/);

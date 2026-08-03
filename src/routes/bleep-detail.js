@@ -69,6 +69,43 @@ export async function handleBleepDetailGet(request, env, bleepId) {
   });
 }
 
+// PATCH /api/bleeps/:id  -> admin-only content edit (moderation; there's no
+// profanity filter in Bleepmo yet, so this is the manual fallback).
+// Deliberately admin-only, not owner-editable — that's a separate,
+// unrequested feature with its own considerations (edit history, "edited"
+// labeling, etc.) that hasn't been asked for.
+export async function handleBleepDetailPatch(request, env, bleepId) {
+  if (!env.DB) return badRequest('DB binding not configured.', 500);
+
+  const user = await getSessionUser(request, env.DB);
+  if (!user) return badRequest('Not logged in.', 401);
+  if (!user.is_admin) return badRequest('Admin access required.', 403);
+
+  const bleep = await env.DB.prepare('SELECT id FROM bleeps WHERE id = ? AND deleted_at IS NULL').bind(bleepId).first();
+  if (!bleep) return badRequest('Bleep not found.', 404);
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return badRequest('Expected JSON body.');
+  }
+
+  const updates = {};
+  if (typeof payload.title === 'string') updates.title = payload.title.trim();
+  if (typeof payload.body === 'string') updates.body = payload.body.trim();
+  if (Object.keys(updates).length === 0) return badRequest('Nothing to update — send title and/or body.');
+
+  const setClause = Object.keys(updates).map((k) => `${k} = ?`).join(', ');
+  const values = Object.keys(updates).map((k) => updates[k]);
+  await env.DB.prepare(`UPDATE bleeps SET ${setClause} WHERE id = ?`).bind(...values, bleepId).run();
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export async function handleBleepDetailDelete(request, env, bleepId) {
   if (!env.DB) return badRequest('DB binding not configured.', 500);
 
@@ -77,7 +114,7 @@ export async function handleBleepDetailDelete(request, env, bleepId) {
 
   const bleep = await env.DB.prepare('SELECT author_id FROM bleeps WHERE id = ?').bind(bleepId).first();
   if (!bleep) return badRequest('Bleep not found.', 404);
-  if (bleep.author_id !== user.id) return badRequest('You can only delete your own Bleeps.', 403);
+  if (bleep.author_id !== user.id && !user.is_admin) return badRequest('You can only delete your own Bleeps.', 403);
 
   await env.DB
     .prepare(`UPDATE bleeps SET deleted_at = datetime('now') WHERE id = ?`)
