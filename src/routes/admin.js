@@ -61,3 +61,55 @@ export async function handleAiSettingsPost(request, env) {
     return badRequest(err.message || 'Couldn\'t save that.', 400);
   }
 }
+
+// POST /api/admin/users/:id/suspend  -> { suspend: true|false }
+export async function handleAdminSuspendUser(request, env, targetUserId) {
+  if (!env.DB) return badRequest('DB binding not configured.', 500);
+  const { error, viewer } = await requireAdmin(request, env);
+  if (error) return error;
+
+  if (targetUserId === viewer.id) return badRequest('You can\'t suspend your own account.', 400);
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return badRequest('Expected JSON body.');
+  }
+
+  const target = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(targetUserId).first();
+  if (!target) return badRequest('User not found.', 404);
+
+  const suspend = payload.suspend !== false;
+  await env.DB
+    .prepare(`UPDATE users SET suspended_at = ? WHERE id = ?`)
+    .bind(suspend ? new Date().toISOString() : null, targetUserId)
+    .run();
+
+  // Suspending kicks them out of any active sessions immediately, rather
+  // than waiting for those sessions to naturally expire.
+  if (suspend) {
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(targetUserId).run();
+  }
+
+  return ok({ suspended: suspend });
+}
+
+// DELETE /api/admin/users/:id
+export async function handleAdminDeleteUser(request, env, targetUserId) {
+  if (!env.DB) return badRequest('DB binding not configured.', 500);
+  const { error, viewer } = await requireAdmin(request, env);
+  if (error) return error;
+
+  if (targetUserId === viewer.id) return badRequest('You can\'t delete your own account.', 400);
+
+  const target = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(targetUserId).first();
+  if (!target) return badRequest('User not found.', 404);
+
+  // The schema's ON DELETE CASCADE constraints handle everything else this
+  // account touches — bleeps, follows, likes, comments, conversations,
+  // sessions, store items, and so on.
+  await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(targetUserId).run();
+
+  return ok({ deleted: true });
+}

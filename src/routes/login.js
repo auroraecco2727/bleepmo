@@ -37,6 +37,8 @@ export async function handleLogin(request, env) {
   const ok = await verifyPassword(password, user.password_hash, user.password_salt);
   if (!ok) return badRequest('Invalid credentials.', 401);
 
+  if (user.suspended_at) return badRequest('This account has been suspended.', 403);
+
   const { token, expiresAt } = await createSession(env.DB, user.id);
 
   return new Response(JSON.stringify({ user: publicUser(user) }), {

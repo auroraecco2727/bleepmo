@@ -67,16 +67,19 @@ export async function handleUserRelationship(request, env, targetUserId) {
     .prepare('SELECT 1 FROM follows WHERE follower_id = ? AND followee_id = ?')
     .bind(targetUserId, viewer.id)
     .first();
-  const targetUser = await env.DB.prepare('SELECT has_store FROM users WHERE id = ?').bind(targetUserId).first();
+  const targetUser = await env.DB.prepare('SELECT has_store, suspended_at, voice_clip_key FROM users WHERE id = ?').bind(targetUserId).first();
 
-  return new Response(
-    JSON.stringify({
-      followerCount: followerCountRow ? followerCountRow.n : 0,
-      followingCount: followingCountRow ? followingCountRow.n : 0,
-      isFollowing: !!isFollowingRow,
-      isFollowedBy: !!isFollowedByRow,
-      hasStore: !!(targetUser && targetUser.has_store),
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  );
+  const payload = {
+    followerCount: followerCountRow ? followerCountRow.n : 0,
+    followingCount: followingCountRow ? followingCountRow.n : 0,
+    isFollowing: !!isFollowingRow,
+    isFollowedBy: !!isFollowedByRow,
+    hasStore: !!(targetUser && targetUser.has_store),
+  };
+  if (viewer.is_admin) {
+    payload.isSuspended = !!(targetUser && targetUser.suspended_at);
+    payload.voiceClipKey = (targetUser && targetUser.voice_clip_key) || null;
+  }
+
+  return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }

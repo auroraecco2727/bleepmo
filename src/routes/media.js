@@ -16,7 +16,7 @@ export async function handleMedia(request, env, key) {
   if (key.includes('voice-clip-')) {
     const parts = key.split('/');
     const ownerId = parts[1]; // users/<ownerId>/...
-    if (ownerId !== viewer.id) {
+    if (ownerId !== viewer.id && !viewer.is_admin) {
       return new Response('Forbidden', { status: 403 });
     }
   }
