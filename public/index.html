@@ -6581,11 +6581,11 @@ body::after {
     toggle.classList.remove('fade-out');
     flicksSubToggleHideTimer = setTimeout(function () {
       toggle.classList.add('fade-out');
-    }, 3000);
+    }, 8000);
   }
 
   // Tab pills still work by tap — "Flicks" lands on Long-Flicks first;
-  // swiping (or the in-pane toggle) reaches Short/Live from there.
+  // swiping (or the in-pane toggle) reaches Short/LiveStream from there.
   function switchTab(el) {
     const label = el.textContent.trim();
     if (label === 'Live') return goToSlide('forYou');
@@ -7101,7 +7101,7 @@ body::after {
   <div class="flicks-sub-toggle" id="flicksSubToggle">
     <div class="flicks-sub-btn active" id="flicksSubLongBtn" onclick="goToSlide('flicksLong')">Long</div>
     <div class="flicks-sub-btn" id="flicksSubShortBtn" onclick="goToSlide('flicksShort')">Shorts</div>
-    <div class="flicks-sub-btn" id="flicksSubLiveBtn" onclick="goToSlide('flicksLive')">Live</div>
+    <div class="flicks-sub-btn" id="flicksSubLiveBtn" onclick="goToSlide('flicksLive')">LiveStream</div>
   </div>
 </div>
 
