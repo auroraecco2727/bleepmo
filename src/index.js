@@ -50,6 +50,7 @@ import { handleAiAssistPost } from './routes/ai.js';
 import { handleEngagementEventsPost } from './routes/engagement.js';
 import { handleAiSettingsGet, handleAiSettingsPost, handleAdminSuspendUser, handleAdminDeleteUser } from './routes/admin.js';
 import { handleMedia } from './routes/media.js';
+import { handleForgotPassword, handleResetPassword } from './routes/password-reset.js';
 
 function notFound() {
   return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -79,6 +80,8 @@ export default {
       if (path === '/api/me' && method === 'GET') return await handleMe(request, env);
       if (path === '/api/me' && method === 'PATCH') return await handleUpdateProfile(request, env);
       if (path === '/api/upload-voice-clip' && method === 'POST') return await handleUploadVoiceClip(request, env, ctx);
+      if (path === '/api/auth/forgot-password' && method === 'POST') return await handleForgotPassword(request, env);
+      if (path === '/api/auth/reset-password' && method === 'POST') return await handleResetPassword(request, env);
 
       // ── Notifications ──
       if (path === '/api/notifications' && method === 'GET') return await handleNotificationsGet(request, env);

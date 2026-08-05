@@ -1283,6 +1283,32 @@ body::after {
   border-radius: 10px; padding: 9px 12px; line-height: 1.4;
 }
 
+.auth-password-wrap { position: relative; }
+.auth-password-wrap .auth-input { padding-right: 42px; width: 100%; }
+.auth-eye-btn {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--text-lo); opacity: 0.8; transition: color 0.15s, opacity 0.15s;
+}
+.auth-eye-btn:hover { color: var(--gold); opacity: 1; }
+
+.auth-reset-note {
+  font-size: 12px; color: var(--text-mid); text-align: left; line-height: 1.5;
+  background: rgba(15,35,80,0.35); border: 0.5px solid rgba(212,175,55,0.22);
+  border-radius: 10px; padding: 12px 14px;
+}
+.auth-reset-note.dev-mode {
+  border-color: rgba(212,175,55,0.5);
+}
+.auth-reset-note.dev-mode a, .auth-reset-note.dev-mode .auth-reset-devlink {
+  color: var(--gold); cursor: pointer; font-weight: 600; word-break: break-all;
+}
+.auth-reset-devlabel {
+  display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--gold); opacity: 0.85; margin-bottom: 6px;
+}
+
 /* ══════════════════════════════════════
    SIGNUP SCREEN
 ══════════════════════════════════════ */
@@ -1486,7 +1512,7 @@ body::after {
         <input class="auth-input" type="password" id="bleepPassword" name="bleepPassword" placeholder="••••••••" autocomplete="current-password" required />
       </div>
 
-      <div class="auth-forgot" onclick="showToast('Password reset is coming soon.')">Forgot password?</div>
+      <div class="auth-forgot" onclick="showForgotPassword()">Forgot password?</div>
       <div class="auth-error" id="loginError"></div>
 
       <button type="submit" class="auth-btn-primary" style="margin-top:6px;">
@@ -1632,6 +1658,64 @@ body::after {
       <div class="auth-error" id="signupError" style="margin-bottom:14px;"></div>
 
       <button type="submit" class="auth-btn-primary" style="margin-bottom:8px;">Create Account</button>
+    </form>
+  </div>
+</div>
+
+<!-- ══ FORGOT PASSWORD SCREEN ══ -->
+<div class="auth-screen" id="forgotPasswordScreen" style="display:none;">
+  <div class="auth-glow-a"></div>
+  <div class="auth-glow-b"></div>
+
+  <div class="auth-content">
+    <form class="auth-id-form" id="forgotPasswordForm" onsubmit="return handleForgotPasswordSubmit(event)">
+      <div class="auth-back" onclick="backToSignInFromForgot()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </div>
+      <div class="auth-id-title syne">Reset your password</div>
+      <div class="auth-id-sub">Enter your User ID or email and we'll send you a reset link.</div>
+
+      <div class="auth-field">
+        <label for="forgotUserId">User ID or Email</label>
+        <input class="auth-input" type="text" id="forgotUserId" name="forgotUserId" placeholder="e.g. quantumcity" autocomplete="username" required />
+      </div>
+
+      <div class="auth-error" id="forgotPasswordError"></div>
+      <div class="auth-reset-note" id="forgotPasswordResult" style="display:none;"></div>
+
+      <button type="submit" class="auth-btn-primary" id="forgotPasswordSubmitBtn" style="margin-top:6px;">
+        Send Reset Link
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ══ RESET PASSWORD SCREEN (reached via emailed link ?resetToken=..., or the dev-mode link above) ══ -->
+<div class="auth-screen" id="resetPasswordScreen" style="display:none;">
+  <div class="auth-glow-a"></div>
+  <div class="auth-glow-b"></div>
+
+  <div class="auth-content">
+    <form class="auth-id-form" id="resetPasswordForm" onsubmit="return handleResetPasswordSubmit(event)">
+      <div class="auth-id-title syne">Set a new password</div>
+      <div class="auth-id-sub">Choose a new password for your Bleepmo ID.</div>
+
+      <div class="auth-field">
+        <label for="resetNewPassword">New Password</label>
+        <input class="auth-input" type="password" id="resetNewPassword" placeholder="••••••••" autocomplete="new-password" minlength="8" required />
+      </div>
+
+      <div class="auth-field">
+        <label for="resetNewPasswordConfirm">Confirm New Password</label>
+        <input class="auth-input" type="password" id="resetNewPasswordConfirm" placeholder="••••••••" autocomplete="new-password" minlength="8" required />
+      </div>
+
+      <div class="auth-error" id="resetPasswordError"></div>
+
+      <button type="submit" class="auth-btn-primary" id="resetPasswordSubmitBtn" style="margin-top:6px;">
+        Set New Password
+      </button>
     </form>
   </div>
 </div>
@@ -2841,6 +2925,16 @@ body::after {
   // If a valid session cookie already exists (returning user), skip the
   // auth screen entirely instead of making them log in again.
   (async function checkExistingSession() {
+    // A password-reset link (real email, or the dev-mode link when no email
+    // provider is configured) takes priority over everything else on load —
+    // show that screen regardless of whether a session cookie exists.
+    var resetTokenParam = new URLSearchParams(window.location.search).get('resetToken');
+    if (resetTokenParam) {
+      window.history.replaceState({}, '', window.location.pathname);
+      goToResetPasswordScreen(resetTokenParam);
+      return;
+    }
+
     // Handle the redirect back from Google/Apple before anything else.
     var oauthParam = new URLSearchParams(window.location.search).get('oauth');
     if (oauthParam) {
@@ -2948,6 +3042,181 @@ body::after {
     stopVoicePreview();
     document.getElementById('signupScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
+  }
+
+  /* ── Password visibility toggle — shared by every password field in the app ── */
+  var EYE_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.6 20.6 0 0 1 5.06-6.06M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a20.7 20.7 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  function togglePasswordVisibility(input, btn) {
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.innerHTML = showing ? EYE_ICON_SVG : EYE_OFF_ICON_SVG;
+    btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  }
+
+  function initPasswordVisibilityToggles() {
+    document.querySelectorAll('input[type="password"].auth-input').forEach(function (input) {
+      if (input.dataset.eyeWired) return;
+      input.dataset.eyeWired = '1';
+
+      var wrap = document.createElement('div');
+      wrap.className = 'auth-password-wrap';
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'auth-eye-btn';
+      btn.setAttribute('aria-label', 'Show password');
+      btn.innerHTML = EYE_ICON_SVG;
+      btn.onclick = function () { togglePasswordVisibility(input, btn); };
+      wrap.appendChild(btn);
+    });
+  }
+  initPasswordVisibilityToggles();
+
+  /* ── Forgot / reset password ── */
+  function showForgotPassword() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('signupScreen').style.display = 'none';
+    document.getElementById('forgotPasswordScreen').style.display = 'flex';
+    document.getElementById('forgotPasswordError').style.display = 'none';
+    document.getElementById('forgotPasswordResult').style.display = 'none';
+    document.getElementById('forgotPasswordForm').style.display = 'flex';
+    var input = document.getElementById('forgotUserId');
+    input.value = '';
+    input.focus();
+  }
+
+  function backToSignInFromForgot() {
+    document.getElementById('forgotPasswordScreen').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+  }
+
+  async function handleForgotPasswordSubmit(evt) {
+    evt.preventDefault();
+    var errorEl = document.getElementById('forgotPasswordError');
+    var resultEl = document.getElementById('forgotPasswordResult');
+    errorEl.style.display = 'none';
+    resultEl.style.display = 'none';
+
+    var userId = document.getElementById('forgotUserId').value.trim();
+    var submitBtn = document.getElementById('forgotPasswordSubmitBtn');
+    var originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    try {
+      var res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId }),
+      });
+      var data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.error || "Something went wrong. Please try again.";
+        errorEl.style.display = 'block';
+        return false;
+      }
+
+      if (data.devMode && data.resetUrl) {
+        // No email provider configured yet — show the link directly so
+        // the flow is still fully usable. Real email sends the same link
+        // instead, automatically, once RESEND_API_KEY is set.
+        resultEl.className = 'auth-reset-note dev-mode';
+        resultEl.innerHTML =
+          '<span class="auth-reset-devlabel">Dev mode — email isn\'t connected yet</span>' +
+          data.message + '<br><br>' +
+          '<span class="auth-reset-devlink" onclick="goToResetPasswordScreen(' + JSON.stringify(data.token) + ')">Continue to reset password &rarr;</span>';
+      } else {
+        resultEl.className = 'auth-reset-note';
+        resultEl.textContent = data.message;
+      }
+      resultEl.style.display = 'block';
+      document.getElementById('forgotPasswordForm').querySelector('.auth-field').style.display = 'none';
+      submitBtn.style.display = 'none';
+    } catch (err) {
+      errorEl.textContent = "Couldn't reach the server. Is the backend deployed?";
+      errorEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+    return false;
+  }
+
+  var pendingResetToken = null;
+
+  function goToResetPasswordScreen(token) {
+    pendingResetToken = token;
+    document.getElementById('forgotPasswordScreen').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('signupScreen').style.display = 'none';
+    document.getElementById('resetPasswordScreen').style.display = 'flex';
+    document.getElementById('resetPasswordError').style.display = 'none';
+    document.getElementById('resetNewPassword').value = '';
+    document.getElementById('resetNewPasswordConfirm').value = '';
+  }
+
+  async function handleResetPasswordSubmit(evt) {
+    evt.preventDefault();
+    var errorEl = document.getElementById('resetPasswordError');
+    errorEl.style.display = 'none';
+
+    var newPassword = document.getElementById('resetNewPassword').value;
+    var confirmPassword = document.getElementById('resetNewPasswordConfirm').value;
+
+    if (newPassword.length < 8) {
+      errorEl.textContent = 'Password must be at least 8 characters.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+    if (newPassword !== confirmPassword) {
+      errorEl.textContent = "Passwords don't match.";
+      errorEl.style.display = 'block';
+      return false;
+    }
+    if (!pendingResetToken) {
+      errorEl.textContent = 'Missing reset token. Please request a new reset link.';
+      errorEl.style.display = 'block';
+      return false;
+    }
+
+    var submitBtn = document.getElementById('resetPasswordSubmitBtn');
+    var originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      var res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: pendingResetToken, newPassword: newPassword }),
+      });
+      var data = await res.json();
+
+      if (!res.ok) {
+        errorEl.textContent = data.error || 'Something went wrong. Please try again.';
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        return false;
+      }
+
+      pendingResetToken = null;
+      window.history.replaceState({}, '', window.location.pathname);
+      document.getElementById('resetPasswordScreen').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+      showToast('Password updated. Please sign in.');
+    } catch (err) {
+      errorEl.textContent = "Couldn't reach the server. Is the backend deployed?";
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+    return false;
   }
 
   // Hiding the signup screen with display:none only hides it visually —
