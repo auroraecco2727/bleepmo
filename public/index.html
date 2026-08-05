@@ -1438,6 +1438,11 @@ body::after {
 .handle-preview .hp-symbol { color: var(--gold); font-weight: 800; }
 .handle-preview .hp-name { color: var(--text-hi); font-weight: 600; }
 
+.handle-status { font-size: 11.5px; margin-top: 4px; min-height: 14px; display: flex; align-items: center; gap: 5px; }
+.handle-status.checking { color: var(--text-lo); }
+.handle-status.available { color: #4ade80; }
+.handle-status.unavailable { color: #ff8866; }
+
 /* Voice/video verification */
 .voice-box {
   border: 1px solid rgba(212,175,55,0.25); border-radius: 16px;
@@ -1628,6 +1633,7 @@ body::after {
           <input class="auth-input" type="text" id="signupHandle" placeholder="QuantumCity" oninput="updateHandlePreview()" required />
         </div>
         <div class="handle-preview">Preview: <span class="hp-symbol" id="handlePreviewSymbol">@</span><span class="hp-name" id="handlePreviewName">QuantumCity</span></div>
+        <div class="handle-status" id="handleStatus"></div>
       </div>
 
       <!-- Standard account fields -->
@@ -1652,7 +1658,7 @@ body::after {
       <!-- Voice / video verification -->
       <div class="signup-section">
         <div class="signup-section-label">Genuine Voice Verification</div>
-        <div class="signup-section-hint">Record a 15-second clip telling us why you want to be on Bleepmo. Every member does this — it's how we keep the swarm human.</div>
+        <div class="signup-section-hint">Record a 15-second clip stating your full name and why you want to be on Bleepmo. Every member does this — it's how we keep the swarm human, and it's how you become eligible for a verified badge.</div>
 
         <div class="voice-box">
           <div class="voice-frame" id="voiceFrame">
@@ -3319,6 +3325,12 @@ body::after {
   function handlePicUpload(evt, targetId) {
     var file = evt.target.files && evt.target.files[0];
     if (!file) return;
+    var MAX_IMAGE_BYTES = 8 * 1024 * 1024; // matches signup.js server-side limit
+    if (file.size > MAX_IMAGE_BYTES) {
+      showSignupError('That picture is too large (max 8MB) — please pick a smaller image.');
+      evt.target.value = '';
+      return;
+    }
     signupFiles[targetId] = file;
     var url = URL.createObjectURL(file);
     var container = document.getElementById(targetId);
@@ -3338,6 +3350,63 @@ body::after {
     var name = document.getElementById('signupHandle').value || 'YourHandle';
     document.getElementById('handlePreviewSymbol').textContent = sym;
     document.getElementById('handlePreviewName').textContent = name;
+    queueHandleAvailabilityCheck();
+  }
+
+  /* ── Live handle availability check — debounced, so we're not firing a
+     request on every keystroke, but the person finds out well before
+     they've filled out the rest of the form (or recorded a voice clip)
+     whether their handle is even usable. ── */
+  var handleCheckTimer = null;
+  var handleCheckToken = 0;
+  var lastCheckedHandleAvailable = null; // tri-state: null = unknown/checking, true/false = last confirmed result
+
+  function queueHandleAvailabilityCheck() {
+    var statusEl = document.getElementById('handleStatus');
+    var raw = document.getElementById('signupHandle').value.trim();
+    clearTimeout(handleCheckTimer);
+    lastCheckedHandleAvailable = null;
+
+    if (!raw) {
+      statusEl.className = 'handle-status';
+      statusEl.textContent = '';
+      return;
+    }
+    if (!/^[A-Za-z0-9_]{2,30}$/.test(raw)) {
+      statusEl.className = 'handle-status unavailable';
+      statusEl.textContent = 'Letters, numbers, and underscores only — 2 to 30 characters.';
+      return;
+    }
+
+    statusEl.className = 'handle-status checking';
+    statusEl.textContent = 'Checking availability…';
+
+    var myToken = ++handleCheckToken;
+    handleCheckTimer = setTimeout(async function () {
+      try {
+        var res = await fetch('/api/check-handle?handle=' + encodeURIComponent(raw));
+        var data = await res.json();
+        if (myToken !== handleCheckToken) return; // a newer keystroke superseded this check
+        if (data.available) {
+          statusEl.className = 'handle-status available';
+          statusEl.textContent = '✓ Available';
+          lastCheckedHandleAvailable = true;
+        } else {
+          statusEl.className = 'handle-status unavailable';
+          statusEl.textContent = data.reason === 'invalid_format'
+            ? 'Letters, numbers, and underscores only — 2 to 30 characters.'
+            : 'That handle is already taken.';
+          lastCheckedHandleAvailable = false;
+        }
+      } catch (err) {
+        if (myToken !== handleCheckToken) return;
+        // Network hiccup — don't block signup over an availability check
+        // that couldn't complete; the server re-validates at submit time
+        // regardless.
+        statusEl.className = 'handle-status';
+        statusEl.textContent = '';
+      }
+    }, 450);
   }
 
   /* ── Genuine Voice Verification (15s clip) ── */
@@ -3392,9 +3461,12 @@ body::after {
       previewVideo.srcObject = null;
       previewVideo.src = url;
       previewVideo.muted = false;
-      previewVideo.controls = false;
-      previewVideo.loop = true;
-      previewVideo.play();
+      previewVideo.controls = true;
+      previewVideo.loop = false;
+      // Hold on the first frame rather than autoplaying — the person
+      // presses play themselves when they want to review it, and it
+      // plays through once and stops, every time, rather than looping.
+      previewVideo.load();
       voiceClipAttached = true;
       signupVoiceClipBlob = blob;
       setVoiceStatus('Clip attached ✓ — 15 seconds of you, verified human.', true);
@@ -3436,6 +3508,12 @@ body::after {
   function handleVoiceUpload(evt) {
     var file = evt.target.files && evt.target.files[0];
     if (!file) return;
+    var MAX_VIDEO_BYTES = 40 * 1024 * 1024; // matches signup.js server-side limit
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVoiceStatus('That file is too large (max 40MB) — please pick a smaller clip.', false);
+      evt.target.value = '';
+      return;
+    }
     var previewVideo = document.getElementById('voicePreview');
     var placeholderIcon = document.getElementById('voicePlaceholderIcon');
     var url = URL.createObjectURL(file);
@@ -3451,9 +3529,9 @@ body::after {
       previewVideo.src = url;
       previewVideo.style.display = 'block';
       previewVideo.muted = false;
-      previewVideo.loop = true;
+      previewVideo.controls = true;
+      previewVideo.loop = false;
       placeholderIcon.style.display = 'none';
-      previewVideo.play();
       voiceClipAttached = true;
       signupVoiceClipBlob = file;
       setVoiceStatus('Clip attached ✓ — 15 seconds of you, verified human.', true);
@@ -3478,6 +3556,18 @@ body::after {
   async function handleSignupSubmit(evt) {
     evt.preventDefault();
     hideSignupError();
+
+    var handleVal = document.getElementById('signupHandle').value.trim();
+    if (!/^[A-Za-z0-9_]{2,30}$/.test(handleVal)) {
+      showSignupError('Handles must be 2-30 characters — letters, numbers, and underscores only.');
+      document.getElementById('signupHandle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+    if (lastCheckedHandleAvailable === false) {
+      showSignupError('That handle is already taken — please choose another.');
+      document.getElementById('signupHandle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
 
     var pw = document.getElementById('signupPassword').value;
     var pwConfirm = document.getElementById('signupPasswordConfirm').value;

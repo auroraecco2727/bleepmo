@@ -44,6 +44,13 @@ export async function handleSignup(request, env) {
   if (!fullName || !handle || !email || !password) {
     return badRequest('fullName, handle, email, and password are all required.');
   }
+  // Mirrors the @mention regex used elsewhere (renderBleepMentions in
+  // public/index.html) — a handle outside this pattern would never be
+  // @-mentionable once created. check-handle.js enforces this for
+  // real-time feedback; this is the actual gate.
+  if (!/^[A-Za-z0-9_]{2,30}$/.test(handle)) {
+    return badRequest('Handles must be 2-30 characters — letters, numbers, and underscores only.');
+  }
   if (password.length < 8) {
     return badRequest('Password must be at least 8 characters.');
   }
