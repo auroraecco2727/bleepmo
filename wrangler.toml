@@ -56,19 +56,15 @@ bucket_name = "bleepmo-media"
 # ══════════════════════════════════════
 
 # ══════════════════════════════════════
-# Forgot-password email — NOT set yet. Without this, "Forgot password?"
-# still works end-to-end (token generation, expiry, reset), but instead of
-# emailing the reset link, the app shows it directly on screen and labels
-# it as dev mode — so the flow is fully testable right now without an
-# email account. The moment this secret exists, real emails start sending
-# automatically and the dev-mode fallback stops appearing. No code or
-# frontend changes needed either way.
+# Forgot-password email. bleepmo.com is verified in Resend, and
+# noreply@bleepmo.com is the default sender in src/shared/email.js. Set
+# RESEND_API_KEY and real emails send automatically — without it, the app
+# falls back to showing the reset link directly on screen (dev mode) so
+# the flow stays testable. No code or frontend changes needed either way.
 #
-#   1. Create a free account at resend.com
-#   2. Verify a sending domain (or use their onboarding.resend.dev domain for testing)
-#   3. wrangler secret put RESEND_API_KEY
+#   wrangler secret put RESEND_API_KEY
 #
-# Optional — defaults to Resend's shared test address if unset:
+# Optional override (e.g. a staging subdomain) without touching code:
 #   RESEND_FROM_ADDRESS = "Bleepmo <noreply@yourdomain.com>"
 # ══════════════════════════════════════
 

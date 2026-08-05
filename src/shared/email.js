@@ -1,17 +1,14 @@
 // src/shared/email.js
-// Minimal transactional email helper. Bleepmo has no email provider account
-// configured yet — there's no free/no-signup way to send real email from a
-// Workers app (Cloudflare's old free MailChannels integration was
-// discontinued in 2024). Resend is used here because it has the simplest
-// API and a generous free tier, but nothing else in this file assumes
-// Resend specifically beyond this one function — swap providers by editing
-// only sendEmail().
+// Minimal transactional email helper. Sends via Resend using plain fetch —
+// no SDK dependency, works natively in the Workers runtime. Nothing else
+// in this file assumes Resend specifically beyond this one function; swap
+// providers by editing only sendEmail().
 //
-// To go live: create a free account at resend.com, verify a sending
-// domain (or use their shared onboarding domain for testing), then:
+// Default sender is noreply@bleepmo.com (verified domain in Resend as of
+// Aug 2026). Override per-environment with RESEND_FROM_ADDRESS if needed
+// (e.g. a staging subdomain) without touching code.
+//
 //   wrangler secret put RESEND_API_KEY
-// Nothing else needs to change — callers of sendEmail() don't know or care
-// which provider is behind it.
 //
 // Until that secret exists, sendEmail() returns { sent: false } rather than
 // throwing or pretending to succeed. Callers (see routes/password-reset.js)
@@ -29,9 +26,13 @@ export async function sendEmail(env, { to, subject, html, text }) {
       headers: {
         'Authorization': `Bearer ${env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
+        // Unverified whether Resend actually requires this — couldn't find
+        // it in their docs or any working example — but it's harmless to
+        // include, so keeping it in rather than arguing the point.
+        'User-Agent': 'bleepmo/1.0',
       },
       body: JSON.stringify({
-        from: env.RESEND_FROM_ADDRESS || 'Bleepmo <onboarding@resend.dev>',
+        from: env.RESEND_FROM_ADDRESS || 'Bleepmo <noreply@bleepmo.com>',
         to: [to],
         subject,
         html,
@@ -40,10 +41,17 @@ export async function sendEmail(env, { to, subject, html, text }) {
     });
 
     if (!res.ok) {
-      return { sent: false, reason: 'provider_error', status: res.status };
+      const errorBody = await res.text().catch(() => '');
+      console.error('[sendEmail] Resend API returned an error', {
+        status: res.status,
+        statusText: res.statusText,
+        body: errorBody,
+      });
+      return { sent: false, reason: 'provider_error', status: res.status, detail: errorBody };
     }
     return { sent: true };
   } catch (err) {
+    console.error('[sendEmail] fetch to Resend threw', err);
     return { sent: false, reason: 'network_error', detail: String(err && err.message || err) };
   }
 }
