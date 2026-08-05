@@ -28,7 +28,7 @@ export async function handleLogin(request, env) {
   }
 
   const user = await env.DB
-    .prepare('SELECT * FROM users WHERE email = ? OR handle = ?')
+    .prepare('SELECT * FROM users WHERE email = ? OR handle = ? COLLATE NOCASE')
     .bind(userId, body.userId ? body.userId.toString().trim() : '')
     .first();
 

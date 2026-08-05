@@ -80,7 +80,7 @@ export async function handleCompleteOAuthSignup(request, env) {
   if (!email) return badRequest('Your Google/Apple account didn\'t share a usable email — try a different sign-in method.');
 
   const existing = await env.DB
-    .prepare('SELECT id FROM users WHERE email = ? OR handle = ?')
+    .prepare('SELECT id FROM users WHERE email = ? OR handle = ? COLLATE NOCASE')
     .bind(email, handle)
     .first();
   if (existing) {

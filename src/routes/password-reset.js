@@ -45,7 +45,7 @@ export async function handleForgotPassword(request, env) {
   if (!rawUserId) return badRequest('userId is required.');
 
   const user = await env.DB
-    .prepare('SELECT * FROM users WHERE email = ? OR handle = ?')
+    .prepare('SELECT * FROM users WHERE email = ? OR handle = ? COLLATE NOCASE')
     .bind(rawUserId.toLowerCase(), rawUserId)
     .first();
 

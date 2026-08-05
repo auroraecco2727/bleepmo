@@ -53,7 +53,7 @@ export async function handleSignup(request, env) {
   }
 
   const existing = await env.DB
-    .prepare('SELECT id FROM users WHERE email = ? OR handle = ?')
+    .prepare('SELECT id FROM users WHERE email = ? OR handle = ? COLLATE NOCASE')
     .bind(email, handle)
     .first();
   if (existing) {

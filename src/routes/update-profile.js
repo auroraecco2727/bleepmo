@@ -56,7 +56,7 @@ export async function handleUpdateProfile(request, env) {
     if (!handle) return badRequest('Handle can\'t be empty.');
     if (handle !== user.handle) {
       const existing = await env.DB
-        .prepare('SELECT id FROM users WHERE handle = ? AND id != ?')
+        .prepare('SELECT id FROM users WHERE handle = ? COLLATE NOCASE AND id != ?')
         .bind(handle, user.id)
         .first();
       if (existing) return badRequest('That handle is already taken.', 409);
