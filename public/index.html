@@ -3168,10 +3168,36 @@ body::after {
           devLabel = 'Dev mode — couldn\'t reach Resend (network error)';
         }
         resultEl.className = 'auth-reset-note dev-mode';
-        resultEl.innerHTML =
-          '<span class="auth-reset-devlabel">' + devLabel + '</span>' +
-          data.message + '<br><br>' +
-          '<span class="auth-reset-devlink" onclick="goToResetPasswordScreen(' + JSON.stringify(data.token) + ')">Continue to reset password &rarr;</span>';
+
+        // Built as real DOM nodes rather than an HTML string with an
+        // inline onclick — JSON.stringify(data.token) produces a
+        // double-quoted string, and splicing that into an onclick="..."
+        // attribute (also double-quoted) silently breaks the attribute
+        // parsing. addEventListener sidesteps the whole class of bug.
+        resultEl.textContent = '';
+        var labelSpan = document.createElement('span');
+        labelSpan.className = 'auth-reset-devlabel';
+        labelSpan.textContent = devLabel;
+        resultEl.appendChild(labelSpan);
+        resultEl.appendChild(document.createTextNode(data.message));
+        // Temporary: surfaces Resend's raw rejection text directly in the
+        // UI so we can diagnose without live log access. Remove this
+        // block once email is actually sending.
+        if (data.devDetail) {
+          var detailDiv = document.createElement('div');
+          detailDiv.style.cssText = 'margin-top:8px;font-size:10.5px;color:var(--text-lo);word-break:break-word;';
+          detailDiv.textContent = 'Resend said: ' + data.devDetail;
+          resultEl.appendChild(detailDiv);
+        }
+        resultEl.appendChild(document.createElement('br'));
+        resultEl.appendChild(document.createElement('br'));
+        var linkSpan = document.createElement('span');
+        linkSpan.className = 'auth-reset-devlink';
+        linkSpan.textContent = 'Continue to reset password →';
+        linkSpan.addEventListener('click', function () {
+          goToResetPasswordScreen(data.token);
+        });
+        resultEl.appendChild(linkSpan);
       } else {
         resultEl.className = 'auth-reset-note';
         resultEl.textContent = data.message;
