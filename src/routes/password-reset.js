@@ -82,7 +82,7 @@ export async function handleForgotPassword(request, env) {
   // Once a real provider is wired up, emailResult.sent flips to true and
   // this branch stops firing automatically — no frontend change needed.
   if (!emailResult.sent) {
-    return ok({ ok: true, message: GENERIC_MESSAGE, devMode: true, devReason: emailResult.reason, devDetail: emailResult.detail, resetUrl, token });
+    return ok({ ok: true, message: GENERIC_MESSAGE, devMode: true, devReason: emailResult.reason, resetUrl, token });
   }
 
   return ok({ ok: true, message: GENERIC_MESSAGE });

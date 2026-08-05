@@ -2953,6 +2953,8 @@ body::after {
 
   // If a valid session cookie already exists (returning user), skip the
   // auth screen entirely instead of making them log in again.
+  var pendingResetToken = null;
+
   (async function checkExistingSession() {
     // A password-reset link (real email, or the dev-mode link when no email
     // provider is configured) takes priority over everything else on load —
@@ -3180,15 +3182,6 @@ body::after {
         labelSpan.textContent = devLabel;
         resultEl.appendChild(labelSpan);
         resultEl.appendChild(document.createTextNode(data.message));
-        // Temporary: surfaces Resend's raw rejection text directly in the
-        // UI so we can diagnose without live log access. Remove this
-        // block once email is actually sending.
-        if (data.devDetail) {
-          var detailDiv = document.createElement('div');
-          detailDiv.style.cssText = 'margin-top:8px;font-size:10.5px;color:var(--text-lo);word-break:break-word;';
-          detailDiv.textContent = 'Resend said: ' + data.devDetail;
-          resultEl.appendChild(detailDiv);
-        }
         resultEl.appendChild(document.createElement('br'));
         resultEl.appendChild(document.createElement('br'));
         var linkSpan = document.createElement('span');
@@ -3214,8 +3207,6 @@ body::after {
     }
     return false;
   }
-
-  var pendingResetToken = null;
 
   function goToResetPasswordScreen(token) {
     pendingResetToken = token;
