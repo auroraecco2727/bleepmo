@@ -604,6 +604,35 @@ body::after {
   padding-left: 17px;
 }
 
+/* Same color system, applied to the small onboarding-step-3 preview
+   cards. Deliberately NOT sharing the .card.card-cat-* compound selector
+   above — .card carries feed-specific padding/flex/animation that don't
+   belong on a 3-line onboarding preview — so these are standalone rules
+   using the same border-left colors for visual consistency. This is what
+   was missing: the HTML already referenced card-cat-local etc. here, but
+   nothing painted them since .onboarding-preview-card alone never matched
+   the compound selector above. */
+.onboarding-preview-card.card-cat-local {
+  border-left: 3px solid rgba(0,240,255,0.5);
+  background: linear-gradient(90deg, rgba(0,240,255,0.12), rgba(15,23,42,0.6) 55%);
+  padding-left: 17px;
+}
+.onboarding-preview-card.card-cat-interest {
+  border-left: 3px solid rgba(168,85,247,0.5);
+  background: linear-gradient(90deg, rgba(168,85,247,0.12), rgba(15,23,42,0.6) 55%);
+  padding-left: 17px;
+}
+.onboarding-preview-card.card-cat-commerce {
+  border-left: 3px solid rgba(245,158,11,0.55);
+  background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(15,23,42,0.6) 55%);
+  padding-left: 17px;
+}
+.onboarding-preview-card.card-cat-interactive {
+  border-left: 3px solid rgba(16,185,129,0.5);
+  background: linear-gradient(90deg, rgba(16,185,129,0.12), rgba(15,23,42,0.6) 55%);
+  padding-left: 17px;
+}
+
 .bb-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 12px;
@@ -3084,6 +3113,11 @@ body::after {
     document.getElementById('forgotPasswordError').style.display = 'none';
     document.getElementById('forgotPasswordResult').style.display = 'none';
     document.getElementById('forgotPasswordForm').style.display = 'flex';
+    // Reopening this screen after a prior successful submit must restore
+    // the field + button that handleForgotPasswordSubmit() hides — those
+    // inline styles otherwise persist for the rest of the page session.
+    document.getElementById('forgotPasswordForm').querySelector('.auth-field').style.display = '';
+    document.getElementById('forgotPasswordSubmitBtn').style.display = '';
     var input = document.getElementById('forgotUserId');
     input.value = '';
     input.focus();
@@ -3122,12 +3156,20 @@ body::after {
       }
 
       if (data.devMode && data.resetUrl) {
-        // No email provider configured yet — show the link directly so
-        // the flow is still fully usable. Real email sends the same link
-        // instead, automatically, once RESEND_API_KEY is set.
+        // Falls back to showing the link directly whenever sendEmail()
+        // didn't actually send — but "not configured" (no API key) and a
+        // real Resend rejection/network failure are different problems.
+        // Labeling both as "email isn't connected yet" would be actively
+        // misleading once a key IS set, so branch on the real reason.
+        var devLabel = 'Dev mode — email isn\'t connected yet';
+        if (data.devReason === 'provider_error') {
+          devLabel = 'Dev mode — Resend rejected the request (check your API key / domain setup)';
+        } else if (data.devReason === 'network_error') {
+          devLabel = 'Dev mode — couldn\'t reach Resend (network error)';
+        }
         resultEl.className = 'auth-reset-note dev-mode';
         resultEl.innerHTML =
-          '<span class="auth-reset-devlabel">Dev mode — email isn\'t connected yet</span>' +
+          '<span class="auth-reset-devlabel">' + devLabel + '</span>' +
           data.message + '<br><br>' +
           '<span class="auth-reset-devlink" onclick="goToResetPasswordScreen(' + JSON.stringify(data.token) + ')">Continue to reset password &rarr;</span>';
       } else {
