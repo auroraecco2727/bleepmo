@@ -781,6 +781,24 @@ body::after {
 .compose-trend-input::placeholder { color: var(--text-lo); }
 .compose-trend-input:focus { border-color: rgba(212,175,55,0.6); }
 .compose-trend-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+
+.tag-suggest-dropdown {
+  position: relative;
+  margin: -4px 0 10px;
+  background: rgba(10,20,45,0.96);
+  border: 1px solid rgba(212,175,55,0.25);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.tag-suggest-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; cursor: pointer;
+}
+.tag-suggest-row:hover, .tag-suggest-row.kb-active { background: rgba(212,175,55,0.08); }
+.tag-suggest-name { font-size: 12.5px; font-weight: 700; color: var(--text-hi); }
+.tag-suggest-handle { font-size: 11px; color: var(--text-mid); }
+.tag-suggest-empty { padding: 9px 10px; font-size: 11.5px; color: var(--text-lo); }
 .compose-trend-chips .btag { cursor: pointer; }
 
 .compose-post-btn {
@@ -1575,7 +1593,7 @@ body::after {
     <div class="signup-title syne">Create your Bleep<span>mo</span> ID</div>
     <div class="signup-sub">Join the swarm — powered by real people.</div>
 
-    <form id="signupForm" onsubmit="return handleSignupSubmit(event)">
+    <form id="signupForm" autocomplete="off" onsubmit="return handleSignupSubmit(event)">
 
       <!-- Profile pictures -->
       <div class="signup-section">
@@ -1613,7 +1631,7 @@ body::after {
         <div class="signup-section-label">Your Name</div>
         <div class="auth-field">
           <label for="signupFullName">Screen-Name (shown large)</label>
-          <input class="auth-input" type="text" id="signupFullName" placeholder="e.g. Quantum City Architecture" required />
+          <input class="auth-input" type="text" id="signupFullName" placeholder="e.g. Quantum City Architecture" autocomplete="off" required />
         </div>
       </div>
 
@@ -1630,7 +1648,7 @@ body::after {
           <div class="symbol-chip" data-symbol="&amp;" onclick="selectSymbol('&amp;')">&amp;</div>
         </div>
         <div class="auth-field">
-          <input class="auth-input" type="text" id="signupHandle" placeholder="QuantumCity" oninput="updateHandlePreview()" required />
+          <input class="auth-input" type="text" id="signupHandle" placeholder="QuantumCity" autocomplete="off" oninput="updateHandlePreview()" required />
         </div>
         <div class="handle-preview">Preview: <span class="hp-symbol" id="handlePreviewSymbol">@</span><span class="hp-name" id="handlePreviewName">QuantumCity</span></div>
         <div class="handle-status" id="handleStatus"></div>
@@ -1642,7 +1660,7 @@ body::after {
         <div style="display:flex; flex-direction:column; gap:12px;">
           <div class="auth-field">
             <label for="signupEmail">Email</label>
-            <input class="auth-input" type="email" id="signupEmail" placeholder="you@example.com" required />
+            <input class="auth-input" type="email" id="signupEmail" placeholder="you@example.com" autocomplete="off" required />
           </div>
           <div class="auth-field">
             <label for="signupPassword">Password</label>
@@ -2721,7 +2739,8 @@ body::after {
       <div class="compose-trend-chips" id="composeTrendChips"></div>
     </div>
     <div id="composeTagInputWrap" style="display:none;">
-      <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a handle (no symbol needed), press Enter to add" onkeydown="handleTagInputKeydown(event)" />
+      <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a name or handle to find someone, or press Enter to add as typed" oninput="handleTagInputTyping()" onkeydown="handleTagInputKeydown(event)" onblur="scheduleHideTagSuggestions()" />
+      <div class="tag-suggest-dropdown" id="tagSuggestDropdown" style="display:none;"></div>
       <div class="compose-trend-chips" id="composeTagChips"></div>
     </div>
 
@@ -3074,7 +3093,44 @@ body::after {
   function showSignup() {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('signupScreen').style.display = 'flex';
+    resetSignupForm();
   }
+
+  function resetSignupForm() {
+    // logoutUser() already does a full page reload, and these fields have
+    // no value="" in the source — so on paper this form should always
+    // start blank. In practice, Chrome's own autofill remembers what was
+    // typed into a successfully-submitted form and silently repopulates
+    // matching fields after reload, with no JS involved at all. Added
+    // autocomplete="off" to the form and identity fields to stop that at
+    // the source; this function is the second layer — clears everything
+    // explicitly whenever the signup screen opens, so a stale in-session
+    // reopen (no reload involved) can't leak a previous attempt's data
+    // either.
+    var form = document.getElementById('signupForm');
+    if (form) form.reset();
+
+    hideSignupError();
+
+    signupFiles = { picMain: null, picIcon: null };
+    document.getElementById('picMain').innerHTML = '<span class="pic-plus">+</span>';
+    document.getElementById('picIcon').innerHTML = '<span class="pic-plus">+</span>';
+
+    selectShape('circle');
+    selectSymbol('@');
+    updateHandlePreview();
+    document.getElementById('handleStatus').className = 'handle-status';
+    document.getElementById('handleStatus').textContent = '';
+
+    stopVoicePreview();
+    document.getElementById('voicePreview').style.display = 'none';
+    signupVoiceClipBlob = null;
+    voiceChunks = [];
+    voiceClipAttached = false;
+    document.getElementById('voicePlaceholderIcon').style.display = '';
+    setVoiceStatus('No clip attached yet', false);
+  }
+
   function backToAuthFromSignup() {
     stopVoicePreview();
     document.getElementById('signupScreen').style.display = 'none';
@@ -6534,7 +6590,11 @@ body::after {
     var showing = wrap.style.display === 'block';
     wrap.style.display = showing ? 'none' : 'block';
     document.getElementById('tagToolBtn').classList.toggle('active', !showing);
-    if (!showing) document.getElementById('composeTagInput').focus();
+    if (!showing) {
+      document.getElementById('composeTagInput').focus();
+    } else {
+      hideTagSuggestions();
+    }
   }
 
   function renderComposeTagChips() {
@@ -6542,7 +6602,12 @@ body::after {
     wrap.innerHTML = '';
     composeTaggedHandles.forEach(function (h, idx) {
       var chip = document.createElement('span');
-      chip.className = 'btag hi';
+      // 'tag-chip' gives person-tag pills the same blue/person-icon
+      // treatment they already get once a Bleep is posted (see the
+      // combined 'btag hi tag-chip' class used when rendering a real
+      // Bleep's tagged-people pills) — previously missing here, so
+      // tag chips looked identical to trend-point chips while composing.
+      chip.className = 'btag hi tag-chip';
       chip.title = 'Remove';
       chip.textContent = '@' + h + ' ✕';
       chip.onclick = function () {
@@ -6553,23 +6618,133 @@ body::after {
     });
   }
 
+  function addComposeTag(handle) {
+    if (handle && composeTaggedHandles.indexOf(handle) === -1 && composeTaggedHandles.length < 10) {
+      composeTaggedHandles.push(handle);
+      renderComposeTagChips();
+    }
+    var input = document.getElementById('composeTagInput');
+    input.value = '';
+    hideTagSuggestions();
+    input.focus();
+  }
+
   function handleTagInputKeydown(evt) {
+    var dropdown = document.getElementById('tagSuggestDropdown');
+    var activeRow = dropdown.querySelector('.tag-suggest-row.kb-active');
+
+    if (evt.key === 'ArrowDown' || evt.key === 'ArrowUp') {
+      var rows = Array.prototype.slice.call(dropdown.querySelectorAll('.tag-suggest-row'));
+      if (!rows.length) return;
+      evt.preventDefault();
+      var idx = rows.indexOf(activeRow);
+      idx = evt.key === 'ArrowDown' ? Math.min(idx + 1, rows.length - 1) : Math.max(idx - 1, 0);
+      rows.forEach(function (r) { r.classList.remove('kb-active'); });
+      rows[idx].classList.add('kb-active');
+      rows[idx].scrollIntoView({ block: 'nearest' });
+      return;
+    }
+
     if (evt.key === 'Enter' || evt.key === ',') {
       evt.preventDefault();
+      if (activeRow) {
+        addComposeTag(activeRow.getAttribute('data-handle'));
+        return;
+      }
+      // No suggestion highlighted — fall back to adding exactly what was
+      // typed. Handles are resolved (and validated) server-side at post
+      // time regardless, so this remains a safe manual override for
+      // anyone who already knows the exact handle they want.
       var input = document.getElementById('composeTagInput');
       var val = input.value.trim().replace(/,$/, '').replace(/^[@*~^>&]/, '');
-      if (val && composeTaggedHandles.indexOf(val) === -1 && composeTaggedHandles.length < 10) {
-        composeTaggedHandles.push(val);
-        renderComposeTagChips();
-      }
-      input.value = '';
+      addComposeTag(val);
+      return;
     }
+
+    if (evt.key === 'Escape') {
+      hideTagSuggestions();
+    }
+  }
+
+  /* ── Tag-people autocomplete dropdown ── */
+  var tagSuggestTimer = null;
+  var tagSuggestToken = 0;
+
+  function handleTagInputTyping() {
+    var input = document.getElementById('composeTagInput');
+    var q = input.value.trim().replace(/^[@*~^>&]/, '');
+    clearTimeout(tagSuggestTimer);
+
+    if (!q) {
+      hideTagSuggestions();
+      return;
+    }
+
+    tagSuggestTimer = setTimeout(async function () {
+      var myToken = ++tagSuggestToken;
+      try {
+        var res = await fetch('/api/mention-suggest?q=' + encodeURIComponent(q));
+        var data = await res.json();
+        if (myToken !== tagSuggestToken) return; // superseded by a newer keystroke
+        renderTagSuggestions(data.users || []);
+      } catch (err) {
+        if (myToken !== tagSuggestToken) return;
+        hideTagSuggestions();
+      }
+    }, 250);
+  }
+
+  function renderTagSuggestions(users) {
+    var dropdown = document.getElementById('tagSuggestDropdown');
+    var alreadyTagged = composeTaggedHandles.map(function (h) { return h.toLowerCase(); });
+    var candidates = users.filter(function (u) { return alreadyTagged.indexOf(u.handle.toLowerCase()) === -1; });
+
+    if (!candidates.length) {
+      dropdown.innerHTML = '<div class="tag-suggest-empty">No matching handles — press Enter to add exactly what you typed.</div>';
+      dropdown.style.display = 'block';
+      return;
+    }
+
+    dropdown.innerHTML = '';
+    candidates.forEach(function (u, idx) {
+      var row = document.createElement('div');
+      row.className = 'tag-suggest-row' + (idx === 0 ? ' kb-active' : '');
+      row.setAttribute('data-handle', u.handle);
+      row.innerHTML =
+        buildAvatarHtml(u, 26) +
+        '<div>' +
+        '  <div class="tag-suggest-name">' + escapeHtml(u.full_name) + '</div>' +
+        '  <div class="tag-suggest-handle">' + escapeHtml(u.handle_symbol + u.handle) + '</div>' +
+        '</div>';
+      // mousedown (not click) fires before the input's blur, so the
+      // suggestion is still in the DOM when it's selected — click would
+      // lose the race to scheduleHideTagSuggestions()'s blur handler.
+      row.onmousedown = function (evt) {
+        evt.preventDefault();
+        addComposeTag(u.handle);
+      };
+      dropdown.appendChild(row);
+    });
+    dropdown.style.display = 'block';
+  }
+
+  function hideTagSuggestions() {
+    var dropdown = document.getElementById('tagSuggestDropdown');
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+  }
+
+  function scheduleHideTagSuggestions() {
+    // Slight delay so a click/tap on a dropdown row (via mousedown above)
+    // has already registered before blur tears the dropdown down.
+    setTimeout(hideTagSuggestions, 150);
   }
 
   function handleComposeMediaChange(evt) {
     var file = evt.target.files && evt.target.files[0];
     composeMediaFile = file || null;
     document.getElementById('composeMediaFilename').textContent = file ? file.name : '';
+
 
     var flickWrap = document.getElementById('composeFlickToggleWrap');
     var isVideo = file && file.type && file.type.indexOf('video/') === 0;
