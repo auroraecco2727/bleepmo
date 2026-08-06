@@ -1210,17 +1210,9 @@ body::after {
 }
 .onboarding-preview-card b { color: var(--text-hi); }
 
-.onboarding-glow-row { display: flex; gap: 10px; margin-bottom: 8px; }
-.onboarding-glow-opt {
-  flex: 1; text-align: center; padding: 11px 8px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.25);
-  background: rgba(255,255,255,0.03); color: var(--text-mid); font-size: 12px; font-weight: 700; cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s, box-shadow 0.2s, color 0.2s;
-}
-.onboarding-glow-opt.selected {
-  transform: scale(1.04); color: #161225;
-  background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
-  border-color: transparent; box-shadow: 0 0 14px rgba(212,175,55,0.3);
-}
+.onboarding-subsection { margin-bottom: 22px; }
+.onboarding-subsection-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); margin-bottom: 10px; font-weight: 700; }
+.onboarding-preview-intro { font-size: 12px; color: var(--text-mid); margin-bottom: 12px; }
 
 .auth-glow-a {
   position: absolute; top: -130px; left: -70px;
@@ -2781,7 +2773,6 @@ body::after {
   <div class="onboarding-progress">
     <div class="onboarding-dot" id="obDot1"></div>
     <div class="onboarding-dot" id="obDot2"></div>
-    <div class="onboarding-dot" id="obDot3"></div>
   </div>
 
   <!-- Step 1: Local Signal -->
@@ -2806,43 +2797,69 @@ body::after {
     <span class="onboarding-skip" onclick="skipOnboarding()">Skip for now</span>
   </div>
 
-  <!-- Step 2: Frequency Calibration -->
+  <!-- Step 2: Tell us about yourself — replaces the old flat "Calibrate your
+       frequency" tag grid and the separate "Set your visual spectrum" glow
+       picker. Practical questions in, sci-fi flavor text out; the glow
+       intensity chooser was cut entirely rather than reworded, since it
+       wasn't pulling its weight as its own step. The category-color
+       preview stays, but as plain information rather than a decision. -->
   <div class="onboarding-panel" id="obPanel2">
-    <div class="onboarding-header">Calibrate your frequency.</div>
-    <div class="onboarding-sub">Select 3 or more Trend-Points to prime your feed graph.</div>
-    <div class="onboarding-pill-grid" id="obTrendPills">
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'indie-tech')"><span class="bullet">•</span>indie-tech</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'streetwear')"><span class="bullet">•</span>streetwear</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'gaming')"><span class="bullet">•</span>gaming</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'film-production')"><span class="bullet">•</span>film-production</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'nightlife')"><span class="bullet">•</span>nightlife</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'creator-economy')"><span class="bullet">•</span>creator-economy</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'ai-tools')"><span class="bullet">•</span>ai-tools</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'music-gear')"><span class="bullet">•</span>music-gear</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'crypto-markets')"><span class="bullet">•</span>crypto-markets</div>
-      <div class="onboarding-pill" onclick="toggleOnboardingTrend(this,'design-systems')"><span class="bullet">•</span>design-systems</div>
-    </div>
-    <div class="onboarding-count" id="obTrendCount">0 selected — pick at least 3</div>
-    <button class="onboarding-continue" id="obContinue2" onclick="onboardingGoToStep(3)">Continue</button>
-    <span class="onboarding-skip" onclick="skipOnboarding()">Skip for now</span>
-  </div>
+    <div class="onboarding-header">Tell us about yourself.</div>
+    <div class="onboarding-sub">This is what actually powers your feed — not just what's trending, but what fits you.</div>
 
-  <!-- Step 3: Visual Spectrum -->
-  <div class="onboarding-panel" id="obPanel3">
-    <div class="onboarding-header">Set your visual spectrum.</div>
-    <div class="onboarding-sub">Customize how content categories glow in your card feed.</div>
+    <div class="onboarding-subsection">
+      <div class="onboarding-subsection-label">What do you do?</div>
+      <div class="onboarding-input-wrap">
+        <input type="text" class="onboarding-input" id="obProfessionInput" placeholder="e.g. Software Engineer, Student, Nurse, Musician…" oninput="onboardingProfessionTyped()" style="padding-left:16px;" />
+      </div>
+    </div>
+
+    <div class="onboarding-subsection">
+      <div class="onboarding-subsection-label">What do you like?</div>
+      <div class="onboarding-pill-grid" id="obLikePills">
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'indie-tech')"><span class="bullet">•</span>indie-tech</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'streetwear')"><span class="bullet">•</span>streetwear</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'gaming')"><span class="bullet">•</span>gaming</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'film-production')"><span class="bullet">•</span>film-production</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'nightlife')"><span class="bullet">•</span>nightlife</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'creator-economy')"><span class="bullet">•</span>creator-economy</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'ai-tools')"><span class="bullet">•</span>ai-tools</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'music-gear')"><span class="bullet">•</span>music-gear</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'crypto-markets')"><span class="bullet">•</span>crypto-markets</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'design-systems')"><span class="bullet">•</span>design-systems</div>
+      </div>
+    </div>
+
+    <div class="onboarding-subsection">
+      <div class="onboarding-subsection-label">What are you good at?</div>
+      <div class="onboarding-pill-grid" id="obSkillPills">
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'writing')"><span class="bullet">•</span>writing</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'coding')"><span class="bullet">•</span>coding</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'design')"><span class="bullet">•</span>design</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'photography')"><span class="bullet">•</span>photography</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'public-speaking')"><span class="bullet">•</span>public-speaking</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'music-production')"><span class="bullet">•</span>music-production</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'video-editing')"><span class="bullet">•</span>video-editing</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'teaching')"><span class="bullet">•</span>teaching</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'sales')"><span class="bullet">•</span>sales</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'cooking')"><span class="bullet">•</span>cooking</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'organizing-events')"><span class="bullet">•</span>organizing-events</div>
+        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'leadership')"><span class="bullet">•</span>leadership</div>
+      </div>
+    </div>
+
+    <div class="onboarding-count" id="obStep2Count">Pick at least one of each — 0 liked, 0 skills</div>
+
+    <div class="onboarding-preview-intro">Here's how we'll color-code your feed based on this:</div>
     <div class="onboarding-preview-stack">
       <div class="onboarding-preview-card card-cat-local"><b>Electric Cyan</b> — local metro signal</div>
       <div class="onboarding-preview-card card-cat-interest"><b>Neon Violet</b> — your Trend-Point matches</div>
       <div class="onboarding-preview-card card-cat-commerce"><b>Amber Gold</b> — storefront &amp; merch drops</div>
       <div class="onboarding-preview-card card-cat-interactive"><b>Emerald Green</b> — live polls &amp; interactive cards</div>
     </div>
-    <div class="onboarding-glow-row" id="obGlowRow">
-      <div class="onboarding-glow-opt" data-level="low" onclick="selectOnboardingGlow('low')">Low</div>
-      <div class="onboarding-glow-opt selected" data-level="medium" onclick="selectOnboardingGlow('medium')">Medium</div>
-      <div class="onboarding-glow-opt" data-level="high" onclick="selectOnboardingGlow('high')">High Glow</div>
-    </div>
-    <button class="onboarding-continue enabled" id="obContinue3" onclick="finishOnboarding()">Initialize HUD Feed</button>
+
+    <button class="onboarding-continue" id="obContinue2" onclick="finishOnboarding()">Enter Bleepmo</button>
+    <span class="onboarding-skip" onclick="skipOnboarding()">Skip for now</span>
   </div>
 </div>
 
@@ -2877,30 +2894,31 @@ body::after {
     proceedPastAuth();
   }
 
-  /* ── Onboarding: 3-step calibration modal ── */
+  /* ── Onboarding: 2-step calibration modal ── */
   var obSelectedLocation = '';
-  var obSelectedTrends = new Set();
-  var obGlowLevel = 'medium';
+  var obSelectedLikes = new Set();
+  var obSelectedSkills = new Set();
+  var obProfession = '';
 
   function showOnboardingModal() {
     obSelectedLocation = '';
-    obSelectedTrends = new Set();
-    obGlowLevel = 'medium';
+    obSelectedLikes = new Set();
+    obSelectedSkills = new Set();
+    obProfession = '';
     document.getElementById('obLocationInput').value = '';
+    document.getElementById('obProfessionInput').value = '';
     document.querySelectorAll('#obLocationPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
-    document.querySelectorAll('#obTrendPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
-    document.getElementById('obTrendCount').textContent = '0 selected — pick at least 3';
+    document.querySelectorAll('#obLikePills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
+    document.querySelectorAll('#obSkillPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
+    document.getElementById('obStep2Count').textContent = 'Pick at least one of each — 0 liked, 0 skills';
     document.getElementById('obContinue1').classList.remove('enabled');
     document.getElementById('obContinue2').classList.remove('enabled');
-    document.querySelectorAll('#obGlowRow .onboarding-glow-opt').forEach(function (o) {
-      o.classList.toggle('selected', o.dataset.level === 'medium');
-    });
     onboardingGoToStep(1);
     document.getElementById('onboardingModal').classList.add('show');
   }
 
   function onboardingGoToStep(step) {
-    [1, 2, 3].forEach(function (n) {
+    [1, 2].forEach(function (n) {
       document.getElementById('obPanel' + n).classList.toggle('show', n === step);
       document.getElementById('obDot' + n).classList.toggle('active', n <= step);
     });
@@ -2924,33 +2942,62 @@ body::after {
     document.getElementById('obContinue1').classList.toggle('enabled', val.length > 0);
   }
 
-  function toggleOnboardingTrend(el, slug) {
-    if (obSelectedTrends.has(slug)) {
-      obSelectedTrends.delete(slug);
-      el.classList.remove('selected');
-    } else {
-      obSelectedTrends.add(slug);
-      el.classList.add('selected');
-    }
-    var n = obSelectedTrends.size;
-    document.getElementById('obTrendCount').textContent =
-      n + ' selected' + (n < 3 ? ' — pick at least 3' : '');
-    document.getElementById('obContinue2').classList.toggle('enabled', n >= 3);
+  function onboardingProfessionTyped() {
+    // Optional signal — supplements likes/skills but isn't required, since
+    // forcing an exact-match category on something as varied as "what do
+    // you do" would frustrate anyone who doesn't fit a preset list.
+    obProfession = document.getElementById('obProfessionInput').value.trim();
   }
 
-  function selectOnboardingGlow(level) {
-    obGlowLevel = level;
-    document.querySelectorAll('#obGlowRow .onboarding-glow-opt').forEach(function (o) {
-      o.classList.toggle('selected', o.dataset.level === level);
-    });
+  function updateObStep2Status() {
+    var likes = obSelectedLikes.size;
+    var skills = obSelectedSkills.size;
+    document.getElementById('obStep2Count').textContent =
+      (likes < 1 || skills < 1)
+        ? 'Pick at least one of each — ' + likes + ' liked, ' + skills + ' skills'
+        : likes + ' liked, ' + skills + ' skills selected';
+    document.getElementById('obContinue2').classList.toggle('enabled', likes >= 1 && skills >= 1);
+  }
+
+  function toggleOnboardingLike(el, slug) {
+    if (obSelectedLikes.has(slug)) {
+      obSelectedLikes.delete(slug);
+      el.classList.remove('selected');
+    } else {
+      obSelectedLikes.add(slug);
+      el.classList.add('selected');
+    }
+    updateObStep2Status();
+  }
+
+  function toggleOnboardingSkill(el, slug) {
+    if (obSelectedSkills.has(slug)) {
+      obSelectedSkills.delete(slug);
+      el.classList.remove('selected');
+    } else {
+      obSelectedSkills.add(slug);
+      el.classList.add('selected');
+    }
+    updateObStep2Status();
+  }
+
+  function slugifyTrendPoint(str) {
+    return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
 
   async function submitOnboarding(skipped) {
     var fd = new FormData();
     if (!skipped) {
+      var combined = new Set();
+      if (obProfession) combined.add(slugifyTrendPoint(obProfession));
+      obSelectedLikes.forEach(function (s) { combined.add(s); });
+      obSelectedSkills.forEach(function (s) { combined.add(s); });
+
       fd.append('locationAnchor', obSelectedLocation);
-      fd.append('subscribedTrendPoints', JSON.stringify(Array.from(obSelectedTrends)));
-      fd.append('themeGlowIntensity', obGlowLevel);
+      fd.append('subscribedTrendPoints', JSON.stringify(Array.from(combined)));
+      // Glow intensity picker was cut from onboarding entirely — this
+      // stays at the schema default rather than asking anyone to choose.
+      fd.append('themeGlowIntensity', 'medium');
     }
     fd.append('completeOnboarding', 'true');
     try {
