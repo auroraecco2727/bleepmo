@@ -1213,6 +1213,14 @@ body::after {
 .onboarding-subsection { margin-bottom: 22px; }
 .onboarding-subsection-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); margin-bottom: 10px; font-weight: 700; }
 .onboarding-preview-intro { font-size: 12px; color: var(--text-mid); margin-bottom: 12px; }
+.onboarding-custom-input-row { margin-top: 10px; }
+.onboarding-custom-input {
+  width: 100%; background: rgba(255,255,255,0.03); border: 1px dashed rgba(212,175,55,0.3);
+  border-radius: 10px; padding: 9px 12px; font-size: 12.5px; color: var(--text-hi);
+  outline: none; transition: border-color 0.2s, background 0.2s;
+}
+.onboarding-custom-input::placeholder { color: var(--text-lo); }
+.onboarding-custom-input:focus { border-color: rgba(212,175,55,0.6); border-style: solid; background: rgba(255,255,255,0.05); }
 
 .auth-glow-a {
   position: absolute; top: -130px; left: -70px;
@@ -2817,34 +2825,40 @@ body::after {
     <div class="onboarding-subsection">
       <div class="onboarding-subsection-label">What do you like?</div>
       <div class="onboarding-pill-grid" id="obLikePills">
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'indie-tech')"><span class="bullet">•</span>indie-tech</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'streetwear')"><span class="bullet">•</span>streetwear</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'gaming')"><span class="bullet">•</span>gaming</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'film-production')"><span class="bullet">•</span>film-production</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'nightlife')"><span class="bullet">•</span>nightlife</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'creator-economy')"><span class="bullet">•</span>creator-economy</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'ai-tools')"><span class="bullet">•</span>ai-tools</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'music-gear')"><span class="bullet">•</span>music-gear</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'crypto-markets')"><span class="bullet">•</span>crypto-markets</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingLike(this,'design-systems')"><span class="bullet">•</span>design-systems</div>
+        <div class="onboarding-pill" data-slug="indie-tech" onclick="toggleOnboardingLike(this,'indie-tech')"><span class="bullet">•</span>indie-tech</div>
+        <div class="onboarding-pill" data-slug="streetwear" onclick="toggleOnboardingLike(this,'streetwear')"><span class="bullet">•</span>streetwear</div>
+        <div class="onboarding-pill" data-slug="gaming" onclick="toggleOnboardingLike(this,'gaming')"><span class="bullet">•</span>gaming</div>
+        <div class="onboarding-pill" data-slug="film-production" onclick="toggleOnboardingLike(this,'film-production')"><span class="bullet">•</span>film-production</div>
+        <div class="onboarding-pill" data-slug="nightlife" onclick="toggleOnboardingLike(this,'nightlife')"><span class="bullet">•</span>nightlife</div>
+        <div class="onboarding-pill" data-slug="creator-economy" onclick="toggleOnboardingLike(this,'creator-economy')"><span class="bullet">•</span>creator-economy</div>
+        <div class="onboarding-pill" data-slug="ai-tools" onclick="toggleOnboardingLike(this,'ai-tools')"><span class="bullet">•</span>ai-tools</div>
+        <div class="onboarding-pill" data-slug="music-gear" onclick="toggleOnboardingLike(this,'music-gear')"><span class="bullet">•</span>music-gear</div>
+        <div class="onboarding-pill" data-slug="crypto-markets" onclick="toggleOnboardingLike(this,'crypto-markets')"><span class="bullet">•</span>crypto-markets</div>
+        <div class="onboarding-pill" data-slug="design-systems" onclick="toggleOnboardingLike(this,'design-systems')"><span class="bullet">•</span>design-systems</div>
+      </div>
+      <div class="onboarding-custom-input-row">
+        <input type="text" class="onboarding-custom-input" id="obCustomLikeInput" placeholder="Something else? Type it and press Enter" onkeydown="handleCustomPillInput(event,'like')" />
       </div>
     </div>
 
     <div class="onboarding-subsection">
       <div class="onboarding-subsection-label">What are you good at?</div>
       <div class="onboarding-pill-grid" id="obSkillPills">
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'writing')"><span class="bullet">•</span>writing</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'coding')"><span class="bullet">•</span>coding</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'design')"><span class="bullet">•</span>design</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'photography')"><span class="bullet">•</span>photography</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'public-speaking')"><span class="bullet">•</span>public-speaking</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'music-production')"><span class="bullet">•</span>music-production</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'video-editing')"><span class="bullet">•</span>video-editing</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'teaching')"><span class="bullet">•</span>teaching</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'sales')"><span class="bullet">•</span>sales</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'cooking')"><span class="bullet">•</span>cooking</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'organizing-events')"><span class="bullet">•</span>organizing-events</div>
-        <div class="onboarding-pill" onclick="toggleOnboardingSkill(this,'leadership')"><span class="bullet">•</span>leadership</div>
+        <div class="onboarding-pill" data-slug="writing" onclick="toggleOnboardingSkill(this,'writing')"><span class="bullet">•</span>writing</div>
+        <div class="onboarding-pill" data-slug="coding" onclick="toggleOnboardingSkill(this,'coding')"><span class="bullet">•</span>coding</div>
+        <div class="onboarding-pill" data-slug="design" onclick="toggleOnboardingSkill(this,'design')"><span class="bullet">•</span>design</div>
+        <div class="onboarding-pill" data-slug="photography" onclick="toggleOnboardingSkill(this,'photography')"><span class="bullet">•</span>photography</div>
+        <div class="onboarding-pill" data-slug="public-speaking" onclick="toggleOnboardingSkill(this,'public-speaking')"><span class="bullet">•</span>public-speaking</div>
+        <div class="onboarding-pill" data-slug="music-production" onclick="toggleOnboardingSkill(this,'music-production')"><span class="bullet">•</span>music-production</div>
+        <div class="onboarding-pill" data-slug="video-editing" onclick="toggleOnboardingSkill(this,'video-editing')"><span class="bullet">•</span>video-editing</div>
+        <div class="onboarding-pill" data-slug="teaching" onclick="toggleOnboardingSkill(this,'teaching')"><span class="bullet">•</span>teaching</div>
+        <div class="onboarding-pill" data-slug="sales" onclick="toggleOnboardingSkill(this,'sales')"><span class="bullet">•</span>sales</div>
+        <div class="onboarding-pill" data-slug="cooking" onclick="toggleOnboardingSkill(this,'cooking')"><span class="bullet">•</span>cooking</div>
+        <div class="onboarding-pill" data-slug="organizing-events" onclick="toggleOnboardingSkill(this,'organizing-events')"><span class="bullet">•</span>organizing-events</div>
+        <div class="onboarding-pill" data-slug="leadership" onclick="toggleOnboardingSkill(this,'leadership')"><span class="bullet">•</span>leadership</div>
+      </div>
+      <div class="onboarding-custom-input-row">
+        <input type="text" class="onboarding-custom-input" id="obCustomSkillInput" placeholder="Something else? Type it and press Enter" onkeydown="handleCustomPillInput(event,'skill')" />
       </div>
     </div>
 
@@ -2907,9 +2921,15 @@ body::after {
     obProfession = '';
     document.getElementById('obLocationInput').value = '';
     document.getElementById('obProfessionInput').value = '';
+    document.getElementById('obCustomLikeInput').value = '';
+    document.getElementById('obCustomSkillInput').value = '';
     document.querySelectorAll('#obLocationPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
-    document.querySelectorAll('#obLikePills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
-    document.querySelectorAll('#obSkillPills .onboarding-pill').forEach(function (p) { p.classList.remove('selected'); });
+    document.querySelectorAll('#obLikePills .onboarding-pill').forEach(function (p) {
+      if (p.dataset.custom === '1') { p.remove(); } else { p.classList.remove('selected'); }
+    });
+    document.querySelectorAll('#obSkillPills .onboarding-pill').forEach(function (p) {
+      if (p.dataset.custom === '1') { p.remove(); } else { p.classList.remove('selected'); }
+    });
     document.getElementById('obStep2Count').textContent = 'Pick at least one of each — 0 liked, 0 skills';
     document.getElementById('obContinue1').classList.remove('enabled');
     document.getElementById('obContinue2').classList.remove('enabled');
@@ -2962,7 +2982,11 @@ body::after {
   function toggleOnboardingLike(el, slug) {
     if (obSelectedLikes.has(slug)) {
       obSelectedLikes.delete(slug);
-      el.classList.remove('selected');
+      if (el.dataset.custom === '1') {
+        el.remove();
+      } else {
+        el.classList.remove('selected');
+      }
     } else {
       obSelectedLikes.add(slug);
       el.classList.add('selected');
@@ -2973,7 +2997,11 @@ body::after {
   function toggleOnboardingSkill(el, slug) {
     if (obSelectedSkills.has(slug)) {
       obSelectedSkills.delete(slug);
-      el.classList.remove('selected');
+      if (el.dataset.custom === '1') {
+        el.remove();
+      } else {
+        el.classList.remove('selected');
+      }
     } else {
       obSelectedSkills.add(slug);
       el.classList.add('selected');
@@ -2983,6 +3011,45 @@ body::after {
 
   function slugifyTrendPoint(str) {
     return str.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function handleCustomPillInput(evt, kind) {
+    if (evt.key !== 'Enter') return;
+    evt.preventDefault();
+
+    var input = evt.target;
+    var raw = input.value.trim();
+    if (!raw) return;
+    var slug = slugifyTrendPoint(raw);
+    if (!slug) { input.value = ''; return; }
+
+    var gridId = kind === 'like' ? 'obLikePills' : 'obSkillPills';
+    var toggleFn = kind === 'like' ? toggleOnboardingLike : toggleOnboardingSkill;
+    var grid = document.getElementById(gridId);
+
+    // Someone typing "gaming" when the gaming preset already exists
+    // shouldn't produce a second, duplicate pill — just select the real
+    // one, custom or preset, if it's already there.
+    var existing = grid.querySelector('.onboarding-pill[data-slug="' + slug + '"]');
+    if (existing) {
+      if (!existing.classList.contains('selected')) {
+        toggleFn(existing, slug);
+      }
+      input.value = '';
+      return;
+    }
+
+    var pill = document.createElement('div');
+    pill.className = 'onboarding-pill selected';
+    pill.dataset.slug = slug;
+    pill.dataset.custom = '1';
+    pill.innerHTML = '<span class="bullet">•</span>' + slug;
+    pill.onclick = function () { toggleFn(pill, slug); };
+    grid.appendChild(pill);
+
+    (kind === 'like' ? obSelectedLikes : obSelectedSkills).add(slug);
+    updateObStep2Status();
+    input.value = '';
   }
 
   async function submitOnboarding(skipped) {
