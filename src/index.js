@@ -11,7 +11,7 @@ import { handleMe } from './routes/me.js';
 import { handleUpdateProfile } from './routes/update-profile.js';
 import { handleUploadVoiceClip } from './routes/upload-voice-clip.js';
 import { handleNotificationsGet, handleNotificationsPost } from './routes/notifications.js';
-import { handleBleepsGet, handleBleepsPost } from './routes/bleeps.js';
+import { handleBleepsGet, handleBleepsPost, handleBleepsSimilar } from './routes/bleeps.js';
 import { handleBleepDetailGet, handleBleepDetailDelete, handleBleepDetailPatch } from './routes/bleep-detail.js';
 import { handleBleepCommentsGet, handleBleepCommentsPost } from './routes/bleep-comments.js';
 import { handleCommentDetailDelete } from './routes/comment-detail.js';
@@ -52,6 +52,7 @@ import { handleAiSettingsGet, handleAiSettingsPost, handleAdminSuspendUser, hand
 import { handleMedia } from './routes/media.js';
 import { handleForgotPassword, handleResetPassword } from './routes/password-reset.js';
 import { handleCheckHandle } from './routes/check-handle.js';
+import { handleMentionSuggest } from './routes/mention-suggest.js';
 
 function notFound() {
   return new Response(JSON.stringify({ error: 'Not found' }), {
@@ -84,6 +85,7 @@ export default {
       if (path === '/api/auth/forgot-password' && method === 'POST') return await handleForgotPassword(request, env);
       if (path === '/api/auth/reset-password' && method === 'POST') return await handleResetPassword(request, env);
       if (path === '/api/check-handle' && method === 'GET') return await handleCheckHandle(request, env);
+      if (path === '/api/mention-suggest' && method === 'GET') return await handleMentionSuggest(request, env);
 
       // ── Notifications ──
       if (path === '/api/notifications' && method === 'GET') return await handleNotificationsGet(request, env);
@@ -92,6 +94,7 @@ export default {
       // ── Bleeps ──
       if (path === '/api/bleeps' && method === 'GET') return await handleBleepsGet(request, env);
       if (path === '/api/bleeps' && method === 'POST') return await handleBleepsPost(request, env);
+      if (path === '/api/bleeps/similar' && method === 'GET') return await handleBleepsSimilar(request, env);
 
       const bleepDetailMatch = path.match(/^\/api\/bleeps\/([^/]+)$/);
       if (bleepDetailMatch && method === 'GET') return await handleBleepDetailGet(request, env, bleepDetailMatch[1]);

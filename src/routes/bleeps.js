@@ -94,7 +94,7 @@ export async function handleBleepsGet(request, env) {
 
   let query = `
     SELECT
-      b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
+      b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.linked_bleep_id, b.created_at,
       u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key,
       (SELECT COUNT(*) FROM comments c WHERE c.content_type = 'bleep' AND c.content_id = b.id AND c.hidden_at IS NULL) AS comment_count
     FROM bleeps b
@@ -131,7 +131,7 @@ export async function handleBleepsGet(request, env) {
   if (trendFilter && results.length === 0 && !cursor) {
     let fallbackQuery = `
       SELECT
-        b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
+        b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.linked_bleep_id, b.created_at,
         u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key,
         (SELECT COUNT(*) FROM comments c WHERE c.content_type = 'bleep' AND c.content_id = b.id AND c.hidden_at IS NULL) AS comment_count
       FROM bleeps b
@@ -207,6 +207,25 @@ export async function handleBleepsGet(request, env) {
     const allTopicsOnPage = results.flatMap((b) => trendByBleepId[b.id] || []);
     const merchByTopic = await getRecommendedMerchForTopics(env.DB, allTopicsOnPage);
 
+    // Linked-post preview — batched the same way as everything above.
+    // Deliberately a lightweight preview (title/body snippet + author),
+    // not a full second bleep object, since it's only ever rendered as a
+    // small "Related to" line on the card.
+    const linkedIds = [...new Set(results.map((b) => b.linked_bleep_id).filter(Boolean))];
+    let linkedPreviewById = {};
+    if (linkedIds.length > 0) {
+      const linkedPlaceholders = linkedIds.map(() => '?').join(',');
+      const { results: linkedRows } = await env.DB
+        .prepare(
+          `SELECT lb.id, lb.title, lb.body, lu.handle_symbol, lu.handle
+           FROM bleeps lb JOIN users lu ON lu.id = lb.author_id
+           WHERE lb.id IN (${linkedPlaceholders}) AND lb.deleted_at IS NULL`
+        )
+        .bind(...linkedIds)
+        .all();
+      linkedPreviewById = Object.fromEntries(linkedRows.map((r) => [r.id, r]));
+    }
+
     for (const b of results) {
       b.trend_points = trendByBleepId[b.id] || [];
       b.tagged_handles = tagsByBleepId[b.id] || [];
@@ -217,6 +236,9 @@ export async function handleBleepsGet(request, env) {
       for (const topic of b.trend_points) {
         if (merchByTopic.has(topic)) { b.recommended_merch = merchByTopic.get(topic); break; }
       }
+      // linked_bleep_id can point at a since-deleted post — falls back to
+      // null rather than showing a broken/dangling reference.
+      b.linked_bleep_preview = b.linked_bleep_id ? (linkedPreviewById[b.linked_bleep_id] || null) : null;
     }
   }
 
@@ -266,6 +288,20 @@ export async function handleBleepsPost(request, env) {
   const isBreaking = (form.get('isBreaking') || '').toString() === 'true' ? 1 : 0;
   const postAsFlick = (form.get('postAsFlick') || '').toString() === 'true';
   const flickLength = (form.get('flickLength') || 'short').toString() === 'long' ? 'long' : 'short';
+
+  // Optional "relate this to an existing post" from the Similar Posts
+  // step of the compose wizard. Validated against the real table rather
+  // than trusted blindly — a stale/tampered id just silently gets
+  // dropped instead of failing the whole post.
+  let linkedBleepId = null;
+  const linkedBleepIdRaw = (form.get('linkedBleepId') || '').toString().trim();
+  if (linkedBleepIdRaw) {
+    const targetExists = await env.DB
+      .prepare('SELECT id FROM bleeps WHERE id = ? AND deleted_at IS NULL')
+      .bind(linkedBleepIdRaw)
+      .first();
+    if (targetExists) linkedBleepId = linkedBleepIdRaw;
+  }
 
   // trendPoints arrives as a JSON array string, e.g. '["Sustainable Tech","Urban Design"]'
   let trendPoints = [];
@@ -325,10 +361,10 @@ export async function handleBleepsPost(request, env) {
 
   await env.DB
     .prepare(
-      `INSERT INTO bleeps (id, author_id, content_type, title, body, media_key, is_breaking)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO bleeps (id, author_id, content_type, title, body, media_key, is_breaking, linked_bleep_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(bleepId, user.id, contentType, title, body || null, mediaKey, isBreaking)
+    .bind(bleepId, user.id, contentType, title, body || null, mediaKey, isBreaking, linkedBleepId)
     .run();
 
   for (const topic of trendPoints) {
@@ -361,7 +397,7 @@ export async function handleBleepsPost(request, env) {
 
   const bleep = await env.DB
     .prepare(
-      `SELECT b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.created_at,
+      `SELECT b.id, b.author_id, b.content_type, b.title, b.body, b.media_key, b.is_breaking, b.linked_bleep_id, b.created_at,
               u.full_name, u.handle_symbol, u.handle, u.avatar_shape, u.main_pic_key, u.icon_pic_key
        FROM bleeps b JOIN users u ON u.id = b.author_id WHERE b.id = ?`
     )
@@ -371,9 +407,67 @@ export async function handleBleepsPost(request, env) {
   bleep.like_count = 0;
   bleep.liked_by_viewer = false;
   bleep.tagged_handles = resolvedTags.map((t) => t.handle_symbol + t.handle);
+  bleep.linked_bleep_preview = null;
+  if (linkedBleepId) {
+    bleep.linked_bleep_preview = await env.DB
+      .prepare(
+        `SELECT lb.id, lb.title, lb.body, lu.handle_symbol, lu.handle
+         FROM bleeps lb JOIN users lu ON lu.id = lb.author_id WHERE lb.id = ?`
+      )
+      .bind(linkedBleepId)
+      .first();
+  }
 
   return new Response(JSON.stringify({ bleep, tagsApplied: resolvedTags.length }), {
     status: 201,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// GET /api/bleeps/similar?trendPoints=indie-tech,gaming -> up to 5 existing
+// posts sharing at least one of those topics, ranked by how many they
+// share (then recency). Backs the compose wizard's "Similar posts" step —
+// no AI involved, just the same trend-point overlap idea the feed-scoring
+// formula already uses, applied the other direction (find posts matching
+// a draft, instead of scoring posts for a viewer).
+const SIMILAR_RESULTS_LIMIT = 5;
+
+export async function handleBleepsSimilar(request, env) {
+  if (!env.DB) return badRequest('DB binding not configured.', 500);
+
+  const viewer = await getSessionUser(request, env.DB);
+  if (!viewer) return badRequest('Not logged in.', 401);
+
+  const url = new URL(request.url);
+  const raw = (url.searchParams.get('trendPoints') || '').trim();
+  const topics = raw.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 8);
+
+  if (!topics.length) {
+    return new Response(JSON.stringify({ bleeps: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const placeholders = topics.map(() => '?').join(',');
+  const { results } = await env.DB
+    .prepare(
+      `SELECT b.id, b.title, b.body, b.content_type, b.created_at,
+              u.full_name, u.handle_symbol, u.handle,
+              COUNT(DISTINCT tp.topic) AS overlap_count
+       FROM bleeps b
+       JOIN users u ON u.id = b.author_id
+       JOIN trend_points tp ON tp.bleep_id = b.id AND tp.topic IN (${placeholders}) COLLATE NOCASE
+       WHERE b.deleted_at IS NULL
+       GROUP BY b.id
+       ORDER BY overlap_count DESC, b.created_at DESC
+       LIMIT ?`
+    )
+    .bind(...topics, SIMILAR_RESULTS_LIMIT)
+    .all();
+
+  return new Response(JSON.stringify({ bleeps: results }), {
+    status: 200,
     headers: { 'Content-Type': 'application/json' },
   });
 }

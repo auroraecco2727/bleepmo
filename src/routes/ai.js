@@ -1,12 +1,12 @@
 // src/routes/ai.js
 // POST /api/ai/assist-post -> suggests a headline + lightly tightened body
-// from the user's current draft, using the Anthropic API.
-//
-// Requires a secret (wrangler secret put ANTHROPIC_API_KEY), not set yet.
-// Get a key from console.anthropic.com. This call happens entirely
-// server-side — the key must never be sent to the browser.
+// from the user's current draft, via the shared AI gateway (tries every
+// configured provider in order — see src/shared/ai-gateway.js). Not set
+// up yet in this environment; needs at least one of ANTHROPIC_API_KEY /
+// OPENAI_API_KEY / GOOGLE_AI_API_KEY.
 
 import { getSessionUser } from '../shared/auth.js';
+import { callAiGateway } from '../shared/ai-gateway.js';
 
 function badRequest(message, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
@@ -42,10 +42,6 @@ export async function handleAiAssistPost(request, env) {
   const viewer = await getSessionUser(request, env.DB);
   if (!viewer) return badRequest('Not logged in.', 401);
 
-  if (!env.ANTHROPIC_API_KEY) {
-    return badRequest('AI Assist isn\'t configured yet — an ANTHROPIC_API_KEY secret is needed.', 503);
-  }
-
   let payload;
   try {
     payload = await request.json();
@@ -59,39 +55,20 @@ export async function handleAiAssistPost(request, env) {
 
   const userMessage = `Draft title: ${title || '(none)'}\nDraft body: ${body}`;
 
-  let anthropicRes;
+  let text;
   try {
-    anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-5',
-        max_tokens: 400,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-    });
+    const result = await callAiGateway(env, { systemPrompt: SYSTEM_PROMPT, userMessage, maxTokens: 400 });
+    text = result.text;
   } catch (err) {
-    return badRequest('Couldn\'t reach the AI service.', 502);
+    // callAiGateway's own error message already distinguishes "nothing
+    // configured" from "every configured provider failed" — surface it
+    // as-is rather than flattening both into one generic message.
+    return badRequest(err.message || 'AI Assist isn\'t available right now.', 503);
   }
-
-  if (!anthropicRes.ok) {
-    return badRequest('AI Assist failed to respond. Try again in a moment.', 502);
-  }
-
-  const data = await anthropicRes.json();
-  const rawText = (data.content || [])
-    .map((block) => (block.type === 'text' ? block.text : ''))
-    .join('')
-    .trim();
 
   let parsed;
   try {
-    const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
     parsed = JSON.parse(cleaned);
   } catch {
     return badRequest('Got an unexpected response from AI Assist. Try again.', 502);
@@ -102,3 +79,4 @@ export async function handleAiAssistPost(request, env) {
     suggestedBody: (parsed.suggestedBody || '').toString(),
   });
 }
+

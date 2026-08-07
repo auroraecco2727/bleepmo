@@ -71,18 +71,23 @@ body::after {
 }
 .tab-bar.hidden-tabs { max-height: 0; padding-top: 0; padding-bottom: 0; border: none; overflow: hidden; margin: 0; opacity: 0; }
 .tab-bar-toggle {
-  position: absolute; bottom: -11px; left: 50%; transform: translateX(-50%);
-  width: 40px; height: 16px;
-  display: flex; align-items: center; justify-content: center;
+  position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
+  width: 44px; height: 20px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   cursor: pointer; z-index: 61;
-  touch-action: none;
 }
-.tab-bar-toggle::before {
+.tab-bar-toggle::before, .tab-bar-toggle::after {
   content: ''; width: 32px; height: 3.5px; border-radius: 3px;
   background: rgba(212,175,55,0.35);
-  transition: background 0.2s, width 0.2s;
+  transition: background 0.2s, width 0.2s, opacity 0.2s, transform 0.2s;
 }
-.tab-bar-toggle:hover::before, .tab-bar-toggle:active::before { background: rgba(212,175,55,0.65); width: 38px; }
+/* Second bar only appears once the tabs are hidden — "1 bar" means shown,
+   "2 bars stacked" means hidden, so the icon itself tells you what tapping
+   it will do, no swipe gesture required. */
+.tab-bar-toggle::after { opacity: 0; transform: scaleY(0); }
+.tab-bar-toggle.tabs-hidden::after { opacity: 1; transform: scaleY(1); }
+.tab-bar-toggle:hover::before, .tab-bar-toggle:hover::after,
+.tab-bar-toggle:active::before, .tab-bar-toggle:active::after { background: rgba(212,175,55,0.65); width: 38px; }
 
 .notif-signal {
   position: absolute; bottom: -2px; right: -4px;
@@ -842,6 +847,11 @@ body::after {
   background: #ff8c3c; box-shadow: 0 0 6px #ff8c3c, 0 0 2px #ff8c3c;
   animation: breakingDotPulse 1.7s ease-in-out infinite;
 }
+.linked-post-row {
+  font-size: 11px; color: var(--text-mid); cursor: pointer;
+  margin: 6px 0; padding: 6px 0; border-top: 0.5px solid rgba(212,175,55,0.1);
+}
+.linked-post-row:hover { color: var(--text-hi); }
 @keyframes breakingDotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
 
 .live-delete-btn {
@@ -992,6 +1002,55 @@ body::after {
   box-shadow: 0 0 14px rgba(212,175,55,0.3); transition: all 0.2s; flex-shrink: 0;
 }
 .composer-post-btn:hover { transform: translateY(-1px); box-shadow: 0 0 20px rgba(212,175,55,0.5); }
+
+.composer-steps-progress { display: flex; gap: 5px; justify-content: center; margin-bottom: 12px; }
+.composer-step-dot { width: 16px; height: 3px; border-radius: 2px; background: rgba(212,175,55,0.18); transition: background 0.25s; }
+.composer-step-dot.active { background: var(--gold); box-shadow: 0 0 4px rgba(212,175,55,0.5); }
+.composer-step-dot.done { background: rgba(212,175,55,0.5); }
+
+.composer-step-panel { display: none; }
+.composer-step-panel.show { display: block; }
+
+.composer-step-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); font-weight: 700; margin-bottom: 5px; }
+.composer-step-sub { font-size: 11.5px; color: var(--text-mid); margin-bottom: 12px; line-height: 1.4; }
+
+.composer-step-nav { display: flex; gap: 8px; margin-top: 12px; }
+.composer-step-back-btn {
+  padding: 9px 16px; border-radius: 10px; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(212,175,55,0.2); color: var(--text-mid);
+  font-size: 12.5px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+}
+.composer-step-next-btn {
+  flex: 1; padding: 9px 16px; border-radius: 10px; border: none; text-align: center;
+  background: linear-gradient(135deg, var(--gold), #b8901f);
+  color: #1a1408; font-weight: 800; font-size: 12.5px; cursor: pointer;
+  box-shadow: 0 0 14px rgba(212,175,55,0.3); transition: all 0.2s;
+}
+.composer-step-next-btn:hover { transform: translateY(-1px); box-shadow: 0 0 20px rgba(212,175,55,0.5); }
+
+.composer-quick-post {
+  text-align: center; font-size: 10.5px; color: var(--text-lo); cursor: pointer;
+  margin-bottom: 10px; text-decoration: underline; text-underline-offset: 2px;
+}
+.composer-quick-post:hover { color: var(--gold); }
+
+.similar-post-row {
+  display: flex; align-items: flex-start; gap: 9px; padding: 10px;
+  border-radius: 10px; border: 1px solid rgba(212,175,55,0.15);
+  margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+}
+.similar-post-row:hover { border-color: rgba(212,175,55,0.3); }
+.similar-post-row.selected { border-color: var(--gold); background: rgba(212,175,55,0.08); }
+.similar-post-title { font-size: 12px; font-weight: 700; color: var(--text-hi); }
+.similar-post-meta { font-size: 10.5px; color: var(--text-mid); margin-top: 2px; }
+.similar-post-empty { font-size: 11.5px; color: var(--text-lo); padding: 6px 0; }
+
+.flicks-series-stub {
+  padding: 16px; border-radius: 12px; border: 1px dashed rgba(212,175,55,0.3);
+  background: rgba(255,255,255,0.02); text-align: center;
+}
+.flicks-series-stub-title { font-size: 13px; font-weight: 700; color: var(--text-hi); margin-bottom: 6px; }
+.flicks-series-stub-sub { font-size: 11.5px; color: var(--text-mid); line-height: 1.5; }
 
 .bot-expand-top { margin-bottom: 8px; }
 .bot-expand-bottom { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid rgba(212,175,55,0.12); }
@@ -2759,51 +2818,96 @@ body::after {
       <span class="composer-close-btn" onclick="closeComposeBar()" title="Close">&times;</span>
     </div>
 
-    <div class="composer-inputs">
-      <input type="text" class="composer-headline-input" id="composeTitleInput" placeholder="Add a bold headline (optional)" maxlength="120" />
-      <textarea class="composer-body-input" id="composeBody" placeholder="What's the signal?" rows="2" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
+    <div class="composer-steps-progress" id="composerStepsProgress">
+      <div class="composer-step-dot active" data-step="1"></div>
+      <div class="composer-step-dot" data-step="2"></div>
+      <div class="composer-step-dot" data-step="3"></div>
+      <div class="composer-step-dot" data-step="4"></div>
+      <div class="composer-step-dot" data-step="5"></div>
+      <div class="composer-step-dot" data-step="6"></div>
     </div>
+    <div class="composer-quick-post" onclick="submitCompose()" title="Post immediately with whatever you've filled in so far">Just post it — skip the guide</div>
 
-    <div class="composer-ai-panel" id="composerAiPanel" style="display:none;"></div>
-
-    <div id="composeTrendInputWrap" style="display:none;">
-      <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
-      <div class="compose-trend-chips" id="composeTrendChips"></div>
-    </div>
-    <div id="composeTagInputWrap" style="display:none;">
-      <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a name or handle to find someone, or press Enter to add as typed" oninput="handleTagInputTyping()" onkeydown="handleTagInputKeydown(event)" onblur="scheduleHideTagSuggestions()" />
-      <div class="tag-suggest-dropdown" id="tagSuggestDropdown" style="display:none;"></div>
-      <div class="compose-trend-chips" id="composeTagChips"></div>
-    </div>
-
-    <div class="compose-media-filename" id="composeMediaFilename"></div>
-    <label class="compose-checkbox" id="composeFlickToggleWrap" style="display:none; margin-top:4px; color:var(--gold); font-weight:700;">
-      <input type="checkbox" id="composeFlickToggle" onchange="toggleFlickLengthChoice()" /> Post as a Flick (full-screen video)
-    </label>
-    <div id="composeFlickLengthWrap" style="display:none; margin-top:6px; gap:8px; align-items:center;">
-      <label class="compose-checkbox" style="font-weight:600; font-size:11.5px;">
-        <input type="radio" name="composeFlickLength" value="short" id="composeFlickLengthShort" checked /> Short Flick
-      </label>
-      <label class="compose-checkbox" style="font-weight:600; font-size:11.5px;">
-        <input type="radio" name="composeFlickLength" value="long" id="composeFlickLengthLong" /> Long-Flick
-      </label>
-    </div>
-    <input type="checkbox" id="composeBreaking" style="display:none;" />
-    <div class="auth-error" id="composeError" style="margin-top:6px;"></div>
-
-    <div class="composer-toolbar">
-      <div class="tool-actions">
-        <label class="tool-btn" title="Attach a photo or video">
-          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
-        </label>
+    <!-- Step 1: Content -->
+    <div class="composer-step-panel show" id="composeStep1">
+      <div class="composer-step-label">Step 1 of 6 — What's the signal?</div>
+      <textarea class="composer-body-input" id="composeBody" placeholder="What's the signal?" rows="3" oninput="autoGrowComposeInput(this)" onkeydown="handleComposeBodyKeydown(event)"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;">
         <div class="tool-btn" id="emojiToggleBtn" onclick="toggleEmojiPicker(event)" title="Add an emoji">😊</div>
-        <div class="tool-btn" id="trendToolBtn" onclick="toggleTrendInput()" title="Trend-points">#</div>
-        <div class="tool-btn" id="tagToolBtn" onclick="toggleTagInput()" title="Tag people">@</div>
-        <div class="tool-btn" id="breakingToolBtn" onclick="toggleBreakingBtn()" title="Mark as Breaking">🔴</div>
-        <div class="tool-btn ai-btn" id="aiAssistBtn" onclick="requestAiAssist()" title="AI Assist"><span class="ai-sparkle">✨</span> AI</div>
+        <div class="tool-btn ai-btn" id="aiAssistBtn" onclick="requestAiAssist()" title="AI Assist"><span class="ai-sparkle">✨</span> AI Assist</div>
       </div>
-      <button class="composer-post-btn" id="composeSendBtn" onclick="submitCompose()">Post Signal</button>
+      <div class="composer-ai-panel" id="composerAiPanel" style="display:none;"></div>
+    </div>
+
+    <!-- Step 2: Headline -->
+    <div class="composer-step-panel" id="composeStep2">
+      <div class="composer-step-label">Step 2 of 6 — Give it a headline</div>
+      <div class="composer-step-sub">Optional, but a good headline gets more attention. AI Assist (Step 1) suggests one too.</div>
+      <input type="text" class="composer-headline-input" id="composeTitleInput" placeholder="Add a bold headline (optional)" maxlength="120" />
+    </div>
+
+    <!-- Step 3: Media -->
+    <div class="composer-step-panel" id="composeStep3">
+      <div class="composer-step-label">Step 3 of 6 — Add a photo or video</div>
+      <div class="composer-step-sub">Optional — text-only posts work fine too.</div>
+      <label class="tool-btn" title="Attach a photo or video" style="display:inline-flex; gap:6px; width:auto; padding:9px 14px;">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        Attach media
+        <input type="file" id="composeMedia" accept="image/*,video/*" style="display:none;" onchange="handleComposeMediaChange(event)" />
+      </label>
+      <div class="compose-media-filename" id="composeMediaFilename"></div>
+      <label class="compose-checkbox" id="composeFlickToggleWrap" style="display:none; margin-top:10px; color:var(--gold); font-weight:700;">
+        <input type="checkbox" id="composeFlickToggle" onchange="toggleFlickLengthChoice()" /> Post as a Flick (full-screen video)
+      </label>
+      <div id="composeFlickLengthWrap" style="display:none; margin-top:6px; gap:8px; align-items:center;">
+        <label class="compose-checkbox" style="font-weight:600; font-size:11.5px;">
+          <input type="radio" name="composeFlickLength" value="short" id="composeFlickLengthShort" checked /> Short Flick
+        </label>
+        <label class="compose-checkbox" style="font-weight:600; font-size:11.5px;">
+          <input type="radio" name="composeFlickLength" value="long" id="composeFlickLengthLong" /> Long-Flick
+        </label>
+      </div>
+    </div>
+
+    <!-- Step 4: Trend-points & Tags -->
+    <div class="composer-step-panel" id="composeStep4">
+      <div class="composer-step-label">Step 4 of 6 — Help people find this</div>
+      <div class="composer-step-sub">Trend-points and tagged people — both optional.</div>
+      <div id="composeTrendInputWrap">
+        <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
+        <div class="compose-trend-chips" id="composeTrendChips"></div>
+      </div>
+      <div id="composeTagInputWrap" style="margin-top:10px;">
+        <input type="text" class="compose-trend-input" id="composeTagInput" placeholder="Type a name or handle to find someone, or press Enter to add as typed" oninput="handleTagInputTyping()" onkeydown="handleTagInputKeydown(event)" onblur="scheduleHideTagSuggestions()" />
+        <div class="tag-suggest-dropdown" id="tagSuggestDropdown" style="display:none;"></div>
+        <div class="compose-trend-chips" id="composeTagChips"></div>
+      </div>
+      <div class="tool-btn" id="breakingToolBtn" onclick="toggleBreakingBtn()" title="Mark as Breaking" style="display:inline-flex; gap:6px; width:auto; padding:9px 14px; margin-top:10px;">🔴 Mark as Breaking</div>
+      <input type="checkbox" id="composeBreaking" style="display:none;" />
+    </div>
+
+    <!-- Step 5: Similar posts (real, no AI needed — trend-point overlap) -->
+    <div class="composer-step-panel" id="composeStep5">
+      <div class="composer-step-label">Step 5 of 6 — Similar posts</div>
+      <div class="composer-step-sub" id="similarPostsSub">Checking for related posts…</div>
+      <div id="similarPostsList"></div>
+    </div>
+
+    <!-- Step 6: Flicks series (honest stub — needs a connected AI provider) -->
+    <div class="composer-step-panel" id="composeStep6">
+      <div class="composer-step-label">Step 6 of 6 — Turn this into a Flicks series?</div>
+      <div class="flicks-series-stub">
+        <div class="flicks-series-stub-title">Coming soon</div>
+        <div class="flicks-series-stub-sub">Turning one post into a Short-Flick or Long-Flick series needs a connected AI provider (Anthropic, OpenAI, or Google) — none are configured yet. Once one is, this step generates real ideas instead of this placeholder.</div>
+      </div>
+    </div>
+
+    <div class="auth-error" id="composeError" style="margin-top:10px;"></div>
+
+    <div class="composer-step-nav">
+      <button type="button" class="composer-step-back-btn" id="composeBackBtn" onclick="composeGoToStep(composeCurrentStep - 1)" style="display:none;">Back</button>
+      <button type="button" class="composer-step-next-btn" id="composeNextBtn" onclick="composeGoToStep(composeCurrentStep + 1)">Continue</button>
+      <button type="button" class="composer-post-btn" id="composeSendBtn" onclick="submitCompose()" style="display:none;">Post Signal</button>
     </div>
     <div class="emoji-picker" id="emojiPicker"></div>
   </div>
@@ -4110,6 +4214,16 @@ body::after {
       ? '<span class="bb-action-btn" title="Edit (admin)" onclick="adminEditBleep(\'' + b.id + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>'
       : '';
 
+    var linkedPreviewHtml = '';
+    if (b.linked_bleep_preview) {
+      var lp = b.linked_bleep_preview;
+      var lpLabel = lp.title || (lp.body ? lp.body.slice(0, 50) : '(post)');
+      linkedPreviewHtml =
+        '<div class="linked-post-row" onclick="event.stopPropagation(); openCommentsScreen(\'' + escapeHtml(lp.id) + '\')" title="View the related post">' +
+        '  ↳ Related to <span style="color:var(--gold);font-weight:700;">' + escapeHtml(lp.handle_symbol + lp.handle) + '</span>\'s "' + escapeHtml(lpLabel) + '"' +
+        '</div>';
+    }
+
     var html =
       '<div class="creator-row" data-author-id="' + escapeHtml(b.author_id) + '">' +
       '  ' + buildAvatarHtml(b, 36) +
@@ -4126,6 +4240,7 @@ body::after {
       bodyHtml +
       tagsRowHtml +
       merchBannerHtml +
+      linkedPreviewHtml +
       '<div class="action-row">' +
       '  <div class="act like-btn' + (b.liked_by_viewer ? ' liked' : '') + '" data-bleep-id="' + escapeHtml(b.id) + '" onclick="toggleLike(\'' + escapeHtml(b.id) + '\', this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (b.liked_by_viewer ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="like-count-badge">' + (b.like_count || 0) + '</span></div>' +
       '  <div class="act" onclick="openCommentsScreen(\'' + escapeHtml(b.id) + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="comment-count-badge" data-bleep-id="' + escapeHtml(b.id) + '">' + (b.comment_count || 0) + '</span></div>' +
@@ -6641,10 +6756,96 @@ body::after {
   var composeTrendPoints = [];
   var composeMediaFile = null;
 
+  /* ── Guided post composer: plain tap-based steps, no gestures — the
+     whole point is this should be obvious to a total beginner. "Just post
+     it" (visible on every step) always skips straight to posting with
+     whatever's filled in so far, so nobody is forced through all 6 steps
+     just to share a quick thought. ── */
+  var composeCurrentStep = 1;
+  var COMPOSE_STEP_COUNT = 6;
+
+  function composeGoToStep(step) {
+    if (step < 1) step = 1;
+    if (step > COMPOSE_STEP_COUNT) step = COMPOSE_STEP_COUNT;
+    composeCurrentStep = step;
+
+    for (var i = 1; i <= COMPOSE_STEP_COUNT; i++) {
+      document.getElementById('composeStep' + i).classList.toggle('show', i === step);
+    }
+    document.querySelectorAll('#composerStepsProgress .composer-step-dot').forEach(function (dot) {
+      var n = parseInt(dot.getAttribute('data-step'), 10);
+      dot.classList.toggle('active', n === step);
+      dot.classList.toggle('done', n < step);
+    });
+
+    document.getElementById('composeBackBtn').style.display = step > 1 ? 'inline-block' : 'none';
+    var isLastStep = step === COMPOSE_STEP_COUNT;
+    document.getElementById('composeNextBtn').style.display = isLastStep ? 'none' : 'block';
+    document.getElementById('composeSendBtn').style.display = isLastStep ? 'block' : 'none';
+
+    if (step === 5) loadSimilarPosts();
+  }
+
+  var composeLinkedBleepId = null;
+
+  async function loadSimilarPosts() {
+    var sub = document.getElementById('similarPostsSub');
+    var list = document.getElementById('similarPostsList');
+    composeLinkedBleepId = null;
+
+    if (!composeTrendPoints.length) {
+      sub.textContent = "No trend-points picked yet, so nothing to compare against — that's fine, this step is optional.";
+      list.innerHTML = '';
+      return;
+    }
+
+    sub.textContent = 'Checking for related posts…';
+    list.innerHTML = '';
+
+    try {
+      var res = await fetch('/api/bleeps/similar?trendPoints=' + encodeURIComponent(composeTrendPoints.join(',')));
+      var data = await res.json();
+      var similar = data.bleeps || [];
+
+      if (!similar.length) {
+        sub.textContent = "Nothing similar out there yet — you might be the first to post about this.";
+        return;
+      }
+
+      sub.textContent = 'Tap one to link your post to it, or skip — totally optional.';
+      list.innerHTML = '';
+      similar.forEach(function (b) {
+        var row = document.createElement('div');
+        row.className = 'similar-post-row';
+        row.dataset.bleepId = b.id;
+        var titleText = b.title || (b.body ? b.body.slice(0, 60) : '(no caption)');
+        row.innerHTML =
+          '<div style="flex:1;">' +
+          '  <div class="similar-post-title">' + escapeHtml(titleText) + '</div>' +
+          '  <div class="similar-post-meta">' + escapeHtml(b.handle_symbol + b.handle) + ' · ' + b.overlap_count + ' shared trend-point' + (b.overlap_count === 1 ? '' : 's') + '</div>' +
+          '</div>';
+        row.onclick = function () {
+          var alreadySelected = row.classList.contains('selected');
+          document.querySelectorAll('.similar-post-row').forEach(function (r) { r.classList.remove('selected'); });
+          if (alreadySelected) {
+            composeLinkedBleepId = null;
+          } else {
+            row.classList.add('selected');
+            composeLinkedBleepId = b.id;
+          }
+        };
+        list.appendChild(row);
+      });
+    } catch (err) {
+      sub.textContent = "Couldn't check for similar posts — no problem, this step is optional anyway.";
+    }
+  }
+
   function openComposeBar() {
     document.getElementById('composeFabWrap').classList.add('hidden');
     document.getElementById('botBar').classList.add('open');
     document.getElementById('botBar').style.display = 'block';
+    composeGoToStep(1);
     setTimeout(function () { document.getElementById('composeBody').focus(); }, 50);
   }
 
@@ -6746,14 +6947,6 @@ body::after {
     }
   }
 
-  function toggleTrendInput() {
-    var wrap = document.getElementById('composeTrendInputWrap');
-    var showing = wrap.style.display === 'block';
-    wrap.style.display = showing ? 'none' : 'block';
-    document.getElementById('trendToolBtn').classList.toggle('active', !showing);
-    if (!showing) document.getElementById('composeTrendInput').focus();
-  }
-
   function renderComposeTrendChips() {
     var wrap = document.getElementById('composeTrendChips');
     wrap.innerHTML = '';
@@ -6784,18 +6977,6 @@ body::after {
   }
 
   var composeTaggedHandles = [];
-
-  function toggleTagInput() {
-    var wrap = document.getElementById('composeTagInputWrap');
-    var showing = wrap.style.display === 'block';
-    wrap.style.display = showing ? 'none' : 'block';
-    document.getElementById('tagToolBtn').classList.toggle('active', !showing);
-    if (!showing) {
-      document.getElementById('composeTagInput').focus();
-    } else {
-      hideTagSuggestions();
-    }
-  }
 
   function renderComposeTagChips() {
     var wrap = document.getElementById('composeTagChips');
@@ -7164,6 +7345,7 @@ body::after {
     if (composeTrendPoints.length) fd.append('trendPoints', JSON.stringify(composeTrendPoints));
     if (composeTaggedHandles.length) fd.append('taggedHandles', JSON.stringify(composeTaggedHandles));
     if (composeMediaFile) fd.append('media', composeMediaFile);
+    if (composeLinkedBleepId) fd.append('linkedBleepId', composeLinkedBleepId);
 
     var sendBtn = document.getElementById('composeSendBtn');
     sendBtn.style.opacity = '0.4';
@@ -7199,12 +7381,8 @@ body::after {
       document.getElementById('composeFlickToggleWrap').style.display = 'none';
       document.getElementById('composeFlickLengthShort').checked = true;
       document.getElementById('composeFlickLengthWrap').style.display = 'none';
-      document.getElementById('trendToolBtn').classList.remove('active');
-      document.getElementById('composeTrendInputWrap').style.display = 'none';
       composeTrendPoints = [];
       renderComposeTrendChips();
-      document.getElementById('tagToolBtn').classList.remove('active');
-      document.getElementById('composeTagInputWrap').style.display = 'none';
       composeTaggedHandles = [];
       renderComposeTagChips();
       document.getElementById('breakingToolBtn').classList.remove('active');
@@ -7212,6 +7390,8 @@ body::after {
       composeMediaFile = null;
       document.getElementById('composeMedia').value = '';
       document.getElementById('composeMediaFilename').textContent = '';
+      composeLinkedBleepId = null;
+      composeGoToStep(1);
       closeComposeBar();
     } catch (err) {
       showComposeError('Couldn\'t reach the server.');
@@ -7289,55 +7469,6 @@ body::after {
     btn.classList.toggle('tabs-hidden', hidden);
     btn.title = hidden ? 'Show tabs' : 'Hide tabs';
   }
-
-  /* ── Sleek swipe-to-hide, replacing the old chevron button ── */
-  (function setupTabBarSwipe() {
-    var bar = document.getElementById('mainTabBar');
-    var handle = document.getElementById('mainTabBarToggle');
-    if (!bar || !handle) return;
-
-    var startX = 0, startY = 0, tracking = false;
-
-    function onDown(evt) {
-      tracking = true;
-      startX = evt.clientX;
-      startY = evt.clientY;
-    }
-
-    function onUp(evt, isHandle) {
-      if (!tracking) return;
-      tracking = false;
-      var dx = evt.clientX - startX;
-      var dy = evt.clientY - startY;
-      var isTap = Math.abs(dx) < 8 && Math.abs(dy) < 8;
-      var isVerticalSwipe = Math.abs(dy) > 22 && Math.abs(dy) > Math.abs(dx) * 1.5;
-      var hidden = bar.classList.contains('hidden-tabs');
-
-      // Tapping the handle still works exactly like the old button did —
-      // not everyone swipes, and this shouldn't regress for anyone who
-      // doesn't. Tapping the tab bar itself just switches tabs as normal
-      // and is left alone here entirely.
-      if (isTap && isHandle) {
-        toggleMainTabBar();
-        return;
-      }
-      if (isVerticalSwipe) {
-        if (dy < 0 && !hidden) toggleMainTabBar();      // swiped up → hide
-        else if (dy > 0 && hidden) toggleMainTabBar();  // swiped down → show
-      }
-    }
-
-    handle.addEventListener('pointerdown', onDown);
-    handle.addEventListener('pointerup', function (evt) { onUp(evt, true); });
-
-    // "Swipe up anywhere along the header to hide it" — matches the
-    // gestural pull-bar pattern rather than confining the gesture to the
-    // small handle. Only fires on a clearly-vertical swipe, so it can't
-    // fight with the tab bar's own horizontal scroll when there are more
-    // tabs than fit on screen.
-    bar.addEventListener('pointerdown', onDown);
-    bar.addEventListener('pointerup', function (evt) { onUp(evt, false); });
-  })();
 
   function pauseFlickPane(paneKey) {
     var video = document.getElementById(paneKey + 'FlickVideo');

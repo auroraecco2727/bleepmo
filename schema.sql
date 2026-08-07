@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS bleeps (
   title         TEXT,                             -- optional bold headline for "beautiful post" formatting
   media_key     TEXT,                             -- R2 object key for photo/video, nullable for text-only Bleeps
   is_breaking   INTEGER NOT NULL DEFAULT 0,       -- stylized "BREAKING" badge, set via a checkbox at compose time
+  linked_bleep_id TEXT REFERENCES bleeps(id) ON DELETE SET NULL,  -- optional "related to" set via the guided-post wizard
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
   deleted_at    TEXT                               -- soft delete
 );
