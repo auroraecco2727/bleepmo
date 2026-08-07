@@ -69,17 +69,27 @@ body::after {
   backdrop-filter: blur(28px);
   border-bottom: 0.5px solid rgba(212,175,55,0.12);
 }
-.tab-bar.hidden-tabs { height: 0; padding: 0; border: none; overflow: hidden; margin: 0; }
+.tab-bar.hidden-tabs { max-height: 0; padding-top: 0; padding-bottom: 0; border: none; overflow: hidden; margin: 0; opacity: 0; }
 .tab-bar-toggle {
   position: absolute; bottom: -11px; left: 50%; transform: translateX(-50%);
-  width: 26px; height: 15px; border-radius: 0 0 8px 8px;
-  background: rgba(10,18,45,0.9); border: 1px solid rgba(212,175,55,0.3); border-top: none;
+  width: 40px; height: 16px;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; z-index: 61; transition: background 0.2s;
+  cursor: pointer; z-index: 61;
+  touch-action: none;
 }
-.tab-bar-toggle:hover { background: rgba(212,175,55,0.18); }
-.tab-bar-toggle svg { transition: transform 0.25s ease; }
-.tab-bar-toggle.tabs-hidden svg { transform: rotate(180deg); }
+.tab-bar-toggle::before {
+  content: ''; width: 32px; height: 3.5px; border-radius: 3px;
+  background: rgba(212,175,55,0.35);
+  transition: background 0.2s, width 0.2s;
+}
+.tab-bar-toggle:hover::before, .tab-bar-toggle:active::before { background: rgba(212,175,55,0.65); width: 38px; }
+
+.notif-signal {
+  position: absolute; bottom: -2px; right: -4px;
+  display: none; gap: 2.5px; padding: 2px 3px 1px;
+  background: rgba(10,18,45,0.85); border-radius: 6px;
+}
+.notif-signal-dot { width: 4px; height: 4px; border-radius: 50%; }
 .nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
 .nav-hamburger {
@@ -243,6 +253,9 @@ body::after {
   scrollbar-width: none;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
+  max-height: 70px;
+  opacity: 1;
+  transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), padding 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, margin 0.4s cubic-bezier(0.4,0,0.2,1);
   /* Slight right fade to hint more tabs exist */
   -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
   mask-image: linear-gradient(to right, black 85%, transparent 100%);
@@ -2135,7 +2148,7 @@ body::after {
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="position:relative;cursor:pointer;" onclick="openNotificationsScreen()" title="Notifications">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.5)" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <div class="notif-dot" id="navNotifDot" style="width:5px;height:5px;border-radius:50%;background:#ff5566;position:absolute;top:-1px;right:-1px;box-shadow:0 0 4px #ff5566;display:none;"></div>
+        <div class="notif-signal" id="navNotifSignal"></div>
       </div>
     </div>
   </div>
@@ -2161,9 +2174,7 @@ body::after {
       <span>Special Offers</span>
     </div>
   </div>
-  <div class="tab-bar-toggle" id="mainTabBarToggle" onclick="toggleMainTabBar()" title="Hide tabs">
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-  </div>
+  <div class="tab-bar-toggle" id="mainTabBarToggle" onclick="toggleMainTabBar()" title="Hide tabs"></div>
 </nav>
 
 <!-- ══ UNIVERSAL NAV DRAWER ══ -->
@@ -4840,12 +4851,51 @@ body::after {
     });
   }
 
+  var NOTIF_CATEGORY_COLORS = { local: '#00F0FF', interest: '#A855F7', commerce: '#F59E0B', interactive: '#10B981' };
+
   function updateNotifBadge(notifications) {
-    var unreadCount = notifications.filter(function (n) { return !n.read_at; }).length;
-    var navDot = document.getElementById('navNotifDot');
+    var unread = notifications.filter(function (n) { return !n.read_at; });
+    var signal = document.getElementById('navNotifSignal');
     var drawerBadge = document.getElementById('drawerNotifBadge');
-    if (navDot) navDot.style.display = unreadCount > 0 ? 'block' : 'none';
-    if (drawerBadge) drawerBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+
+    if (drawerBadge) drawerBadge.style.display = unread.length > 0 ? 'inline-block' : 'none';
+    if (!signal) return;
+
+    if (!unread.length) {
+      signal.style.display = 'none';
+      signal.innerHTML = '';
+      return;
+    }
+
+    // Distinct categories among unread, in a stable order, capped at 4 —
+    // matches the same four content colors used on feed cards, so the
+    // bell is telling the truth about what kind of activity is waiting,
+    // not just that some exists.
+    var seen = [];
+    ['local', 'interest', 'commerce', 'interactive'].forEach(function (cat) {
+      if (unread.some(function (n) { return n.category === cat; })) seen.push(cat);
+    });
+
+    signal.innerHTML = '';
+    if (seen.length) {
+      seen.forEach(function (cat) {
+        var dot = document.createElement('span');
+        dot.className = 'notif-signal-dot';
+        dot.style.background = NOTIF_CATEGORY_COLORS[cat];
+        dot.style.boxShadow = '0 0 4px ' + NOTIF_CATEGORY_COLORS[cat];
+        signal.appendChild(dot);
+      });
+    } else {
+      // Unread activity exists (a follow, a tip, a reply) but nothing
+      // resolvable to a content category — still show something rather
+      // than silently dropping the "you have unread" signal.
+      var dot = document.createElement('span');
+      dot.className = 'notif-signal-dot';
+      dot.style.background = '#ff5566';
+      dot.style.boxShadow = '0 0 4px #ff5566';
+      signal.appendChild(dot);
+    }
+    signal.style.display = 'flex';
   }
 
   async function markAllNotificationsRead() {
@@ -5585,12 +5635,27 @@ body::after {
   }
 
   function cardCategory(b) {
-    // Only 'commerce' is wired up for real right now — it reuses the
-    // existing contextual-merch match. 'local' and 'interest' need
-    // user.location_anchor / user.subscribed_trend_points, which don't
-    // exist yet (that's the onboarding flow, still pending). 'interactive'
-    // needs a polling feature that doesn't exist at all yet.
+    // Commerce checked first, matching the priority already implicit in
+    // the feed-scoring formula (W_local=3 > W_interest=2) — local beats
+    // interest when a bleep's trend-points satisfy both. 'interactive'
+    // still has no real feature behind it (polling doesn't exist), so it
+    // stays unreachable until that gets built — that's an honest gap, not
+    // a bug.
     if (b.recommended_merch) return 'commerce';
+
+    var topics = (b.trend_points || []).map(function (t) { return String(t).toLowerCase(); });
+    if (!topics.length || !currentUser) return null;
+
+    if (currentUser.location_anchor) {
+      if (topics.indexOf(String(currentUser.location_anchor).toLowerCase()) !== -1) return 'local';
+    }
+    if (currentUser.subscribed_trend_points) {
+      var subscribed;
+      try { subscribed = JSON.parse(currentUser.subscribed_trend_points); } catch (e) { subscribed = []; }
+      if (Array.isArray(subscribed) && subscribed.some(function (s) { return topics.indexOf(String(s).toLowerCase()) !== -1; })) {
+        return 'interest';
+      }
+    }
     return null;
   }
 
@@ -7224,6 +7289,55 @@ body::after {
     btn.classList.toggle('tabs-hidden', hidden);
     btn.title = hidden ? 'Show tabs' : 'Hide tabs';
   }
+
+  /* ── Sleek swipe-to-hide, replacing the old chevron button ── */
+  (function setupTabBarSwipe() {
+    var bar = document.getElementById('mainTabBar');
+    var handle = document.getElementById('mainTabBarToggle');
+    if (!bar || !handle) return;
+
+    var startX = 0, startY = 0, tracking = false;
+
+    function onDown(evt) {
+      tracking = true;
+      startX = evt.clientX;
+      startY = evt.clientY;
+    }
+
+    function onUp(evt, isHandle) {
+      if (!tracking) return;
+      tracking = false;
+      var dx = evt.clientX - startX;
+      var dy = evt.clientY - startY;
+      var isTap = Math.abs(dx) < 8 && Math.abs(dy) < 8;
+      var isVerticalSwipe = Math.abs(dy) > 22 && Math.abs(dy) > Math.abs(dx) * 1.5;
+      var hidden = bar.classList.contains('hidden-tabs');
+
+      // Tapping the handle still works exactly like the old button did —
+      // not everyone swipes, and this shouldn't regress for anyone who
+      // doesn't. Tapping the tab bar itself just switches tabs as normal
+      // and is left alone here entirely.
+      if (isTap && isHandle) {
+        toggleMainTabBar();
+        return;
+      }
+      if (isVerticalSwipe) {
+        if (dy < 0 && !hidden) toggleMainTabBar();      // swiped up → hide
+        else if (dy > 0 && hidden) toggleMainTabBar();  // swiped down → show
+      }
+    }
+
+    handle.addEventListener('pointerdown', onDown);
+    handle.addEventListener('pointerup', function (evt) { onUp(evt, true); });
+
+    // "Swipe up anywhere along the header to hide it" — matches the
+    // gestural pull-bar pattern rather than confining the gesture to the
+    // small handle. Only fires on a clearly-vertical swipe, so it can't
+    // fight with the tab bar's own horizontal scroll when there are more
+    // tabs than fit on screen.
+    bar.addEventListener('pointerdown', onDown);
+    bar.addEventListener('pointerup', function (evt) { onUp(evt, false); });
+  })();
 
   function pauseFlickPane(paneKey) {
     var video = document.getElementById(paneKey + 'FlickVideo');
