@@ -1,5 +1,6 @@
 // src/routes/notifications.js
 import { getSessionUser } from '../shared/auth.js';
+import { getRecommendedMerchForTopics } from './store.js';
 
 function badRequest(message, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
@@ -19,7 +20,6 @@ export async function handleNotificationsGet(request, env) {
       `SELECT n.id, n.type, n.source_type, n.source_id, n.read_at, n.created_at,
               a.id AS actor_id, a.full_name AS actor_name, a.handle_symbol AS actor_symbol, a.handle AS actor_handle,
               t.amount_cents AS tip_amount_cents, t.message AS tip_message,
-              b.recommended_merch AS bleep_recommended_merch,
               (SELECT GROUP_CONCAT(tp.topic) FROM trend_points tp WHERE tp.bleep_id = b.id) AS bleep_topics
        FROM notifications n
        JOIN users a ON a.id = n.actor_id
@@ -35,10 +35,18 @@ export async function handleNotificationsGet(request, env) {
   // Same classification the feed cards use (cardCategory() in
   // public/index.html) — kept independent rather than shared, since one
   // is a DB row shape and the other a rendered-card shape, but the actual
-  // matching rule (local beats interest, both need the bleep's own
-  // trend-points) is identical on purpose. Notifications without a
-  // resolvable bleep (follows, comments, tips) just get category: null —
-  // the bell has nothing content-colored to say about those, honestly.
+  // matching rule (commerce beats local beats interest, all three need
+  // the bleep's own trend-points) is identical on purpose. Notifications
+  // without a resolvable bleep (follows, comments, tips) just get
+  // category: null — the bell has nothing content-colored to say about
+  // those, honestly.
+  //
+  // Commerce match reuses the real getRecommendedMerchForTopics() (see
+  // store.js) — recommended_merch is NOT a real column on bleeps, it's
+  // computed from store_items.tags at read time in bleeps.js. An earlier
+  // version of this file tried to SELECT b.recommended_merch directly,
+  // which doesn't exist and threw a SQL error on every request (500,
+  // "Couldn't load notifications right now"). This is the fix.
   let subscribed = [];
   if (user.subscribed_trend_points) {
     try { subscribed = JSON.parse(user.subscribed_trend_points); } catch { subscribed = []; }
@@ -47,16 +55,18 @@ export async function handleNotificationsGet(request, env) {
   const subscribedSet = new Set(subscribed.map((s) => String(s).toLowerCase()));
   const locSlug = user.location_anchor ? String(user.location_anchor).toLowerCase() : null;
 
+  const allTopics = results.flatMap((n) => (n.bleep_topics ? n.bleep_topics.split(',') : []));
+  const merchByTopic = await getRecommendedMerchForTopics(env.DB, allTopics);
+
   const notifications = results.map((n) => {
     let category = null;
-    if (n.bleep_recommended_merch) {
-      category = 'commerce';
-    } else if (n.bleep_topics) {
+    if (n.bleep_topics) {
       const topics = n.bleep_topics.split(',').map((t) => t.toLowerCase());
-      if (locSlug && topics.includes(locSlug)) category = 'local';
+      if (topics.some((t) => merchByTopic.has(t))) category = 'commerce';
+      else if (locSlug && topics.includes(locSlug)) category = 'local';
       else if (topics.some((t) => subscribedSet.has(t))) category = 'interest';
     }
-    const { bleep_recommended_merch, bleep_topics, ...rest } = n;
+    const { bleep_topics, ...rest } = n;
     return { ...rest, category };
   });
 
