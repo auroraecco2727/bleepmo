@@ -5,6 +5,7 @@
 // real and functional. Searches user handles/names, and Bleep captions.
 
 import { getSessionUser } from '../shared/auth.js';
+import { searchUsers } from '../shared/user-search.js';
 
 function badRequest(message, status = 400) {
   return new Response(JSON.stringify({ error: message }), {
@@ -33,16 +34,7 @@ export async function handleSearch(request, env) {
 
   const likeTerm = '%' + q.replace(/[%_]/g, '\\$&') + '%';
 
-  const { results: users } = await env.DB
-    .prepare(
-      `SELECT id, full_name, handle_symbol, handle, avatar_shape, main_pic_key, icon_pic_key
-       FROM users
-       WHERE (handle LIKE ? ESCAPE '\\' OR full_name LIKE ? ESCAPE '\\')
-       ORDER BY (handle LIKE ? ESCAPE '\\') DESC, full_name ASC
-       LIMIT ?`
-    )
-    .bind(likeTerm, likeTerm, q + '%', MAX_RESULTS)
-    .all();
+  const users = await searchUsers(env, q, MAX_RESULTS);
 
   const { results: bleeps } = await env.DB
     .prepare(
