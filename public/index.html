@@ -89,12 +89,41 @@ body::after {
 .tab-bar-toggle:hover::before, .tab-bar-toggle:hover::after,
 .tab-bar-toggle:active::before, .tab-bar-toggle:active::after { background: rgba(212,175,55,0.65); width: 38px; }
 
-.notif-signal {
-  position: absolute; bottom: -2px; right: -4px;
-  display: none; gap: 2.5px; padding: 2px 3px 1px;
-  background: rgba(10,18,45,0.85); border-radius: 6px;
+.notif-bell-badge {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(20,40,100,0.35);
+  border: 1px solid rgba(212,175,55,0.22);
+  box-shadow: 0 0 10px rgba(212,175,55,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.notif-signal-dot { width: 4px; height: 4px; border-radius: 50%; }
+.notif-bell-badge:hover { border-color: rgba(212,175,55,0.4); box-shadow: 0 0 14px rgba(212,175,55,0.15); }
+
+/* Generic "you have unread" indicator — always the same accent color,
+   separate from the category bar below. Matches the small corner dot
+   from the reference concept. */
+.notif-bell-dot {
+  position: absolute; top: 5px; right: 5px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ec4899; box-shadow: 0 0 5px #ec4899;
+  display: none;
+}
+
+/* The answer to "what about that colored bar" — this is the same
+   category-color signal built a few turns back (local/interest/commerce/
+   interactive), just given real visual weight as a thin bar along the
+   badge's bottom inside edge instead of tiny corner dots. No "Bio-
+   feedback" framing, no biometric pretense — purely "here's what kind of
+   unread activity is waiting," using the same four colors as the feed
+   cards everywhere else in the app. */
+.notif-signal {
+  position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+  display: none; gap: 2px;
+}
+.notif-signal-dot { width: 8px; height: 3px; border-radius: 2px; }
 .nav-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 
 .nav-hamburger {
@@ -2205,8 +2234,9 @@ body::after {
       <span class="logo-text">Bleep<span>mo</span></span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <div style="position:relative;cursor:pointer;" onclick="openNotificationsScreen()" title="Notifications">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.5)" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-bell-badge" id="notifBellBadge" onclick="openNotificationsScreen()" title="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.75)" stroke-width="1.6" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-bell-dot" id="navNotifDot"></div>
         <div class="notif-signal" id="navNotifSignal"></div>
       </div>
     </div>
@@ -4970,10 +5000,12 @@ body::after {
 
   function updateNotifBadge(notifications) {
     var unread = notifications.filter(function (n) { return !n.read_at; });
+    var dot = document.getElementById('navNotifDot');
     var signal = document.getElementById('navNotifSignal');
     var drawerBadge = document.getElementById('drawerNotifBadge');
 
     if (drawerBadge) drawerBadge.style.display = unread.length > 0 ? 'inline-block' : 'none';
+    if (dot) dot.style.display = unread.length > 0 ? 'block' : 'none';
     if (!signal) return;
 
     if (!unread.length) {
@@ -4984,33 +5016,25 @@ body::after {
 
     // Distinct categories among unread, in a stable order, capped at 4 —
     // matches the same four content colors used on feed cards, so the
-    // bell is telling the truth about what kind of activity is waiting,
-    // not just that some exists.
+    // bar is telling the truth about what kind of activity is waiting,
+    // not just that some exists. The corner dot above already covers
+    // "you have unread, full stop" — this bar only shows up when at
+    // least one unread item resolves to a real content category, and
+    // simply stays empty otherwise rather than faking one.
     var seen = [];
     ['local', 'interest', 'commerce', 'interactive'].forEach(function (cat) {
       if (unread.some(function (n) { return n.category === cat; })) seen.push(cat);
     });
 
     signal.innerHTML = '';
-    if (seen.length) {
-      seen.forEach(function (cat) {
-        var dot = document.createElement('span');
-        dot.className = 'notif-signal-dot';
-        dot.style.background = NOTIF_CATEGORY_COLORS[cat];
-        dot.style.boxShadow = '0 0 4px ' + NOTIF_CATEGORY_COLORS[cat];
-        signal.appendChild(dot);
-      });
-    } else {
-      // Unread activity exists (a follow, a tip, a reply) but nothing
-      // resolvable to a content category — still show something rather
-      // than silently dropping the "you have unread" signal.
-      var dot = document.createElement('span');
-      dot.className = 'notif-signal-dot';
-      dot.style.background = '#ff5566';
-      dot.style.boxShadow = '0 0 4px #ff5566';
-      signal.appendChild(dot);
-    }
-    signal.style.display = 'flex';
+    seen.forEach(function (cat) {
+      var seg = document.createElement('span');
+      seg.className = 'notif-signal-dot';
+      seg.style.background = NOTIF_CATEGORY_COLORS[cat];
+      seg.style.boxShadow = '0 0 4px ' + NOTIF_CATEGORY_COLORS[cat];
+      signal.appendChild(seg);
+    });
+    signal.style.display = seen.length ? 'flex' : 'none';
   }
 
   async function markAllNotificationsRead() {
