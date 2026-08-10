@@ -94,13 +94,25 @@ body::after {
   display: flex; align-items: center; justify-content: center;
   width: 40px; height: 40px;
   border-radius: 12px;
-  background: rgba(20,40,100,0.35);
-  border: 1px solid rgba(212,175,55,0.22);
-  box-shadow: 0 0 10px rgba(212,175,55,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+  /* Pastel glassmorphism — soft multi-hue gradient behind frosted glass,
+     matching the reference concept. Purely decorative: no element IDs,
+     JS hooks, or dot/signal logic touched, so notification badge
+     behavior below is unaffected. */
+  background: linear-gradient(135deg,
+    rgba(255,183,213,0.32) 0%,
+    rgba(180,210,255,0.32) 35%,
+    rgba(200,180,255,0.30) 65%,
+    rgba(255,214,170,0.30) 100%);
+  background-size: 220% 220%;
+  background-position: 0% 0%;
+  backdrop-filter: blur(16px) saturate(1.7);
+  -webkit-backdrop-filter: blur(16px) saturate(1.7);
+  border: 1px solid rgba(255,255,255,0.32);
+  box-shadow: 0 0 10px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.22);
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background-position 0.6s ease;
 }
-.notif-bell-badge:hover { border-color: rgba(212,175,55,0.4); box-shadow: 0 0 14px rgba(212,175,55,0.15); }
+.notif-bell-badge:hover { background-position: 100% 100%; border-color: rgba(255,255,255,0.5); box-shadow: 0 0 14px rgba(255,255,255,0.16); }
 
 /* Generic "you have unread" indicator — always the same accent color,
    separate from the category bar below. Matches the small corner dot
@@ -2235,7 +2247,7 @@ body::after {
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="notif-bell-badge" id="notifBellBadge" onclick="openNotificationsScreen()" title="Notifications">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.75)" stroke-width="1.6" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.88)" stroke-width="1.6" stroke-linecap="round" style="filter:drop-shadow(0 0 2px rgba(255,255,255,0.25));"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <div class="notif-bell-dot" id="navNotifDot"></div>
         <div class="notif-signal" id="navNotifSignal"></div>
       </div>
