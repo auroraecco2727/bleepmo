@@ -64,7 +64,10 @@ body::after {
 
 .top-nav {
   position: sticky; top: 0; z-index: 60;
-  padding: 14px 16px 10px;
+  /* Trimmed ~half a line off top/bottom vs the original 14px/10px so the
+     Flicks sub-toggle (below) has room to sit visible just under this bar
+     instead of getting buried under it. */
+  padding: 11px 16px 7px;
   background: var(--blue-dark);
   backdrop-filter: blur(28px);
   border-bottom: 0.5px solid rgba(212,175,55,0.12);
@@ -292,14 +295,14 @@ body::after {
   display: flex;
   background: rgba(20,40,100,0.25);
   border: 0.5px solid rgba(212,175,55,0.15);
-  border-radius: 20px; padding: 6px 8px;
+  border-radius: 20px; padding: 5px 8px;
   gap: 4px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
-  max-height: 70px;
+  max-height: 64px;
   opacity: 1;
   transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), padding 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, margin 0.4s cubic-bezier(0.4,0,0.2,1);
   /* Slight right fade to hint more tabs exist */
@@ -310,7 +313,7 @@ body::after {
 .tab {
   flex-shrink: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  padding: 9px 15px; border-radius: 16px;
+  padding: 7px 15px; border-radius: 16px;
   font-size: 10.5px; font-weight: 600; text-align: center;
   cursor: pointer; color: var(--text-lo); transition: all 0.2s;
   white-space: nowrap;
@@ -7739,7 +7742,10 @@ body::after {
 
   .flicks-sub-toggle-pos {
     display: none;
-    position: fixed; top: 116px; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+    /* Repositioned below the top-nav (now ~131px tall after trimming its
+       padding) with a small gap, so the toggle sits visibly under the bar
+       instead of being covered by it when the tab-bar is shown. */
+    position: fixed; top: 136px; left: 0; right: 0; max-width: 480px; margin: 0 auto;
     z-index: 45; pointer-events: none;
   }
   .flicks-sub-toggle {
