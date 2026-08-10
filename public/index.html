@@ -6054,37 +6054,47 @@ body::after {
     }
   }
 
-  function buildLongRecCardHtml(b, onclickAttr) {
+  function buildLongRecCardHtml(b, onclickAttr, isActive) {
     var title = b.title || (b.body ? b.body.slice(0, 50) : 'Untitled');
     var desc = (b.title && b.body) ? b.body.slice(0, 70) : ((b.handle_symbol || '') + (b.handle || ''));
     var videoTag = b.media_key
       ? '<video src="/media/' + b.media_key + '" muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.85;"></video>'
       : '';
+    // isActive = this is the thing currently playing in the big player below.
+    // Gets a gold AR-style ring + small "NOW" tag instead of a click handler,
+    // so it reads as "you are here," not just another thumbnail to tap.
+    var ringHtml = isActive ? '<div class="long-rec-ring"></div><div class="long-rec-now-tag">NOW</div>' : '';
     return (
-      '<div class="long-rec-card" ' + onclickAttr + '>' +
-      '  <div class="long-rec-thumb">' + videoTag + '</div>' +
+      '<div class="long-rec-card' + (isActive ? ' active-now' : '') + '" ' + onclickAttr + '>' +
+      '  <div class="long-rec-thumb">' + videoTag + ringHtml + '</div>' +
       '  <div class="long-rec-title">' + escapeHtml(title) + '</div>' +
       '  <div class="long-rec-desc">' + escapeHtml(desc) + '</div>' +
       '</div>'
     );
   }
 
-  // Top rail: the next few items already loaded in this thread (state.items),
-  // continuing forward from whatever's currently playing.
+  // Top rail: pins whatever's currently playing in first position with a
+  // gold ring so it's an anchor, then the next few items in this thread in
+  // stable forward order. Previously this rendered ONLY the upcoming items
+  // (never the current one), so every click re-centered the whole window
+  // and the set of visible cards jumped around with nothing to orient by —
+  // that's the "wild" behavior being fixed here.
   function renderFlickUpNextRail(paneKey) {
     var rail = document.getElementById(paneKey + 'UpNextRail');
     if (!rail) return;
     var state = flickPaneState[paneKey];
     var n = state.items.length;
-    if (n < 2) { rail.innerHTML = '<div style="font-size:11.5px;color:var(--text-lo);padding:0 14px 10px;">Nothing queued up yet.</div>'; return; }
-    var upNext = [];
-    for (var i = 1; i <= Math.min(4, n - 1); i++) {
-      upNext.push(state.items[(state.activeIndex + i) % n]);
-    }
-    rail.innerHTML = upNext.map(function (b) {
+    if (!n) { rail.innerHTML = ''; return; }
+    var current = state.items[state.activeIndex];
+    var cards = [buildLongRecCardHtml(current, 'onclick="event.stopPropagation()"', true)];
+    var shown = Math.min(4, n - 1);
+    for (var i = 1; i <= shown; i++) {
+      var b = state.items[(state.activeIndex + i) % n];
+      if (b === current) continue; // guards small-n wrap-around landing back on current
       var idx = state.items.indexOf(b);
-      return buildLongRecCardHtml(b, 'onclick="setActiveFlick(\'' + paneKey + '\', ' + idx + ')"');
-    }).join('');
+      cards.push(buildLongRecCardHtml(b, 'onclick="setActiveFlick(\'' + paneKey + '\', ' + idx + ')"', false));
+    }
+    rail.innerHTML = cards.join('');
   }
 
   // Bottom rail: a separate, general recommendation pool — distinct from the
@@ -7904,6 +7914,33 @@ body::after {
     border: 1px solid rgba(212,175,55,0.15); transition: border-color 0.2s, transform 0.2s;
   }
   .long-rec-card:hover .long-rec-thumb { border-color: rgba(212,175,55,0.4); transform: translateY(-2px); }
+  .long-rec-card.active-now { cursor: default; }
+  .long-rec-card.active-now .long-rec-thumb { border-color: rgba(212,175,55,0.85); }
+  .long-rec-card.active-now:hover .long-rec-thumb { transform: none; }
+  /* Gold AR-style ring pinned over the currently-playing thumbnail — a
+     double ring plus a slow outward pulse, so "this is what you're
+     watching" reads at a glance instead of the eye having to hunt for it
+     across a reshuffling rail. */
+  .long-rec-ring {
+    position: absolute; inset: 0; border-radius: 10px; pointer-events: none;
+    border: 1.5px solid var(--gold);
+    box-shadow: 0 0 0 3px rgba(212,175,55,0.18), inset 0 0 14px rgba(212,175,55,0.25);
+  }
+  .long-rec-ring::after {
+    content: ''; position: absolute; inset: -4px; border-radius: 13px;
+    border: 1px solid rgba(212,175,55,0.55);
+    animation: longRecRingPulse 1.8s ease-out infinite;
+  }
+  @keyframes longRecRingPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    100% { transform: scale(1.12); opacity: 0; }
+  }
+  .long-rec-now-tag {
+    position: absolute; bottom: 4px; left: 4px; z-index: 2;
+    font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em;
+    color: #05070f; background: var(--gold);
+    padding: 1.5px 5px; border-radius: 5px;
+  }
   .long-rec-title {
     font-size: 11.5px; font-weight: 700; color: var(--text-hi); margin-top: 6px; line-height: 1.3;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
