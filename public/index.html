@@ -933,11 +933,15 @@ body::after {
 .compose-fab-wrap {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 55;
   max-width: 480px; margin: 0 auto;
-  display: flex; justify-content: flex-end; padding: 0 18px 22px;
+  display: flex; justify-content: flex-end;
+  /* Raised from a 22px bottom offset — it was floating low enough to
+     overlap post-card content below the video instead of sitting near
+     the video/controls area above it. */
+  padding: 0 18px 100px;
   pointer-events: none;
 }
 .compose-fab {
-  width: 52px; height: 52px; border-radius: 50%;
+  width: 52px; height: 52px; border-radius: 16px;
   background: rgba(10,18,45,0.9); backdrop-filter: blur(16px);
   border: 1.5px solid rgba(212,175,55,0.45);
   display: flex; align-items: center; justify-content: center;
