@@ -996,13 +996,13 @@ body::after {
 .composer-headline-input {
   background: transparent; border: none; outline: none;
   font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-hi);
-  padding: 0;
+  padding: 0; width: 100%; box-sizing: border-box;
 }
 .composer-headline-input::placeholder { color: var(--text-lo); font-weight: 600; }
 .composer-body-input {
   background: transparent; border: none; outline: none; resize: none;
   font-size: 13.5px; color: var(--text-hi); line-height: 1.5; padding: 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', sans-serif; width: 100%; box-sizing: border-box;
 }
 .composer-body-input::placeholder { color: var(--text-lo); }
 
@@ -7198,8 +7198,15 @@ body::after {
       // mousedown (not click) fires before the input's blur, so the
       // suggestion is still in the DOM when it's selected — click would
       // lose the race to scheduleHideTagSuggestions()'s blur handler.
+      // stopPropagation matters too: addComposeTag() below clears the
+      // dropdown's innerHTML, detaching this very row from the DOM before
+      // the event finishes bubbling. Without stopping it here, the
+      // document-level "click outside closes the composer" listener sees
+      // a detached evt.target, treats it as an outside click, and closes
+      // the whole composer the instant you tag someone.
       row.onmousedown = function (evt) {
         evt.preventDefault();
+        evt.stopPropagation();
         addComposeTag(u.handle);
       };
       dropdown.appendChild(row);
