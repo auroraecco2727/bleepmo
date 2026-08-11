@@ -3985,6 +3985,20 @@ body::after {
     });
   }
 
+  // Plain fetch() never times out on its own — a slow/cold Worker or a
+  // degraded connection (VPN, flaky wifi) can leave a request pending
+  // indefinitely, which is what was causing the calendar to hang forever
+  // on "Loading…" with no console error. This wraps fetch with a hard
+  // deadline so a stalled request fails and can be retried, instead of
+  // hanging forever.
+  function fetchWithTimeout(url, options, timeoutMs) {
+    timeoutMs = timeoutMs || 10000;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+    var opts = Object.assign({}, options || {}, { signal: controller.signal });
+    return fetch(url, opts).finally(function () { clearTimeout(timer); });
+  }
+
   function renderBleepMentions(text) {
     text = text || '';
     var re = /(^|[^A-Za-z0-9_])([@*~^>&])([A-Za-z0-9_]{2,30})/g;
@@ -6449,8 +6463,15 @@ body::after {
 
     try {
       var monthParam = calMonthKey(year, month);
-      var evRes = await fetch('/api/calendar/events?month=' + monthParam, { credentials: 'include' });
-      var vaultRes = await fetch('/api/vault?month=' + monthParam, { credentials: 'include' });
+      // Run both requests in parallel (was sequential) and give each a hard
+      // 10s deadline, so a slow/cold Worker response can't hang the whole
+      // screen indefinitely — it fails visibly and offers a retry instead.
+      var results = await Promise.all([
+        fetchWithTimeout('/api/calendar/events?month=' + monthParam, { credentials: 'include' }, 10000),
+        fetchWithTimeout('/api/vault?month=' + monthParam, { credentials: 'include' }, 10000)
+      ]);
+      var evRes = results[0];
+      var vaultRes = results[1];
       var evData = evRes.ok ? await evRes.json() : { events: [] };
       var vaultData = vaultRes.ok ? await vaultRes.json() : { vaultEntries: [] };
 
@@ -6465,7 +6486,9 @@ body::after {
 
       renderCalendarGrid(year, month);
     } catch (err) {
-      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding:20px 0; color:var(--text-lo); font-size:11px;">Couldn\'t load calendar.</div>';
+      var timedOut = err && err.name === 'AbortError';
+      var msg = timedOut ? 'Taking too long to load — tap to retry.' : 'Couldn\'t load calendar.';
+      grid.innerHTML = '<div onclick="loadCalendarMonth(' + year + ',' + month + ')" style="grid-column: 1 / -1; text-align:center; padding:20px 0; color:var(--text-lo); font-size:11px; cursor:pointer;">' + msg + '</div>';
     }
   }
 
