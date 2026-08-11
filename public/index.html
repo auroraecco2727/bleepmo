@@ -7600,7 +7600,8 @@ body::after {
     var showLive = slideKey === 'flicksLive';
     var showCalendar = slideKey === 'calendar';
     var showStore = slideKey === 'eStore';
-    var isComingSoon = slideKey === 'offers';
+    var showOffers = slideKey === 'offers';
+    var isComingSoon = false; // 'offers' now has a real (mock) screen — nothing routes here anymore
 
     document.getElementById('feed').style.display = showFeed ? '' : 'none';
     document.getElementById('scrollDots').style.display = showFeed ? '' : 'none';
@@ -7609,6 +7610,7 @@ body::after {
     document.getElementById('flicksLivePane').style.display = showLive ? 'flex' : 'none';
     document.getElementById('calendarPane').style.display = showCalendar ? 'flex' : 'none';
     document.getElementById('storePane').style.display = showStore ? 'flex' : 'none';
+    document.getElementById('offersPane').style.display = showOffers ? 'flex' : 'none';
 
     var csView = document.getElementById('comingSoonView');
     if (isComingSoon) {
@@ -8379,6 +8381,273 @@ body::after {
     <div class="store-segment-btn" id="storeSegGear" onclick="switchStoreSegment('bleepmo_gear')">Bleepmo Gear</div>
   </div>
   <div id="storeItemsContainer"><div class="profile-loading">Loading…</div></div>
+</div>
+
+<!-- ══ SPECIAL OFFERS — mixed discovery surface: sponsored offers + Bleepmo's
+     own recommendations (Flicks / Bleeps / People). Mock content only for
+     now (no backend wiring), built to show the intended layout: a few
+     clearly-labeled sections rather than one undifferentiated grid, so it
+     reads as organized instead of a wall of tiles. ══ -->
+<style>
+  #offersPane {
+    display: none; flex-direction: column;
+    height: calc(100vh - 108px); overflow-y: auto; scrollbar-width: none;
+  }
+  #offersPane::-webkit-scrollbar { display: none; }
+
+  .offers-intro { font-size: 11.5px; color: var(--text-lo); line-height: 1.5; padding: 14px 16px 4px; }
+
+  .offers-section { margin-top: 18px; }
+  .offers-section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 0 16px 9px;
+  }
+  .offers-section-title {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Syne', sans-serif; font-size: 12.5px; font-weight: 700; color: var(--text-hi);
+  }
+  .offers-section-sub { font-size: 10px; color: var(--text-lo); margin-top: 1px; }
+  .offers-see-all { font-size: 10.5px; color: rgba(212,175,55,0.7); cursor: default; }
+
+  /* Sponsored — stacked, full-width banner cards. These read most like
+     "ads" so they get the least visual noise: one per row, clearly priced. */
+  .offer-sponsor-list { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+  .offer-sponsor-card {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 13px; border-radius: 13px;
+    background: rgba(212,175,55,0.055); border: 0.5px solid rgba(212,175,55,0.2);
+  }
+  .offer-sponsor-icon {
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(212,175,55,0.14);
+  }
+  .offer-sponsor-body { flex: 1; min-width: 0; }
+  .offer-sponsor-label { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(212,175,55,0.65); }
+  .offer-sponsor-title { font-size: 12.5px; font-weight: 700; color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .offer-sponsor-sub { font-size: 10.5px; color: var(--text-mid); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .offer-sponsor-cta {
+    flex-shrink: 0; font-size: 11px; font-weight: 700; color: #161225;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
+    padding: 7px 13px; border-radius: 999px;
+  }
+
+  /* Recommended Flicks — horizontal rail, same card language as the Flicks
+     "Up Next" rail elsewhere so it feels like one app, not a bolted-on tab. */
+  .offer-flick-rail {
+    display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none;
+    padding: 0 16px 4px;
+  }
+  .offer-flick-rail::-webkit-scrollbar { display: none; }
+  .offer-flick-card { flex: 0 0 128px; }
+  .offer-flick-thumb {
+    position: relative; width: 128px; height: 168px; border-radius: 12px; overflow: hidden;
+    border: 0.5px solid rgba(212,175,55,0.18);
+  }
+  .offer-flick-thumb .oft-play {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .offer-flick-thumb .oft-len {
+    position: absolute; bottom: 5px; left: 5px; font-size: 7.5px; font-weight: 800; letter-spacing: 0.04em;
+    color: #161225; background: var(--gold); padding: 1.5px 5px; border-radius: 5px;
+  }
+  .offer-flick-title { font-size: 11px; font-weight: 600; color: var(--text-hi); margin-top: 6px; line-height: 1.3; }
+  .offer-flick-creator { font-size: 9.5px; color: var(--text-lo); margin-top: 1px; }
+
+  /* Recommended Bleeps — compact 2-col grid, text-forward since these are posts. */
+  .offer-bleep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 16px; }
+  .offer-bleep-card {
+    padding: 10px 11px; border-radius: 12px;
+    background: rgba(255,255,255,0.03); border: 0.5px solid rgba(212,175,55,0.1);
+  }
+  .offer-bleep-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .offer-bleep-name { font-size: 10.5px; font-weight: 700; color: var(--text-hi); }
+  .offer-bleep-handle { font-size: 9px; color: var(--text-lo); }
+  .offer-bleep-body { font-size: 10.5px; color: var(--text-mid); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .offer-bleep-meta { display: flex; gap: 10px; margin-top: 8px; font-size: 9.5px; color: var(--text-lo); }
+
+  /* Recommended People — horizontal rail of compact profile chips. */
+  .offer-people-rail {
+    display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none;
+    padding: 0 16px 18px;
+  }
+  .offer-people-rail::-webkit-scrollbar { display: none; }
+  .offer-people-card {
+    flex: 0 0 118px; text-align: center; padding: 14px 8px 12px; border-radius: 14px;
+    background: rgba(255,255,255,0.025); border: 0.5px solid rgba(212,175,55,0.1);
+  }
+  .offer-people-name { font-size: 11px; font-weight: 700; color: var(--text-hi); margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .offer-people-handle { font-size: 9px; color: var(--text-lo); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .offer-people-follow {
+    font-size: 10px; font-weight: 700; color: #161225; cursor: default;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
+    padding: 5px 16px; border-radius: 999px; display: inline-block;
+  }
+</style>
+
+<div id="offersPane">
+  <div class="offers-intro">Sponsored offers, plus Flicks, Bleeps, and people Bleepmo thinks you'll like — all in one place.</div>
+
+  <div class="offers-section">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">🏷️ Sponsored</div>
+        <div class="offers-section-sub">Paid placements from partners</div>
+      </div>
+    </div>
+    <div class="offer-sponsor-list">
+      <div class="offer-sponsor-card">
+        <div class="offer-sponsor-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6"><path d="M6 2l1.5 4h9L18 2M3.5 6h17l-1.6 13a2 2 0 0 1-2 1.8H7.1a2 2 0 0 1-2-1.8z"/></svg></div>
+        <div class="offer-sponsor-body">
+          <div class="offer-sponsor-label">Featured Partner</div>
+          <div class="offer-sponsor-title">FocusGroups.org — Paid Studies</div>
+          <div class="offer-sponsor-sub">Earn $75+ for a 45-minute session</div>
+        </div>
+        <div class="offer-sponsor-cta">View</div>
+      </div>
+      <div class="offer-sponsor-card">
+        <div class="offer-sponsor-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></div>
+        <div class="offer-sponsor-body">
+          <div class="offer-sponsor-label">Sponsored</div>
+          <div class="offer-sponsor-title">Central Casting — Now Booking</div>
+          <div class="offer-sponsor-sub">Background roles near you this week</div>
+        </div>
+        <div class="offer-sponsor-cta">Apply</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offers-section">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">🎬 Flicks You Might Like</div>
+        <div class="offers-section-sub">Picked from your trend-points</div>
+      </div>
+      <div class="offers-see-all">See all</div>
+    </div>
+    <div class="offer-flick-rail">
+      <div class="offer-flick-card">
+        <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#2a3a6b,#0f1b3d);">
+          <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
+          <div class="oft-len">LONG</div>
+        </div>
+        <div class="offer-flick-title">5-step guide: after buying land</div>
+        <div class="offer-flick-creator">*AB111</div>
+      </div>
+      <div class="offer-flick-card">
+        <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#3b2a5e,#150f30);">
+          <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
+          <div class="oft-len">SHORT</div>
+        </div>
+        <div class="offer-flick-title">GRWM: closing day edition</div>
+        <div class="offer-flick-creator">*AB142</div>
+      </div>
+      <div class="offer-flick-card">
+        <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#2a5e4e,#0f2a22);">
+          <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
+          <div class="oft-len">LIVE</div>
+        </div>
+        <div class="offer-flick-title">Home inspection walk-through</div>
+        <div class="offer-flick-creator">GeorgiaPeach</div>
+      </div>
+      <div class="offer-flick-card">
+        <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#5e4a2a,#301f0f);">
+          <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
+          <div class="oft-len">LONG</div>
+        </div>
+        <div class="offer-flick-title">First-time buyer mistakes</div>
+        <div class="offer-flick-creator">*AB111</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offers-section">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">💬 Bleeps Worth Your Time</div>
+        <div class="offers-section-sub">Popular in your interests</div>
+      </div>
+      <div class="offers-see-all">See all</div>
+    </div>
+    <div class="offer-bleep-grid">
+      <div class="offer-bleep-card">
+        <div class="offer-bleep-head">
+          <div>
+            <div class="offer-bleep-name">GeorgiaPeach</div>
+            <div class="offer-bleep-handle">*GeorgePeach</div>
+          </div>
+        </div>
+        <div class="offer-bleep-body">test design — a quick look at the new custom color theme.</div>
+        <div class="offer-bleep-meta"><span>♡ 2</span><span>💬 0</span></div>
+      </div>
+      <div class="offer-bleep-card">
+        <div class="offer-bleep-head">
+          <div>
+            <div class="offer-bleep-name">AB111</div>
+            <div class="offer-bleep-handle">*AB111</div>
+          </div>
+        </div>
+        <div class="offer-bleep-body">Important Steps buying a home — first-timer notes, still rambling but it's real.</div>
+        <div class="offer-bleep-meta"><span>♡ 1</span><span>💬 1</span></div>
+      </div>
+      <div class="offer-bleep-card">
+        <div class="offer-bleep-head">
+          <div>
+            <div class="offer-bleep-name">AB142</div>
+            <div class="offer-bleep-handle">@AB142</div>
+          </div>
+        </div>
+        <div class="offer-bleep-body">Breaking: new screen recommendation just dropped in Special Offers 👀</div>
+        <div class="offer-bleep-meta"><span>♡ 0</span><span>💬 1</span></div>
+      </div>
+      <div class="offer-bleep-card">
+        <div class="offer-bleep-head">
+          <div>
+            <div class="offer-bleep-name">AB111</div>
+            <div class="offer-bleep-handle">*AB111</div>
+          </div>
+        </div>
+        <div class="offer-bleep-body">Testing all these new features — at the end of the day, still a kid at the candy store.</div>
+        <div class="offer-bleep-meta"><span>♡ 1</span><span>💬 1</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offers-section" style="margin-bottom:20px;">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">👤 People to Follow</div>
+        <div class="offers-section-sub">Active in your interests</div>
+      </div>
+      <div class="offers-see-all">See all</div>
+    </div>
+    <div class="offer-people-rail">
+      <div class="offer-people-card">
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">GP</div>
+        <div class="offer-people-name">GeorgiaPeach</div>
+        <div class="offer-people-handle">*GeorgePeach</div>
+        <div class="offer-people-follow">Follow</div>
+      </div>
+      <div class="offer-people-card">
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">AB</div>
+        <div class="offer-people-name">AB142</div>
+        <div class="offer-people-handle">@AB142</div>
+        <div class="offer-people-follow">Follow</div>
+      </div>
+      <div class="offer-people-card">
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">AB</div>
+        <div class="offer-people-name">AB111</div>
+        <div class="offer-people-handle">*AB111</div>
+        <div class="offer-people-follow">Follow</div>
+      </div>
+      <div class="offer-people-card">
+        <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">VS</div>
+        <div class="offer-people-name">VS Studio</div>
+        <div class="offer-people-handle">*VSStudio</div>
+        <div class="offer-people-follow">Follow</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Day detail sheet: Events + Vault entries for the tapped date -->
