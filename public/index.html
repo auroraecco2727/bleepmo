@@ -6840,7 +6840,29 @@ body::after {
   var composeCurrentStep = 1;
   var COMPOSE_STEP_COUNT = 6;
 
+  // Flushes whatever's still typed (but not yet committed via Enter/,/;)
+  // in the trend-point or tag-people inputs. Without this, typing a value
+  // and clicking Continue/Back straight away silently threw it away —
+  // it looked like the field was rejecting input entirely.
+  function flushPendingComposeInputs() {
+    var trendInput = document.getElementById('composeTrendInput');
+    if (trendInput && trendInput.value.trim()) {
+      var tVal = trendInput.value.trim().replace(/[,;]$/, '');
+      if (tVal && composeTrendPoints.indexOf(tVal) === -1 && composeTrendPoints.length < 8) {
+        composeTrendPoints.push(tVal);
+        renderComposeTrendChips();
+      }
+      trendInput.value = '';
+    }
+    var tagInput = document.getElementById('composeTagInput');
+    if (tagInput && tagInput.value.trim()) {
+      var hVal = tagInput.value.trim().replace(/[,;]$/, '').replace(/^[@*~^>&]/, '');
+      if (hVal) addComposeTag(hVal);
+    }
+  }
+
   function composeGoToStep(step) {
+    flushPendingComposeInputs();
     if (step < 1) step = 1;
     if (step > COMPOSE_STEP_COUNT) step = COMPOSE_STEP_COUNT;
     composeCurrentStep = step;
@@ -7040,10 +7062,10 @@ body::after {
   }
 
   function handleTrendInputKeydown(evt) {
-    if (evt.key === 'Enter' || evt.key === ',') {
+    if (evt.key === 'Enter' || evt.key === ',' || evt.key === ';') {
       evt.preventDefault();
       var input = document.getElementById('composeTrendInput');
-      var val = input.value.trim().replace(/,$/, '');
+      var val = input.value.trim().replace(/[,;]$/, '');
       if (val && composeTrendPoints.indexOf(val) === -1 && composeTrendPoints.length < 8) {
         composeTrendPoints.push(val);
         renderComposeTrendChips();
@@ -7102,7 +7124,7 @@ body::after {
       return;
     }
 
-    if (evt.key === 'Enter' || evt.key === ',') {
+    if (evt.key === 'Enter' || evt.key === ',' || evt.key === ';') {
       evt.preventDefault();
       if (activeRow) {
         addComposeTag(activeRow.getAttribute('data-handle'));
@@ -7113,7 +7135,7 @@ body::after {
       // time regardless, so this remains a safe manual override for
       // anyone who already knows the exact handle they want.
       var input = document.getElementById('composeTagInput');
-      var val = input.value.trim().replace(/,$/, '').replace(/^[@*~^>&]/, '');
+      var val = input.value.trim().replace(/[,;]$/, '').replace(/^[@*~^>&]/, '');
       addComposeTag(val);
       return;
     }
@@ -7399,6 +7421,7 @@ body::after {
 
   async function submitCompose() {
     hideComposeError();
+    flushPendingComposeInputs(); // covers "Just post it — skip the guide", which bypasses composeGoToStep
     var bodyInput = document.getElementById('composeBody');
     var titleInput = document.getElementById('composeTitleInput');
     var body = bodyInput.value.trim();
