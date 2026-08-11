@@ -7929,16 +7929,16 @@ body.theme-nebula .auth-screen {
 
   .flicks-sub-toggle-pos {
     display: none;
-    /* Moved down from directly under the top-nav (was top:136px, which
-       overlapped the "Up next" rail thumbnails and felt cluttered) to sit
-       just below the active video's title/tags block instead, in the gap
-       before "Recommended by Bleepmo" — measured against the real rendered
-       layout so it lands in that gap rather than guessed. Note: this is
-       still position:fixed, so on a post with a longer description or more
-       tags than this typical one, that block may run taller and shift the
-       actual gap — worth a glance on a few real posts once deployed.
+    /* Reverted back under the top-nav. The lower position (under the
+       video's title/tags block) looked fine against the empty mock post
+       used to measure it, but on real posts with an actual video playing
+       there, it sat right in the middle of the video and blocked it —
+       worse than the original clutter-over-the-rail problem it was meant
+       to fix. Back to the safe, content-independent spot: fixed height
+       under the nav, same on every post regardless of video/description
+       length.
     */
-    position: fixed; top: 385px; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+    position: fixed; top: 136px; left: 0; right: 0; max-width: 480px; margin: 0 auto;
     z-index: 45; pointer-events: none;
   }
   .flicks-sub-toggle {
@@ -8085,12 +8085,6 @@ body.theme-nebula .auth-screen {
     font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-lo);
     padding: 14px 14px 8px;
   }
-  /* Extra clearance above just the bottom ("Recommended by Bleepmo") rail —
-     the relocated Long/Short/LiveStream toggle now floats in this gap, and
-     without this the label text would sit right under (or behind) it.
-     margin (not padding) — padding only shifts the text inside the box,
-     the box's own top edge needs to move for real clearance. */
-  .long-rec-rail-label.long-rail-bottom { margin-top: 28px; }
   .long-rec-rail {
     display: flex; gap: 10px; overflow-x: auto; padding: 0 14px 14px;
     scrollbar-width: none;
