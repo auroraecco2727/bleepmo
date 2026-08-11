@@ -5526,6 +5526,38 @@ body::after {
   /* ══ e-Store pane (minimal v1) ══ */
   var storeState = { activeSegment: 'platform_upgrade' };
 
+  // ── Special Offers — interaction handlers ──
+  // These mock cards have no real database records behind them (no real
+  // bleep IDs, no real user IDs), so a couple of things below are honest
+  // stubs (a toast explaining what it would do) rather than fake success —
+  // wiring them to openProfileScreen()/openCommentsScreen() with made-up
+  // IDs would just fail against the API and look broken, which is worse.
+  // What CAN be genuinely real: jumping to the correct tab/sub-pane, since
+  // that doesn't depend on any specific record existing.
+  function jumpToOfferFlick(kind) {
+    goToSlide(kind === 'short' ? 'flicksShort' : kind === 'live' ? 'flicksLive' : 'flicksLong');
+  }
+  function jumpToOfferBleep() {
+    goToSlide('forYou');
+    showToast('Opening the feed — this mock card isn\'t linked to a real post yet.');
+  }
+  function offerSponsorClick(sponsorName) {
+    showToast('This would open ' + sponsorName + ' — sponsor links aren\'t wired to real destinations yet.');
+  }
+  function offerPersonClick() {
+    showToast('Profile pages need a real account behind them — this mock card isn\'t linked to one yet.');
+  }
+  function offerSeeAllPeople() {
+    showToast('People discovery isn\'t built yet — this would show more suggested accounts.');
+  }
+  // Follow here is local UI state only (no API call) — same reasoning as
+  // above, there's no real account on the other end of this button yet.
+  function toggleOfferFollow(evt, btn) {
+    evt.stopPropagation();
+    var following = btn.classList.toggle('following');
+    btn.textContent = following ? 'Following' : 'Follow';
+  }
+
   function switchStoreSegment(segment) {
     storeState.activeSegment = segment;
     document.getElementById('storeSegPlatform').classList.toggle('active', segment === 'platform_upgrade');
@@ -8479,10 +8511,21 @@ body::after {
   .offer-people-name { font-size: 11px; font-weight: 700; color: var(--text-hi); margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .offer-people-handle { font-size: 9px; color: var(--text-lo); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .offer-people-follow {
-    font-size: 10px; font-weight: 700; color: #161225; cursor: default;
+    font-size: 10px; font-weight: 700; color: #161225; cursor: pointer;
     background: linear-gradient(90deg, var(--gold-dim), var(--gold) 45%, var(--gold-light));
     padding: 5px 16px; border-radius: 999px; display: inline-block;
+    transition: all 0.15s;
   }
+  .offer-people-follow.following {
+    background: rgba(212,175,55,0.08); color: var(--gold); border: 1px solid rgba(212,175,55,0.35);
+  }
+
+  /* Hover affordance for everything now clickable */
+  .offer-sponsor-card, .offer-flick-card, .offer-bleep-card, .offer-people-card, .offers-see-all { cursor: pointer; }
+  .offer-sponsor-card:hover { background: rgba(212,175,55,0.09); }
+  .offer-flick-card:hover .offer-flick-thumb { border-color: rgba(212,175,55,0.45); }
+  .offer-bleep-card:hover, .offer-people-card:hover { background: rgba(212,175,55,0.06); }
+  .offers-see-all:hover { color: rgba(212,175,55,0.95); }
 </style>
 
 <div id="offersPane">
@@ -8496,7 +8539,7 @@ body::after {
       </div>
     </div>
     <div class="offer-sponsor-list">
-      <div class="offer-sponsor-card">
+      <div class="offer-sponsor-card" onclick="offerSponsorClick('FocusGroups.org')">
         <div class="offer-sponsor-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6"><path d="M6 2l1.5 4h9L18 2M3.5 6h17l-1.6 13a2 2 0 0 1-2 1.8H7.1a2 2 0 0 1-2-1.8z"/></svg></div>
         <div class="offer-sponsor-body">
           <div class="offer-sponsor-label">Featured Partner</div>
@@ -8505,7 +8548,7 @@ body::after {
         </div>
         <div class="offer-sponsor-cta">View</div>
       </div>
-      <div class="offer-sponsor-card">
+      <div class="offer-sponsor-card" onclick="offerSponsorClick('Central Casting')">
         <div class="offer-sponsor-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></div>
         <div class="offer-sponsor-body">
           <div class="offer-sponsor-label">Sponsored</div>
@@ -8523,10 +8566,10 @@ body::after {
         <div class="offers-section-title">🎬 Flicks You Might Like</div>
         <div class="offers-section-sub">Picked from your trend-points</div>
       </div>
-      <div class="offers-see-all">See all</div>
+      <div class="offers-see-all" onclick="jumpToOfferFlick('long')">See all</div>
     </div>
     <div class="offer-flick-rail">
-      <div class="offer-flick-card">
+      <div class="offer-flick-card" onclick="jumpToOfferFlick('long')">
         <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#2a3a6b,#0f1b3d);">
           <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
           <div class="oft-len">LONG</div>
@@ -8534,7 +8577,7 @@ body::after {
         <div class="offer-flick-title">5-step guide: after buying land</div>
         <div class="offer-flick-creator">*AB111</div>
       </div>
-      <div class="offer-flick-card">
+      <div class="offer-flick-card" onclick="jumpToOfferFlick('short')">
         <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#3b2a5e,#150f30);">
           <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
           <div class="oft-len">SHORT</div>
@@ -8542,7 +8585,7 @@ body::after {
         <div class="offer-flick-title">GRWM: closing day edition</div>
         <div class="offer-flick-creator">*AB142</div>
       </div>
-      <div class="offer-flick-card">
+      <div class="offer-flick-card" onclick="jumpToOfferFlick('live')">
         <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#2a5e4e,#0f2a22);">
           <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
           <div class="oft-len">LIVE</div>
@@ -8550,7 +8593,7 @@ body::after {
         <div class="offer-flick-title">Home inspection walk-through</div>
         <div class="offer-flick-creator">GeorgiaPeach</div>
       </div>
-      <div class="offer-flick-card">
+      <div class="offer-flick-card" onclick="jumpToOfferFlick('long')">
         <div class="offer-flick-thumb" style="background:linear-gradient(160deg,#5e4a2a,#301f0f);">
           <div class="oft-play"><svg width="26" height="26" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,0.28)"/><path d="M10 8l6 4-6 4z"/></svg></div>
           <div class="oft-len">LONG</div>
@@ -8567,10 +8610,10 @@ body::after {
         <div class="offers-section-title">💬 Bleeps Worth Your Time</div>
         <div class="offers-section-sub">Popular in your interests</div>
       </div>
-      <div class="offers-see-all">See all</div>
+      <div class="offers-see-all" onclick="jumpToOfferBleep()">See all</div>
     </div>
     <div class="offer-bleep-grid">
-      <div class="offer-bleep-card">
+      <div class="offer-bleep-card" onclick="jumpToOfferBleep()">
         <div class="offer-bleep-head">
           <div>
             <div class="offer-bleep-name">GeorgiaPeach</div>
@@ -8580,7 +8623,7 @@ body::after {
         <div class="offer-bleep-body">test design — a quick look at the new custom color theme.</div>
         <div class="offer-bleep-meta"><span>♡ 2</span><span>💬 0</span></div>
       </div>
-      <div class="offer-bleep-card">
+      <div class="offer-bleep-card" onclick="jumpToOfferBleep()">
         <div class="offer-bleep-head">
           <div>
             <div class="offer-bleep-name">AB111</div>
@@ -8590,7 +8633,7 @@ body::after {
         <div class="offer-bleep-body">Important Steps buying a home — first-timer notes, still rambling but it's real.</div>
         <div class="offer-bleep-meta"><span>♡ 1</span><span>💬 1</span></div>
       </div>
-      <div class="offer-bleep-card">
+      <div class="offer-bleep-card" onclick="jumpToOfferBleep()">
         <div class="offer-bleep-head">
           <div>
             <div class="offer-bleep-name">AB142</div>
@@ -8600,7 +8643,7 @@ body::after {
         <div class="offer-bleep-body">Breaking: new screen recommendation just dropped in Special Offers 👀</div>
         <div class="offer-bleep-meta"><span>♡ 0</span><span>💬 1</span></div>
       </div>
-      <div class="offer-bleep-card">
+      <div class="offer-bleep-card" onclick="jumpToOfferBleep()">
         <div class="offer-bleep-head">
           <div>
             <div class="offer-bleep-name">AB111</div>
@@ -8619,32 +8662,32 @@ body::after {
         <div class="offers-section-title">👤 People to Follow</div>
         <div class="offers-section-sub">Active in your interests</div>
       </div>
-      <div class="offers-see-all">See all</div>
+      <div class="offers-see-all" onclick="offerSeeAllPeople()">See all</div>
     </div>
     <div class="offer-people-rail">
-      <div class="offer-people-card">
+      <div class="offer-people-card" onclick="offerPersonClick()">
         <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">GP</div>
         <div class="offer-people-name">GeorgiaPeach</div>
         <div class="offer-people-handle">*GeorgePeach</div>
-        <div class="offer-people-follow">Follow</div>
+        <div class="offer-people-follow" onclick="toggleOfferFollow(event, this)">Follow</div>
       </div>
-      <div class="offer-people-card">
+      <div class="offer-people-card" onclick="offerPersonClick()">
         <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">AB</div>
         <div class="offer-people-name">AB142</div>
         <div class="offer-people-handle">@AB142</div>
-        <div class="offer-people-follow">Follow</div>
+        <div class="offer-people-follow" onclick="toggleOfferFollow(event, this)">Follow</div>
       </div>
-      <div class="offer-people-card">
+      <div class="offer-people-card" onclick="offerPersonClick()">
         <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">AB</div>
         <div class="offer-people-name">AB111</div>
         <div class="offer-people-handle">*AB111</div>
-        <div class="offer-people-follow">Follow</div>
+        <div class="offer-people-follow" onclick="toggleOfferFollow(event, this)">Follow</div>
       </div>
-      <div class="offer-people-card">
+      <div class="offer-people-card" onclick="offerPersonClick()">
         <div style="width:52px;height:52px;border-radius:50%;margin:0 auto;background:rgba(212,175,55,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;">VS</div>
         <div class="offer-people-name">VS Studio</div>
         <div class="offer-people-handle">*VSStudio</div>
-        <div class="offer-people-follow">Follow</div>
+        <div class="offer-people-follow" onclick="toggleOfferFollow(event, this)">Follow</div>
       </div>
     </div>
   </div>
