@@ -6409,17 +6409,9 @@ body.theme-nebula .auth-screen {
             '<div class="flick-play" id="' + p + 'FlickPlayBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg></div>' +
           '</div>' +
           '<div class="flick-actions"' + (isLong ? ' style="top:24px;transform:none;"' : '') + '>' +
-            (isLong ?
-              '<span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleFlickBleepbot(\'' + p + '\')">' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-              '</span>'
-              :
-              '<div class="flick-act" id="' + p + 'FlickLikeAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label" id="' + p + 'FlickLikeCount">0</span></div>' +
-              '<div class="flick-act" id="' + p + 'FlickCommentAct"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount">0</span></div>' +
-              '<div class="flick-act" id="' + p + 'BingeAct" onclick="event.stopPropagation(); openBingeSettings()" title="Binge Mode settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span class="flick-act-label" id="' + p + 'BingeLabel">Binge</span></div>' +
-              '<div class="flick-act" id="' + p + 'VaultAct" onclick="event.stopPropagation(); openVaultFromFlick(\'' + p + '\')" title="Save to Vault"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label">Vault</span></div>' +
-              '<div class="flick-act" id="' + p + 'TipAct" onclick="event.stopPropagation(); openTipModalFromFlick(\'' + p + '\')" title="Send a tip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg><span class="flick-act-label">Tip</span></div>'
-            ) +
+            '<span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleFlickBleepbot(\'' + p + '\')">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '</span>' +
           '</div>' +
           '<div class="visor-bar" id="' + p + 'FlickVisorBar" style="display:none;">' +
             '<div class="visor-dot"></div>' +
@@ -6431,30 +6423,28 @@ body.theme-nebula .auth-screen {
               '<span style="font-size:11px;color:rgba(255,255,255,0.7);" id="' + p + 'FlickCreator">—</span>' +
               '<span style="margin-left:auto;" class="flick-tag" id="' + p + 'FlickBadge">' + (isLong ? 'LONG-FLICK' : 'FLICK') + '</span>' +
             '</div>' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">' +
               '<div class="syne" style="font-size:15px;font-weight:700;color:#fff;line-height:1.25;flex:1;min-width:0;" id="' + p + 'FlickTitle"></div>' +
-              (isLong ?
-                '<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">' +
-                  '<span class="flick-act" id="' + p + 'FlickLikeAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label" id="' + p + 'FlickLikeCount" style="position:static;">0</span></span>' +
-                  '<span class="flick-act" id="' + p + 'FlickCommentAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount" style="position:static;">0</span></span>' +
-                  '<span class="flick-act" id="' + p + 'FlickShareAct" style="position:static;" title="Share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9"/></svg></span>' +
-                '</div>'
-                : '') +
+              '<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">' +
+                '<span class="flick-act" id="' + p + 'FlickLikeAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label" id="' + p + 'FlickLikeCount" style="position:static;">0</span></span>' +
+                '<span class="flick-act" id="' + p + 'FlickCommentAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount" style="position:static;">0</span></span>' +
+                (isLong ?
+                  '<span class="flick-act" id="' + p + 'FlickShareAct" style="position:static;" title="Share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9"/></svg></span>'
+                  : '') +
+              '</div>' +
             '</div>' +
             (isLong ? '<div class="long-flick-desc" id="' + p + 'FlickDesc" style="margin-bottom:6px;"></div>' : '') +
             '<div id="' + p + 'FlickTagsRow"></div>' +
           '</div>' +
           '<div class="binge-progress" id="' + p + 'BingeProgress" style="display:none;"><div class="binge-progress-fill" id="' + p + 'BingeProgressFill"></div></div>' +
-          (isLong ? '<div class="bleepbot-expand" id="' + p + 'FlickBleepbotExpand"><div class="bleepbot-inner" id="' + p + 'FlickBleepbotInner"></div></div>' : '') +
+          '<div class="bleepbot-expand" id="' + p + 'FlickBleepbotExpand"><div class="bleepbot-inner" id="' + p + 'FlickBleepbotInner"></div></div>' +
+          (isLong ? '' : '<div class="flick-rail-toggle-bar" id="' + p + 'FlickRailToggle" onclick="event.stopPropagation(); toggleFlickRail(\'' + p + '\')" title="Show/hide clip list"></div>') +
         '</div>' +
         (isLong ?
           '<div class="long-rec-rail-label long-rail-bottom">Recommended by Bleepmo</div>' +
           '<div class="long-rec-rail long-rail-bottom" id="' + p + 'RecommendedRail"></div>'
           :
-          '<div class="flick-rail" id="' + p + 'FlickRail"></div>' +
-          '<div class="flick-rail-toggle" id="' + p + 'FlickRailToggle" onclick="toggleFlickRail(\'' + p + '\')" title="Show/hide clip list">' +
-            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>' +
-          '</div>'
+          '<div class="flick-rail" id="' + p + 'FlickRail"></div>'
         ) +
       '</div>'
     );
@@ -9040,16 +9030,26 @@ body.theme-nebula .auth-screen {
   .flick-rail.hidden-rail { width: 0; padding: 10px 0; opacity: 0; }
   .flick-rail::-webkit-scrollbar { display: none; }
 
-  .flick-rail-toggle {
-    position: absolute; top: 50%; right: 0; transform: translateY(-50%);
-    width: 20px; height: 46px; border-radius: 10px 0 0 10px;
-    background: rgba(10,18,45,0.9); border: 1px solid rgba(212,175,55,0.3); border-right: none;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; z-index: 5; transition: background 0.2s;
+  /* Rail show/hide toggle — same thin-bar language as the main tab-menu
+     toggle (.tab-bar-toggle), just rotated to sit flush against the
+     video's own right edge instead of floating between video and rail. */
+  .flick-rail-toggle-bar {
+    position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+    width: 20px; height: 44px;
+    display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px;
+    cursor: pointer; z-index: 15;
   }
-  .flick-rail-toggle:hover { background: rgba(212,175,55,0.18); }
-  .flick-rail-toggle svg { transition: transform 0.25s ease; }
-  .flick-rail-toggle.rail-hidden svg { transform: rotate(180deg); }
+  .flick-rail-toggle-bar::before, .flick-rail-toggle-bar::after {
+    content: ''; width: 3.5px; height: 32px; border-radius: 3px;
+    background: rgba(212,175,55,0.5);
+    transition: background 0.2s, height 0.2s, opacity 0.2s, transform 0.2s;
+  }
+  /* Second bar only appears once the rail is hidden — same "1 bar = shown,
+     2 bars = hidden" logic as the tab-menu toggle. */
+  .flick-rail-toggle-bar::after { opacity: 0; transform: scaleX(0); }
+  .flick-rail-toggle-bar.rail-hidden::after { opacity: 1; transform: scaleX(1); }
+  .flick-rail-toggle-bar:hover::before, .flick-rail-toggle-bar:hover::after,
+  .flick-rail-toggle-bar:active::before, .flick-rail-toggle-bar:active::after { background: rgba(212,175,55,0.8); height: 38px; }
 
   .flick-thumb {
     width: 74px; height: 98px;
