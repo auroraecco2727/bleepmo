@@ -992,6 +992,97 @@ body::after {
 }
 .compose-fab:hover { border-color: rgba(212,175,55,0.7); box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 22px rgba(212,175,55,0.3); }
 
+/* Flicks-only FAB — sits directly above the universal compose FAB with a
+   14px gap, only shown while on a Flicks pane. Same rounded-square
+   language as the compose FAB and notification bell for consistency. */
+.flicks-fab-wrap {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 55;
+  max-width: 480px; margin: 0 auto;
+  display: flex; justify-content: flex-end;
+  padding: 0 18px 121px;
+  pointer-events: none;
+}
+.flicks-fab {
+  width: 48px; height: 48px; border-radius: 15px;
+  background: rgba(10,18,45,0.9); backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(212,175,55,0.4);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.32), 0 0 14px rgba(212,175,55,0.15);
+  transition: all 0.2s;
+}
+.flicks-fab:hover { border-color: rgba(212,175,55,0.7); box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 20px rgba(212,175,55,0.28); }
+
+/* Flick chooser — small bottom sheet, Long vs Short */
+.flick-chooser-backdrop {
+  position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.flick-chooser-sheet {
+  width: 100%; max-width: 480px; background: var(--blue-deep);
+  border-top: 0.5px solid rgba(212,175,55,0.25);
+  border-radius: 20px 20px 0 0; padding: 10px 18px 26px;
+  animation: flickSheetUp 0.22s ease;
+}
+@keyframes flickSheetUp { from { transform: translateY(24px); opacity: 0.4; } to { transform: translateY(0); opacity: 1; } }
+.flick-chooser-handle { width: 36px; height: 4px; border-radius: 3px; background: rgba(212,175,55,0.3); margin: 0 auto 14px; }
+.flick-chooser-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--text-hi); margin-bottom: 14px; }
+.flick-chooser-option {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 12px; border-radius: 13px; margin-bottom: 8px; cursor: pointer;
+  background: rgba(212,175,55,0.05); border: 0.5px solid rgba(212,175,55,0.15);
+  transition: background 0.15s;
+}
+.flick-chooser-option:hover { background: rgba(212,175,55,0.1); }
+.flick-chooser-icon { font-size: 22px; flex-shrink: 0; width: 30px; text-align: center; }
+.flick-chooser-option-title { font-size: 13.5px; font-weight: 700; color: var(--text-hi); }
+.flick-chooser-option-sub { font-size: 10.5px; color: var(--text-lo); margin-top: 1px; }
+.flick-chooser-cancel { text-align: center; font-size: 12.5px; color: var(--text-mid); padding: 10px 0 0; cursor: pointer; }
+
+/* Short-Flick composer: Record / Upload toggle + camera capture UI */
+.flick-mode-toggle {
+  display: flex; gap: 6px; padding: 4px; border-radius: 12px;
+  background: rgba(15,35,80,0.25); margin-bottom: 16px;
+}
+.flick-mode-btn {
+  flex: 1; text-align: center; padding: 9px 0; border-radius: 9px;
+  font-size: 12.5px; font-weight: 700; color: var(--text-mid); cursor: pointer;
+  transition: all 0.15s;
+}
+.flick-mode-btn.active { background: rgba(212,175,55,0.18); color: var(--gold); }
+
+.short-flick-camera-frame {
+  position: relative; width: 100%; aspect-ratio: 9/14; max-height: 420px;
+  border-radius: 16px; overflow: hidden; background: #05070f;
+  border: 0.5px solid rgba(212,175,55,0.2);
+  display: flex; align-items: center; justify-content: center;
+}
+.short-flick-camera-frame video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform: scaleX(-1); /* mirror, like a selfie camera */
+  display: none;
+}
+.short-flick-camera-frame.live video { display: block; }
+.short-flick-camera-frame.live .short-flick-camera-placeholder { display: none; }
+.short-flick-camera-placeholder { text-align: center; padding: 20px; }
+.short-flick-timer {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.55); color: var(--text-hi); font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 999px; z-index: 2;
+}
+.short-flick-record-controls { display: flex; justify-content: center; padding: 16px 0; }
+.short-flick-record-btn {
+  width: 62px; height: 62px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.85);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.short-flick-record-btn::before {
+  content: ''; width: 50px; height: 50px; border-radius: 50%;
+  background: #e0273e; transition: all 0.2s;
+}
+.short-flick-record-btn.recording::before { border-radius: 10px; width: 26px; height: 26px; }
+
 .bot-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 56;
   padding: 14px 14px 20px;
@@ -1996,6 +2087,123 @@ body.theme-nebula .auth-screen {
 </div>
 
 <!-- ══ SETTINGS SCREEN ══ -->
+<!-- ══════════════════════════════════════
+     LONG-FLICK COMPOSER — dedicated screen, separate from the general
+     6-step Bleep wizard. Posts through the same real /api/bleeps endpoint
+     (postAsFlick=true&flickLength=long), so no backend changes needed.
+══════════════════════════════════════ -->
+<div class="profile-screen" id="longFlickComposerScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeLongFlickComposer()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Post a Long-Flick</span>
+  </div>
+  <div class="profile-content" style="padding:16px;">
+    <div id="longFlickError" class="auth-error" style="display:none;"></div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Video</div>
+      <label class="tool-btn" style="display:inline-flex; gap:6px; width:auto; padding:9px 14px;" id="longFlickAttachLabel">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        Attach a video
+        <input type="file" id="longFlickMediaInput" accept="video/*" style="display:none;" onchange="handleLongFlickMediaChange(event)" />
+      </label>
+      <div class="compose-media-filename" id="longFlickMediaFilename"></div>
+      <div id="longFlickDurationNote" style="display:none; font-size:11px; color:var(--gold); margin-top:6px;"></div>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Headline</div>
+      <input type="text" class="composer-headline-input" id="longFlickTitleInput" placeholder="Add a bold headline (optional)" maxlength="120" style="background:rgba(15,35,80,0.25); border-radius:10px; padding:10px 13px;" />
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Description</div>
+      <textarea class="composer-body-input" id="longFlickBodyInput" placeholder="What's this Flick about?" maxlength="2000" rows="4" style="background:rgba(15,35,80,0.25); border-radius:10px; padding:10px 13px; width:100%;"></textarea>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Trend-points</div>
+      <input type="text" class="compose-trend-input" id="longFlickTrendInput" placeholder="Type a trend-point, press Enter" onkeydown="handleLongFlickTrendKeydown(event)" />
+      <div class="compose-trend-chips" id="longFlickTrendChips"></div>
+    </div>
+
+    <button class="profile-follow-btn" id="longFlickSendBtn" style="width:100%; margin-top:6px;" onclick="submitLongFlick()">Post Long-Flick</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SHORT-FLICK COMPOSER — Record (live selfie capture via getUserMedia +
+     MediaRecorder, hard-capped at 2:00) or Upload (with client-side
+     duration check — 2:00+ gets redirected to the Long-Flick composer,
+     since "under 2 minutes belongs to Shorts" is the rule here).
+══════════════════════════════════════ -->
+<div class="profile-screen" id="shortFlickComposerScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeShortFlickComposer()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Post a Short Flick</span>
+  </div>
+  <div class="profile-content" style="padding:16px;">
+    <div id="shortFlickError" class="auth-error" style="display:none;"></div>
+
+    <div class="flick-mode-toggle">
+      <div class="flick-mode-btn active" id="shortFlickModeRecordBtn" onclick="setShortFlickMode('record')">Record</div>
+      <div class="flick-mode-btn" id="shortFlickModeUploadBtn" onclick="setShortFlickMode('upload')">Upload</div>
+    </div>
+
+    <!-- Record mode -->
+    <div id="shortFlickRecordPanel">
+      <div class="short-flick-camera-frame" id="shortFlickCameraFrame">
+        <video id="shortFlickCameraPreview" autoplay muted playsinline></video>
+        <div class="short-flick-camera-placeholder" id="shortFlickCameraPlaceholder">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.6)" stroke-width="1.5"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <div style="font-size:11px; color:var(--text-lo); margin-top:8px;">Tap record to turn on your camera</div>
+        </div>
+        <div class="short-flick-timer" id="shortFlickTimer" style="display:none;">0:00 / 2:00</div>
+      </div>
+      <div class="short-flick-record-controls">
+        <div class="short-flick-record-btn" id="shortFlickRecordBtn" onclick="toggleShortFlickRecording()" title="Record"></div>
+      </div>
+      <div id="shortFlickRecordReview" style="display:none;">
+        <div class="compose-media-filename" style="text-align:center;">Clip recorded ✓</div>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button class="profile-follow-btn following" style="flex:1;" onclick="retakeShortFlickRecording()">Retake</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload mode -->
+    <div id="shortFlickUploadPanel" style="display:none;">
+      <label class="tool-btn" style="display:inline-flex; gap:6px; width:auto; padding:9px 14px;">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        Choose a video
+        <input type="file" id="shortFlickUploadInput" accept="video/*" style="display:none;" onchange="handleShortFlickUploadChange(event)" />
+      </label>
+      <div class="compose-media-filename" id="shortFlickUploadFilename"></div>
+      <div id="shortFlickUploadTooLong" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(255,120,60,0.1); border:0.5px solid rgba(255,120,60,0.3); font-size:11.5px; color:#ffab80;">
+        That's <span id="shortFlickTooLongDuration"></span> long — Shorts need to be under 2:00. Want to post it as a Long-Flick instead?
+        <div style="margin-top:8px; color:var(--gold); font-weight:700; cursor:pointer;" onclick="switchTooLongUploadToLongFlick()">Switch to Long-Flick composer →</div>
+      </div>
+    </div>
+
+    <div class="signup-section" style="margin-top:16px;">
+      <div class="signup-section-label">Caption</div>
+      <textarea class="composer-body-input" id="shortFlickBodyInput" placeholder="Say something quick about it" maxlength="500" rows="3" style="background:rgba(15,35,80,0.25); border-radius:10px; padding:10px 13px; width:100%;"></textarea>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Trend-points</div>
+      <input type="text" class="compose-trend-input" id="shortFlickTrendInput" placeholder="Type a trend-point, press Enter" onkeydown="handleShortFlickTrendKeydown(event)" />
+      <div class="compose-trend-chips" id="shortFlickTrendChips"></div>
+    </div>
+
+    <button class="profile-follow-btn" id="shortFlickSendBtn" style="width:100%; margin-top:6px;" onclick="submitShortFlick()">Post Short Flick</button>
+  </div>
+</div>
+
 <div class="profile-screen" id="settingsScreen">
   <div class="profile-header-bar">
     <span class="profile-back-btn" onclick="closeSettingsScreen()">
@@ -2003,6 +2211,7 @@ body.theme-nebula .auth-screen {
     </span>
     <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Settings</span>
   </div>
+
 
   <div class="profile-content" style="padding:16px;">
     <div id="settingsStatus" style="display:none;font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:14px;"></div>
@@ -2925,6 +3134,42 @@ body.theme-nebula .auth-screen {
       <circle cx="6.5" cy="20" r="1.3" fill="#D4AF37" opacity="0.7"/>
       <circle cx="4.2" cy="22.3" r="0.8" fill="#D4AF37" opacity="0.45"/>
     </svg>
+  </div>
+</div>
+
+<!-- Flicks-only FAB — a separate button from the universal Bleep composer
+     above, visible only while on a Flicks pane (Long/Short/Live). Opens a
+     dedicated Long-Flick or Short-Flick console instead of the general
+     6-step Bleep wizard. -->
+<div class="flicks-fab-wrap" id="flicksFabWrap" style="display:none;">
+  <div class="flicks-fab" id="flicksFab" onclick="openFlickChooser()" title="Post a Flick">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2.5" y="5.5" width="14" height="13" rx="2.5"/>
+      <path d="M21.5 8.2l-5 3v1.6l5 3z" fill="rgba(212,175,55,0.25)"/>
+    </svg>
+  </div>
+</div>
+
+<!-- Flick chooser sheet: Long-Flick vs Short-Flick -->
+<div class="flick-chooser-backdrop" id="flickChooserBackdrop" onclick="closeFlickChooser()" style="display:none;">
+  <div class="flick-chooser-sheet" onclick="event.stopPropagation()">
+    <div class="flick-chooser-handle"></div>
+    <div class="flick-chooser-title">Post a Flick</div>
+    <div class="flick-chooser-option" onclick="closeFlickChooser(); openLongFlickComposer();">
+      <div class="flick-chooser-icon">🎬</div>
+      <div>
+        <div class="flick-chooser-option-title">Long-Flick</div>
+        <div class="flick-chooser-option-sub">Upload a longer video, 2 minutes or more</div>
+      </div>
+    </div>
+    <div class="flick-chooser-option" onclick="closeFlickChooser(); openShortFlickComposer();">
+      <div class="flick-chooser-icon">⚡</div>
+      <div>
+        <div class="flick-chooser-option-title">Short Flick</div>
+        <div class="flick-chooser-option-sub">Record a selfie clip or upload one under 2 minutes</div>
+      </div>
+    </div>
+    <div class="flick-chooser-cancel" onclick="closeFlickChooser()">Cancel</div>
   </div>
 </div>
 
@@ -7073,6 +7318,368 @@ body.theme-nebula .auth-screen {
     setTimeout(function () { bar.style.display = 'none'; }, 230);
   }
 
+  // ══════════════════════════════════════════════════════════
+  // FLICKS — dedicated Long-Flick / Short-Flick posting consoles.
+  // Both submit through the same real /api/bleeps endpoint the general
+  // composer already uses (postAsFlick + flickLength), so no backend
+  // changes were needed to build these.
+  // ══════════════════════════════════════════════════════════
+
+  /* ── shared: read a video file's duration without uploading it ── */
+  function getVideoDuration(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var v = document.createElement('video');
+      v.preload = 'metadata';
+      var timedOut = setTimeout(function () { cleanup(); reject(new Error('timeout')); }, 8000);
+      function cleanup() { clearTimeout(timedOut); URL.revokeObjectURL(url); }
+      v.onloadedmetadata = function () { var d = v.duration; cleanup(); resolve(d); };
+      v.onerror = function () { cleanup(); reject(new Error('could not read video metadata')); };
+      v.src = url;
+    });
+  }
+  function formatDuration(seconds) {
+    seconds = Math.round(seconds);
+    var m = Math.floor(seconds / 60), s = seconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  /* ── shared: after a Flick posts successfully, drop a short announcement
+     Bleep into the feed — "🎬 New Long-Flick added..." — via a second
+     real POST to the same endpoint the app already posts Bleeps through.
+     Best-effort: if this second call fails, the Flick itself still posted
+     fine, so we swallow the error rather than surfacing it as if the
+     whole post failed. ── */
+  async function postFlickCrossAnnouncement(flickBleep, flickLength) {
+    try {
+      var kindLabel = flickLength === 'long' ? 'Long-Flick' : 'Short Flick';
+      var name = (flickBleep.title && flickBleep.title.trim()) || (flickBleep.body && flickBleep.body.slice(0, 60)) || 'a new video';
+      var body = '🎬 New ' + kindLabel + ' just went up: "' + name + '" — check it out in Flicks.';
+      var fd = new FormData();
+      fd.append('body', body);
+      fd.append('title', '');
+      fd.append('isBreaking', 'false');
+      fd.append('postAsFlick', 'false');
+      fd.append('linkedBleepId', flickBleep.id);
+      var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
+      if (!res.ok) return;
+      var data = await res.json();
+      var feedContainer = document.getElementById('liveFeedList');
+      if (feedContainer && data.bleep) feedContainer.insertBefore(renderBleepCard(data.bleep), feedContainer.firstChild);
+    } catch (err) { /* announcement is a nice-to-have, never block on it */ }
+  }
+
+  /* ── Flick chooser sheet ── */
+  function openFlickChooser() {
+    document.getElementById('flickChooserBackdrop').style.display = 'flex';
+  }
+  function closeFlickChooser() {
+    document.getElementById('flickChooserBackdrop').style.display = 'none';
+  }
+
+  /* ── LONG-FLICK COMPOSER ── */
+  var longFlickMediaFile = null;
+  var longFlickTrends = [];
+
+  function openLongFlickComposer(prefillFile) {
+    document.getElementById('longFlickComposerScreen').classList.add('show');
+    if (prefillFile) {
+      longFlickMediaFile = prefillFile;
+      document.getElementById('longFlickMediaFilename').textContent = prefillFile.name;
+    }
+  }
+  function closeLongFlickComposer() {
+    document.getElementById('longFlickComposerScreen').classList.remove('show');
+    longFlickMediaFile = null;
+    longFlickTrends = [];
+    document.getElementById('longFlickMediaInput').value = '';
+    document.getElementById('longFlickMediaFilename').textContent = '';
+    document.getElementById('longFlickDurationNote').style.display = 'none';
+    document.getElementById('longFlickTitleInput').value = '';
+    document.getElementById('longFlickBodyInput').value = '';
+    document.getElementById('longFlickTrendInput').value = '';
+    renderLongFlickTrendChips();
+    document.getElementById('longFlickError').style.display = 'none';
+  }
+  async function handleLongFlickMediaChange(evt) {
+    var file = evt.target.files && evt.target.files[0];
+    longFlickMediaFile = file || null;
+    document.getElementById('longFlickMediaFilename').textContent = file ? file.name : '';
+    var note = document.getElementById('longFlickDurationNote');
+    note.style.display = 'none';
+    if (!file) return;
+    try {
+      var duration = await getVideoDuration(file);
+      if (duration < 120) {
+        note.textContent = 'This is ' + formatDuration(duration) + ' long — that actually fits Short Flick better, but Long-Flick works fine too.';
+        note.style.display = 'block';
+      }
+    } catch (err) { /* duration read is a nice-to-have, not required to post */ }
+  }
+  function renderLongFlickTrendChips() {
+    var wrap = document.getElementById('longFlickTrendChips');
+    wrap.innerHTML = longFlickTrends.map(function (t, i) {
+      return '<span class="btag hi" onclick="longFlickTrends.splice(' + i + ',1); renderLongFlickTrendChips();" title="Remove" style="cursor:pointer;">' + escapeHtml(t) + ' &times;</span>';
+    }).join('');
+  }
+  function handleLongFlickTrendKeydown(evt) {
+    if (evt.key === 'Enter' || evt.key === ',' || evt.key === ';') {
+      evt.preventDefault();
+      var input = document.getElementById('longFlickTrendInput');
+      var val = input.value.trim().replace(/[,;]$/, '');
+      if (val && longFlickTrends.indexOf(val) === -1 && longFlickTrends.length < 8) {
+        longFlickTrends.push(val);
+        renderLongFlickTrendChips();
+      }
+      input.value = '';
+    }
+  }
+  async function submitLongFlick() {
+    var errEl = document.getElementById('longFlickError');
+    errEl.style.display = 'none';
+    if (!longFlickMediaFile) {
+      errEl.textContent = 'Attach a video to post a Long-Flick.';
+      errEl.style.display = 'block';
+      return;
+    }
+    var fd = new FormData();
+    fd.append('body', document.getElementById('longFlickBodyInput').value.trim());
+    fd.append('title', document.getElementById('longFlickTitleInput').value.trim());
+    fd.append('isBreaking', 'false');
+    fd.append('postAsFlick', 'true');
+    fd.append('flickLength', 'long');
+    if (longFlickTrends.length) fd.append('trendPoints', JSON.stringify(longFlickTrends));
+    fd.append('media', longFlickMediaFile);
+
+    var btn = document.getElementById('longFlickSendBtn');
+    btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none';
+    try {
+      var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Something went wrong posting that.';
+        errEl.style.display = 'block';
+        btn.style.opacity = ''; btn.style.pointerEvents = '';
+        return;
+      }
+      flickPaneState.long.loaded = false;
+      if (currentSlideKey === 'flicksLong') loadFlickPane('long', activeTrendContext);
+      postFlickCrossAnnouncement(data.bleep, 'long');
+      closeLongFlickComposer();
+      showToast('Long-Flick posted!');
+    } catch (err) {
+      errEl.textContent = 'Couldn\'t reach the server.';
+      errEl.style.display = 'block';
+    }
+    btn.style.opacity = ''; btn.style.pointerEvents = '';
+  }
+
+  /* ── SHORT-FLICK COMPOSER ── */
+  var shortFlickTrends = [];
+  var shortFlickUploadedFile = null;
+  var shortFlickRecordedBlob = null;
+  var shortFlickMediaStream = null;
+  var shortFlickRecorder = null;
+  var shortFlickRecordChunks = [];
+  var shortFlickTimerInterval = null;
+  var shortFlickRecordSeconds = 0;
+  var SHORT_FLICK_MAX_SECONDS = 120;
+
+  function openShortFlickComposer() {
+    document.getElementById('shortFlickComposerScreen').classList.add('show');
+    setShortFlickMode('record');
+  }
+  function closeShortFlickComposer() {
+    stopShortFlickCameraStream();
+    document.getElementById('shortFlickComposerScreen').classList.remove('show');
+    shortFlickTrends = [];
+    shortFlickUploadedFile = null;
+    shortFlickRecordedBlob = null;
+    document.getElementById('shortFlickUploadInput').value = '';
+    document.getElementById('shortFlickUploadFilename').textContent = '';
+    document.getElementById('shortFlickUploadTooLong').style.display = 'none';
+    document.getElementById('shortFlickRecordReview').style.display = 'none';
+    document.getElementById('shortFlickBodyInput').value = '';
+    document.getElementById('shortFlickTrendInput').value = '';
+    renderShortFlickTrendChips();
+    document.getElementById('shortFlickError').style.display = 'none';
+    resetShortFlickCameraUi();
+  }
+  function setShortFlickMode(mode) {
+    var isRecord = mode === 'record';
+    document.getElementById('shortFlickModeRecordBtn').classList.toggle('active', isRecord);
+    document.getElementById('shortFlickModeUploadBtn').classList.toggle('active', !isRecord);
+    document.getElementById('shortFlickRecordPanel').style.display = isRecord ? 'block' : 'none';
+    document.getElementById('shortFlickUploadPanel').style.display = isRecord ? 'none' : 'block';
+    if (!isRecord) stopShortFlickCameraStream();
+  }
+
+  function resetShortFlickCameraUi() {
+    var frame = document.getElementById('shortFlickCameraFrame');
+    frame.classList.remove('live');
+    document.getElementById('shortFlickRecordBtn').classList.remove('recording');
+    document.getElementById('shortFlickTimer').style.display = 'none';
+    document.getElementById('shortFlickTimer').textContent = '0:00 / 2:00';
+    document.getElementById('shortFlickRecordReview').style.display = 'none';
+    shortFlickRecordSeconds = 0;
+    if (shortFlickTimerInterval) { clearInterval(shortFlickTimerInterval); shortFlickTimerInterval = null; }
+  }
+  function stopShortFlickCameraStream() {
+    if (shortFlickRecorder && shortFlickRecorder.state !== 'inactive') {
+      try { shortFlickRecorder.stop(); } catch (err) { /* ignore */ }
+    }
+    if (shortFlickMediaStream) {
+      shortFlickMediaStream.getTracks().forEach(function (t) { t.stop(); });
+      shortFlickMediaStream = null;
+    }
+    if (shortFlickTimerInterval) { clearInterval(shortFlickTimerInterval); shortFlickTimerInterval = null; }
+  }
+
+  async function toggleShortFlickRecording() {
+    var btn = document.getElementById('shortFlickRecordBtn');
+    if (btn.classList.contains('recording')) {
+      finishShortFlickRecording();
+      return;
+    }
+    var errEl = document.getElementById('shortFlickError');
+    errEl.style.display = 'none';
+    try {
+      shortFlickMediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }, audio: true
+      });
+    } catch (err) {
+      errEl.textContent = 'Couldn\'t access your camera — check permissions and try again.';
+      errEl.style.display = 'block';
+      return;
+    }
+    var frame = document.getElementById('shortFlickCameraFrame');
+    var preview = document.getElementById('shortFlickCameraPreview');
+    preview.srcObject = shortFlickMediaStream;
+    frame.classList.add('live');
+    document.getElementById('shortFlickRecordReview').style.display = 'none';
+
+    shortFlickRecordChunks = [];
+    var mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+    shortFlickRecorder = new MediaRecorder(shortFlickMediaStream, { mimeType: mimeType });
+    shortFlickRecorder.ondataavailable = function (e) { if (e.data && e.data.size) shortFlickRecordChunks.push(e.data); };
+    shortFlickRecorder.onstop = function () {
+      shortFlickRecordedBlob = new Blob(shortFlickRecordChunks, { type: mimeType });
+      document.getElementById('shortFlickRecordReview').style.display = 'block';
+    };
+    shortFlickRecorder.start();
+    btn.classList.add('recording');
+    shortFlickRecordSeconds = 0;
+    var timerEl = document.getElementById('shortFlickTimer');
+    timerEl.style.display = 'block';
+    timerEl.textContent = '0:00 / 2:00';
+    shortFlickTimerInterval = setInterval(function () {
+      shortFlickRecordSeconds++;
+      timerEl.textContent = formatDuration(shortFlickRecordSeconds) + ' / 2:00';
+      if (shortFlickRecordSeconds >= SHORT_FLICK_MAX_SECONDS) finishShortFlickRecording();
+    }, 1000);
+  }
+  function finishShortFlickRecording() {
+    document.getElementById('shortFlickRecordBtn').classList.remove('recording');
+    if (shortFlickTimerInterval) { clearInterval(shortFlickTimerInterval); shortFlickTimerInterval = null; }
+    if (shortFlickRecorder && shortFlickRecorder.state !== 'inactive') shortFlickRecorder.stop();
+    if (shortFlickMediaStream) { shortFlickMediaStream.getTracks().forEach(function (t) { t.stop(); }); shortFlickMediaStream = null; }
+    document.getElementById('shortFlickCameraFrame').classList.remove('live');
+  }
+  function retakeShortFlickRecording() {
+    shortFlickRecordedBlob = null;
+    resetShortFlickCameraUi();
+  }
+
+  async function handleShortFlickUploadChange(evt) {
+    var file = evt.target.files && evt.target.files[0];
+    shortFlickUploadedFile = null;
+    var tooLongEl = document.getElementById('shortFlickUploadTooLong');
+    tooLongEl.style.display = 'none';
+    document.getElementById('shortFlickUploadFilename').textContent = file ? file.name : '';
+    if (!file) return;
+    try {
+      var duration = await getVideoDuration(file);
+      if (duration >= SHORT_FLICK_MAX_SECONDS) {
+        document.getElementById('shortFlickTooLongDuration').textContent = formatDuration(duration);
+        tooLongEl.style.display = 'block';
+        return; // don't accept it as a Short — under 2:00 is the rule
+      }
+      shortFlickUploadedFile = file;
+    } catch (err) {
+      // couldn't read duration — allow it through rather than block on a metadata quirk
+      shortFlickUploadedFile = file;
+    }
+  }
+  function switchTooLongUploadToLongFlick() {
+    var input = document.getElementById('shortFlickUploadInput');
+    var file = input.files && input.files[0];
+    closeShortFlickComposer();
+    openLongFlickComposer(file || null);
+  }
+
+  function renderShortFlickTrendChips() {
+    var wrap = document.getElementById('shortFlickTrendChips');
+    wrap.innerHTML = shortFlickTrends.map(function (t, i) {
+      return '<span class="btag hi" onclick="shortFlickTrends.splice(' + i + ',1); renderShortFlickTrendChips();" title="Remove" style="cursor:pointer;">' + escapeHtml(t) + ' &times;</span>';
+    }).join('');
+  }
+  function handleShortFlickTrendKeydown(evt) {
+    if (evt.key === 'Enter' || evt.key === ',' || evt.key === ';') {
+      evt.preventDefault();
+      var input = document.getElementById('shortFlickTrendInput');
+      var val = input.value.trim().replace(/[,;]$/, '');
+      if (val && shortFlickTrends.indexOf(val) === -1 && shortFlickTrends.length < 8) {
+        shortFlickTrends.push(val);
+        renderShortFlickTrendChips();
+      }
+      input.value = '';
+    }
+  }
+  async function submitShortFlick() {
+    var errEl = document.getElementById('shortFlickError');
+    errEl.style.display = 'none';
+    var videoSource = shortFlickRecordedBlob || shortFlickUploadedFile;
+    if (!videoSource) {
+      errEl.textContent = 'Record a clip or upload a video first.';
+      errEl.style.display = 'block';
+      return;
+    }
+    var fd = new FormData();
+    fd.append('body', document.getElementById('shortFlickBodyInput').value.trim());
+    fd.append('title', '');
+    fd.append('isBreaking', 'false');
+    fd.append('postAsFlick', 'true');
+    fd.append('flickLength', 'short');
+    if (shortFlickTrends.length) fd.append('trendPoints', JSON.stringify(shortFlickTrends));
+    if (shortFlickRecordedBlob) {
+      fd.append('media', shortFlickRecordedBlob, 'short-flick.webm');
+    } else {
+      fd.append('media', shortFlickUploadedFile);
+    }
+
+    var btn = document.getElementById('shortFlickSendBtn');
+    btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none';
+    try {
+      var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Something went wrong posting that.';
+        errEl.style.display = 'block';
+        btn.style.opacity = ''; btn.style.pointerEvents = '';
+        return;
+      }
+      flickPaneState.short.loaded = false;
+      if (currentSlideKey === 'flicksShort') loadFlickPane('short', activeTrendContext);
+      postFlickCrossAnnouncement(data.bleep, 'short');
+      closeShortFlickComposer();
+      showToast('Short Flick posted!');
+    } catch (err) {
+      errEl.textContent = 'Couldn\'t reach the server.';
+      errEl.style.display = 'block';
+    }
+    btn.style.opacity = ''; btn.style.pointerEvents = '';
+  }
+
   // Instantly close the full composer the moment someone interacts with
   // anything outside the bar — back to just the thought-bubble FAB.
   document.addEventListener('mousedown', function (evt) {
@@ -7356,6 +7963,15 @@ body.theme-nebula .auth-screen {
     if (!isVideo) {
       document.getElementById('composeFlickToggle').checked = false;
       toggleFlickLengthChoice();
+    } else {
+      // Auto-suggest Short vs Long from the file's actual duration — "under
+      // 2 minutes belongs to Shorts" — but leave it as a suggestion, not
+      // locked, since the radio stays fully editable either way.
+      getVideoDuration(file).then(function (duration) {
+        if (composeMediaFile !== file) return; // file changed again before this resolved
+        document.getElementById('composeFlickLengthShort').checked = duration < 120;
+        document.getElementById('composeFlickLengthLong').checked = duration >= 120;
+      }).catch(function () { /* duration read is best-effort */ });
     }
   }
 
@@ -7595,6 +8211,7 @@ body.theme-nebula .auth-screen {
         if (currentSlideKey === (paneKey === 'long' ? 'flicksLong' : 'flicksShort')) {
           loadFlickPane(paneKey, activeTrendContext);
         }
+        postFlickCrossAnnouncement(data.bleep, paneKey);
       }
 
       bodyInput.value = '';
@@ -7729,6 +8346,12 @@ body.theme-nebula .auth-screen {
     document.getElementById('calendarPane').style.display = showCalendar ? 'flex' : 'none';
     document.getElementById('storePane').style.display = showStore ? 'flex' : 'none';
     document.getElementById('offersPane').style.display = showOffers ? 'flex' : 'none';
+    document.getElementById('flicksFabWrap').style.display = (showShort || showLong || showLive) ? 'flex' : 'none';
+    // Bleep-posting only makes sense on the content feed and Flicks (where
+    // a video Bleep can also become a Flick) — not on Calendar (has its
+    // own "+" add-event button), e-Store, or Special Offers, which are
+    // browse-only contexts with nothing to "post" into.
+    document.getElementById('composeFabWrap').style.display = (showFeed || showShort || showLong || showLive) ? 'flex' : 'none';
 
     var csView = document.getElementById('comingSoonView');
     if (isComingSoon) {
