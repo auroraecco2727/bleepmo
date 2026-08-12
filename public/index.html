@@ -1085,6 +1085,12 @@ body::after {
 }
 .short-flick-record-btn.recording::before { border-radius: 10px; width: 26px; height: 26px; }
 
+.go-live-honesty-note {
+  font-size: 10.5px; line-height: 1.5; color: var(--text-mid);
+  background: rgba(212,175,55,0.06); border: 0.5px solid rgba(212,175,55,0.18);
+  border-radius: 10px; padding: 10px 12px; margin-top: 16px;
+}
+
 .bot-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 56;
   padding: 14px 14px 20px;
@@ -2206,6 +2212,58 @@ body.theme-nebula .auth-screen {
   </div>
 </div>
 
+<!-- ══════════════════════════════════════
+     GO LIVE CONSOLE — the one part of this that's genuinely real is the
+     camera preview (getUserMedia) and the announcement post. Actual live
+     video broadcasting needs real-time streaming infrastructure (e.g.
+     Cloudflare Stream Live, a WebRTC SFU) that isn't connected anywhere in
+     this app — LiveStream was a pure "coming soon" stub before this, with
+     no backend data model at all. Rather than fake a "you're live!" state
+     with nothing behind it, this posts a real announcement Bleep and says
+     so plainly.
+══════════════════════════════════════ -->
+<div class="profile-screen" id="goLiveScreen">
+  <div class="profile-header-bar">
+    <span class="profile-back-btn" onclick="closeGoLiveConsole()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </span>
+    <span style="font-family:'Syne',sans-serif; font-weight:700; font-size:14px; color:var(--text-hi);">Go Live</span>
+  </div>
+  <div class="profile-content" style="padding:16px;">
+    <div id="goLiveError" class="auth-error" style="display:none;"></div>
+
+    <div class="short-flick-camera-frame" id="goLiveCameraFrame">
+      <video id="goLiveCameraPreview" autoplay muted playsinline></video>
+      <div class="short-flick-camera-placeholder" id="goLiveCameraPlaceholder">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.6)" stroke-width="1.5"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <div style="font-size:11px; color:var(--text-lo); margin-top:8px;">Turning on your camera…</div>
+      </div>
+    </div>
+
+    <div class="signup-section" style="margin-top:16px;">
+      <div class="signup-section-label">Stream title</div>
+      <input type="text" class="composer-headline-input" id="goLiveTitleInput" placeholder="What are you going live about?" maxlength="120" style="background:rgba(15,35,80,0.25); border-radius:10px; padding:10px 13px;" />
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Description</div>
+      <textarea class="composer-body-input" id="goLiveBodyInput" placeholder="Optional — give people a reason to tune in" maxlength="500" rows="3" style="background:rgba(15,35,80,0.25); border-radius:10px; padding:10px 13px; width:100%;"></textarea>
+    </div>
+
+    <div class="signup-section">
+      <div class="signup-section-label">Trend-points</div>
+      <input type="text" class="compose-trend-input" id="goLiveTrendInput" placeholder="Type a trend-point, press Enter" onkeydown="handleGoLiveTrendKeydown(event)" />
+      <div class="compose-trend-chips" id="goLiveTrendChips"></div>
+    </div>
+
+    <div class="go-live-honesty-note">
+      Heads up — actual live video broadcasting isn't connected to any streaming infrastructure yet, so this won't put you on camera for viewers. Posting below sends a real "going live" announcement to your followers instead.
+    </div>
+
+    <button class="profile-follow-btn" id="goLiveSendBtn" style="width:100%; margin-top:6px; background:linear-gradient(90deg, #c0273e, #e0273e 45%, #ff4f66);" onclick="submitGoLive()">Post "Going Live" Announcement</button>
+  </div>
+</div>
+
 <div class="profile-screen" id="settingsScreen">
   <div class="profile-header-bar">
     <span class="profile-back-btn" onclick="closeSettingsScreen()">
@@ -3144,7 +3202,7 @@ body.theme-nebula .auth-screen {
      dedicated Long-Flick or Short-Flick console instead of the general
      6-step Bleep wizard. -->
 <div class="flicks-fab-wrap" id="flicksFabWrap" style="display:none;">
-  <div class="flicks-fab" id="flicksFab" onclick="openFlickChooser()" title="Post a Flick">
+  <div class="flicks-fab" id="flicksFab" onclick="handleFlicksFabClick()" title="Post a Flick">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2.5" y="5.5" width="14" height="13" rx="2.5"/>
       <path d="M21.5 8.2l-5 3v1.6l5 3z" fill="rgba(212,175,55,0.25)"/>
@@ -7372,6 +7430,10 @@ body.theme-nebula .auth-screen {
   }
 
   /* ── Flick chooser sheet ── */
+  function handleFlicksFabClick() {
+    if (currentSlideKey === 'flicksLive') { openGoLiveConsole(); return; }
+    openFlickChooser();
+  }
   function openFlickChooser() {
     document.getElementById('flickChooserBackdrop').style.display = 'flex';
   }
@@ -7687,6 +7749,109 @@ body.theme-nebula .auth-screen {
       postFlickCrossAnnouncement(data.bleep, 'short');
       closeShortFlickComposer();
       showToast('Short Flick posted!');
+    } catch (err) {
+      errEl.textContent = 'Couldn\'t reach the server.';
+      errEl.style.display = 'block';
+    }
+    btn.style.opacity = ''; btn.style.pointerEvents = '';
+  }
+
+  /* ══════════════════════════════════════════════════════════
+     LIVESTREAM discovery page interactions — mock content (no backend
+     data model for livestreams exists), same honest-stub approach as
+     Special Offers: navigate for real where there's a real destination,
+     toast where there isn't one to fake.
+     ══════════════════════════════════════════════════════════ */
+  function liveSeeAll(section) {
+    showToast('Full "' + section + '" list isn\'t built yet — this is a preview of the layout.');
+  }
+  function liveCardClick(handle) {
+    showToast('This card isn\'t linked to a real stream yet — mock preview only.');
+  }
+
+  /* ── GO LIVE CONSOLE ── */
+  var goLiveTrends = [];
+  var goLiveMediaStream = null;
+
+  async function openGoLiveConsole() {
+    document.getElementById('goLiveScreen').classList.add('show');
+    var frame = document.getElementById('goLiveCameraFrame');
+    var preview = document.getElementById('goLiveCameraPreview');
+    var placeholder = document.getElementById('goLiveCameraPlaceholder');
+    try {
+      goLiveMediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+      preview.srcObject = goLiveMediaStream;
+      frame.classList.add('live');
+    } catch (err) {
+      placeholder.querySelector('div').textContent = 'Couldn\'t access your camera — check permissions.';
+    }
+  }
+  function closeGoLiveConsole() {
+    if (goLiveMediaStream) {
+      goLiveMediaStream.getTracks().forEach(function (t) { t.stop(); });
+      goLiveMediaStream = null;
+    }
+    document.getElementById('goLiveScreen').classList.remove('show');
+    document.getElementById('goLiveCameraFrame').classList.remove('live');
+    document.getElementById('goLiveCameraPlaceholder').querySelector('div').textContent = 'Turning on your camera…';
+    document.getElementById('goLiveTitleInput').value = '';
+    document.getElementById('goLiveBodyInput').value = '';
+    document.getElementById('goLiveTrendInput').value = '';
+    goLiveTrends = [];
+    renderGoLiveTrendChips();
+    document.getElementById('goLiveError').style.display = 'none';
+  }
+  function renderGoLiveTrendChips() {
+    var wrap = document.getElementById('goLiveTrendChips');
+    wrap.innerHTML = goLiveTrends.map(function (t, i) {
+      return '<span class="btag hi" onclick="goLiveTrends.splice(' + i + ',1); renderGoLiveTrendChips();" title="Remove" style="cursor:pointer;">' + escapeHtml(t) + ' &times;</span>';
+    }).join('');
+  }
+  function handleGoLiveTrendKeydown(evt) {
+    if (evt.key === 'Enter' || evt.key === ',' || evt.key === ';') {
+      evt.preventDefault();
+      var input = document.getElementById('goLiveTrendInput');
+      var val = input.value.trim().replace(/[,;]$/, '');
+      if (val && goLiveTrends.indexOf(val) === -1 && goLiveTrends.length < 8) {
+        goLiveTrends.push(val);
+        renderGoLiveTrendChips();
+      }
+      input.value = '';
+    }
+  }
+  async function submitGoLive() {
+    var errEl = document.getElementById('goLiveError');
+    errEl.style.display = 'none';
+    var title = document.getElementById('goLiveTitleInput').value.trim();
+    if (!title) {
+      errEl.textContent = 'Give your stream a title first.';
+      errEl.style.display = 'block';
+      return;
+    }
+    var desc = document.getElementById('goLiveBodyInput').value.trim();
+    var body = '🔴 Going live: "' + title + '"' + (desc ? ' — ' + desc : '');
+    var fd = new FormData();
+    fd.append('body', body);
+    fd.append('title', '');
+    fd.append('isBreaking', 'false');
+    fd.append('postAsFlick', 'false');
+    if (goLiveTrends.length) fd.append('trendPoints', JSON.stringify(goLiveTrends));
+
+    var btn = document.getElementById('goLiveSendBtn');
+    btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none';
+    try {
+      var res = await fetch('/api/bleeps', { method: 'POST', body: fd, credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Something went wrong posting that.';
+        errEl.style.display = 'block';
+        btn.style.opacity = ''; btn.style.pointerEvents = '';
+        return;
+      }
+      var feedContainer = document.getElementById('liveFeedList');
+      if (feedContainer && data.bleep) feedContainer.insertBefore(renderBleepCard(data.bleep), feedContainer.firstChild);
+      closeGoLiveConsole();
+      showToast('Announcement posted to your followers.');
     } catch (err) {
       errEl.textContent = 'Couldn\'t reach the server.';
       errEl.style.display = 'block';
@@ -9013,15 +9178,122 @@ body.theme-nebula .auth-screen {
   <div id="longFlickPaneContent"></div>
 </div>
 
+<!-- ══════════════════════════════════════
+     LIVESTREAM — same mock-discovery approach as Special Offers: real
+     layout and interactions, but no backend data model exists yet for
+     livestreams (no content_type='live' rows, no "who's live" tracking —
+     this pane was a pure "coming soon" stub before this). Content below
+     is illustrative, same as the Special Offers build.
+══════════════════════════════════════ -->
 <div id="flicksLivePane">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px;height:100%;">
-    <div class="cs-orb">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-      </svg>
+  <div class="offers-intro">What's live from people you follow, streams about to start, and a few recommended and saved for replay.</div>
+
+  <div class="offers-section">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">🔴 Live Now</div>
+        <div class="offers-section-sub">People you follow</div>
+      </div>
+      <div class="offers-see-all" onclick="liveSeeAll('live now')">See all</div>
     </div>
-    <div class="cs-title">Live Streams is coming soon</div>
-    <div class="cs-sub">Real-time broadcasts are on the way. Check back shortly.</div>
+    <div class="offer-flick-rail">
+      <div class="live-card" onclick="liveCardClick('AB111')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#2a3a6b,#0f1b3d);">
+          <div class="live-badge live-badge-on">● LIVE</div>
+          <div class="live-viewers">👁 214</div>
+        </div>
+        <div class="offer-flick-title">Open house walkthrough Q&A</div>
+        <div class="offer-flick-creator">*AB111</div>
+      </div>
+      <div class="live-card" onclick="liveCardClick('AB142')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#3b2a5e,#150f30);">
+          <div class="live-badge live-badge-on">● LIVE</div>
+          <div class="live-viewers">👁 58</div>
+        </div>
+        <div class="offer-flick-title">GRWM + closing day chat</div>
+        <div class="offer-flick-creator">@AB142</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offers-section">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">🕒 Starting Soon</div>
+        <div class="offers-section-sub">Scheduled streams coming up</div>
+      </div>
+      <div class="offers-see-all" onclick="liveSeeAll('starting soon')">See all</div>
+    </div>
+    <div class="offer-flick-rail">
+      <div class="live-card" onclick="liveCardClick('GeorgiaPeach')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#5e4a2a,#301f0f);">
+          <div class="live-badge live-badge-soon">IN 20 MIN</div>
+        </div>
+        <div class="offer-flick-title">Custom color theme reveal</div>
+        <div class="offer-flick-creator">*GeorgePeach</div>
+      </div>
+      <div class="live-card" onclick="liveCardClick('AB111')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#2a5e4e,#0f2a22);">
+          <div class="live-badge live-badge-soon">TOMORROW, 6 PM</div>
+        </div>
+        <div class="offer-flick-title">First-time buyer AMA</div>
+        <div class="offer-flick-creator">*AB111</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offers-section">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">✨ Recommended</div>
+        <div class="offers-section-sub">Live streams you might like</div>
+      </div>
+      <div class="offers-see-all" onclick="liveSeeAll('recommended')">See all</div>
+    </div>
+    <div class="offer-flick-rail">
+      <div class="live-card" onclick="liveCardClick('AB142')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#3b2a5e,#150f30);">
+          <div class="live-badge live-badge-on">● LIVE</div>
+          <div class="live-viewers">👁 1.2k</div>
+        </div>
+        <div class="offer-flick-title">Home inspection walk-through</div>
+        <div class="offer-flick-creator">GeorgiaPeach</div>
+      </div>
+      <div class="live-card" onclick="liveCardClick('AB111')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#2a3a6b,#0f1b3d);">
+          <div class="live-badge live-badge-on">● LIVE</div>
+          <div class="live-viewers">👁 402</div>
+        </div>
+        <div class="offer-flick-title">5-step guide, live follow-up</div>
+        <div class="offer-flick-creator">*AB111</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="offers-section" style="margin-bottom:20px;">
+    <div class="offers-section-head">
+      <div>
+        <div class="offers-section-title">💾 Saved Live Streams</div>
+        <div class="offers-section-sub">Past broadcasts, available to replay</div>
+      </div>
+      <div class="offers-see-all" onclick="liveSeeAll('saved')">See all</div>
+    </div>
+    <div class="offer-flick-rail">
+      <div class="live-card" onclick="liveCardClick('AB111')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#2a3a6b,#0f1b3d);">
+          <div class="live-badge live-badge-vod">REPLAY · 41:12</div>
+        </div>
+        <div class="offer-flick-title">Important Steps buying a home</div>
+        <div class="offer-flick-creator">*AB111</div>
+      </div>
+      <div class="live-card" onclick="liveCardClick('AB142')">
+        <div class="live-thumb" style="background:linear-gradient(160deg,#5e4a2a,#301f0f);">
+          <div class="live-badge live-badge-vod">REPLAY · 18:45</div>
+        </div>
+        <div class="offer-flick-title">Central Casting Q&A recap</div>
+        <div class="offer-flick-creator">@AB142</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -9216,6 +9488,26 @@ body.theme-nebula .auth-screen {
   }
   .offer-flick-title { font-size: 11px; font-weight: 600; color: var(--text-hi); margin-top: 6px; line-height: 1.3; }
   .offer-flick-creator { font-size: 9.5px; color: var(--text-lo); margin-top: 1px; }
+
+  /* LiveStream discovery cards — same shape as .offer-flick-card, but with
+     a status badge (live / starting-soon / replay) instead of a play icon. */
+  .live-card { flex: 0 0 128px; cursor: pointer; }
+  .live-thumb {
+    position: relative; width: 128px; height: 168px; border-radius: 12px; overflow: hidden;
+    border: 0.5px solid rgba(212,175,55,0.18);
+  }
+  .live-badge {
+    position: absolute; top: 6px; left: 6px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.03em;
+    padding: 3px 7px; border-radius: 6px;
+  }
+  .live-badge-on { background: #e0273e; color: #fff; animation: liveBadgePulse 1.8s ease-in-out infinite; }
+  @keyframes liveBadgePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.72; } }
+  .live-badge-soon { background: rgba(212,175,55,0.9); color: #161225; }
+  .live-badge-vod { background: rgba(0,0,0,0.6); color: var(--text-hi); border: 0.5px solid rgba(255,255,255,0.15); }
+  .live-viewers {
+    position: absolute; bottom: 6px; right: 6px; font-size: 8.5px; font-weight: 700;
+    background: rgba(0,0,0,0.55); color: var(--text-hi); padding: 2px 6px; border-radius: 6px;
+  }
 
   /* Recommended Bleeps — compact 2-col grid, text-forward since these are posts. */
   .offer-bleep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 16px; }
