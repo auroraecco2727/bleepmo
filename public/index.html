@@ -999,7 +999,9 @@ body::after {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 55;
   max-width: 480px; margin: 0 auto;
   display: flex; justify-content: flex-end;
-  padding: 0 18px 121px;
+  /* Now the only FAB on Flicks (the universal Bleep button is hidden here),
+     so it sits where that one used to — no more stacking gap needed. */
+  padding: 0 18px 55px;
   pointer-events: none;
 }
 .flicks-fab {
@@ -7407,14 +7409,26 @@ body.theme-nebula .auth-screen {
     document.getElementById('longFlickMediaFilename').textContent = file ? file.name : '';
     var note = document.getElementById('longFlickDurationNote');
     note.style.display = 'none';
+    note.innerHTML = '';
     if (!file) return;
     try {
       var duration = await getVideoDuration(file);
       if (duration < 120) {
-        note.textContent = 'This is ' + formatDuration(duration) + ' long — that actually fits Short Flick better, but Long-Flick works fine too.';
+        note.innerHTML = 'This is ' + formatDuration(duration) + ' long — under 2:00 usually fits Short Flick better.' +
+          '<div style="margin-top:4px; font-weight:700; cursor:pointer;" onclick="switchLongUploadToShortFlick()">Switch to Short Flick composer →</div>';
         note.style.display = 'block';
       }
     } catch (err) { /* duration read is a nice-to-have, not required to post */ }
+  }
+  function switchLongUploadToShortFlick() {
+    var file = longFlickMediaFile;
+    closeLongFlickComposer();
+    openShortFlickComposer();
+    if (file) {
+      setShortFlickMode('upload');
+      shortFlickUploadedFile = file;
+      document.getElementById('shortFlickUploadFilename').textContent = file.name;
+    }
   }
   function renderLongFlickTrendChips() {
     var wrap = document.getElementById('longFlickTrendChips');
@@ -8351,7 +8365,9 @@ body.theme-nebula .auth-screen {
     // a video Bleep can also become a Flick) — not on Calendar (has its
     // own "+" add-event button), e-Store, or Special Offers, which are
     // browse-only contexts with nothing to "post" into.
-    document.getElementById('composeFabWrap').style.display = (showFeed || showShort || showLong || showLive) ? 'flex' : 'none';
+    // Bleep-posting FAB: only on the main feed now. Flicks has its own
+    // dedicated FAB — having both there was one button too many.
+    document.getElementById('composeFabWrap').style.display = showFeed ? 'flex' : 'none';
 
     var csView = document.getElementById('comingSoonView');
     if (isComingSoon) {
