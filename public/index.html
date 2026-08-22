@@ -2397,8 +2397,9 @@ body.theme-nebula .auth-screen {
         <div class="symbol-chip" data-symbol="&amp;" onclick="selectFinishSymbol('&amp;')">&amp;</div>
       </div>
       <div class="auth-field">
-        <input class="auth-input" type="text" id="finishHandle" placeholder="yourhandle" />
+        <input class="auth-input" type="text" id="finishHandle" placeholder="yourhandle" oninput="queueHandleAvailabilityCheck('finishHandle','finishHandleStatus')" />
       </div>
+      <div class="handle-status" id="finishHandleStatus"></div>
     </div>
 
     <div class="signup-section">
@@ -4096,22 +4097,29 @@ body.theme-nebula .auth-screen {
     var name = document.getElementById('signupHandle').value || 'YourHandle';
     document.getElementById('handlePreviewSymbol').textContent = sym;
     document.getElementById('handlePreviewName').textContent = name;
-    queueHandleAvailabilityCheck();
+    queueHandleAvailabilityCheck('signupHandle', 'handleStatus');
   }
 
   /* ── Live handle availability check — debounced, so we're not firing a
      request on every keystroke, but the person finds out well before
      they've filled out the rest of the form (or recorded a voice clip)
-     whether their handle is even usable. ── */
-  var handleCheckTimer = null;
-  var handleCheckToken = 0;
-  var lastCheckedHandleAvailable = null; // tri-state: null = unknown/checking, true/false = last confirmed result
+     whether their handle is even usable.
 
-  function queueHandleAvailabilityCheck() {
-    var statusEl = document.getElementById('handleStatus');
-    var raw = document.getElementById('signupHandle').value.trim();
-    clearTimeout(handleCheckTimer);
-    lastCheckedHandleAvailable = null;
+     Generalized to work off any (inputId, statusId) pair — originally
+     signup-only, now also backs the "finish your profile" screen after
+     Google/Apple sign-in, which used to let a handle through with no
+     live feedback and no format check at all. Per-field state (timer/
+     token/last result) is keyed by inputId so the two screens never
+     interfere with each other, even though only one is ever visible at
+     once in practice. ── */
+  var handleCheckState = {}; // inputId -> { timer, token, available }
+
+  function queueHandleAvailabilityCheck(inputId, statusId) {
+    var state = handleCheckState[inputId] || (handleCheckState[inputId] = { timer: null, token: 0, available: null });
+    var statusEl = document.getElementById(statusId);
+    var raw = document.getElementById(inputId).value.trim();
+    clearTimeout(state.timer);
+    state.available = null;
 
     if (!raw) {
       statusEl.className = 'handle-status';
@@ -4127,25 +4135,25 @@ body.theme-nebula .auth-screen {
     statusEl.className = 'handle-status checking';
     statusEl.textContent = 'Checking availability…';
 
-    var myToken = ++handleCheckToken;
-    handleCheckTimer = setTimeout(async function () {
+    var myToken = ++state.token;
+    state.timer = setTimeout(async function () {
       try {
         var res = await fetch('/api/check-handle?handle=' + encodeURIComponent(raw));
         var data = await res.json();
-        if (myToken !== handleCheckToken) return; // a newer keystroke superseded this check
+        if (myToken !== state.token) return; // a newer keystroke superseded this check
         if (data.available) {
           statusEl.className = 'handle-status available';
           statusEl.textContent = '✓ Available';
-          lastCheckedHandleAvailable = true;
+          state.available = true;
         } else {
           statusEl.className = 'handle-status unavailable';
           statusEl.textContent = data.reason === 'invalid_format'
             ? 'Letters, numbers, and underscores only — 2 to 30 characters.'
             : 'That handle is already taken.';
-          lastCheckedHandleAvailable = false;
+          state.available = false;
         }
       } catch (err) {
-        if (myToken !== handleCheckToken) return;
+        if (myToken !== state.token) return;
         // Network hiccup — don't block signup over an availability check
         // that couldn't complete; the server re-validates at submit time
         // regardless.
@@ -4309,7 +4317,7 @@ body.theme-nebula .auth-screen {
       document.getElementById('signupHandle').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return false;
     }
-    if (lastCheckedHandleAvailable === false) {
+    if (handleCheckState.signupHandle && handleCheckState.signupHandle.available === false) {
       showSignupError('That handle is already taken — please choose another.');
       document.getElementById('signupHandle').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return false;
@@ -5309,6 +5317,16 @@ body.theme-nebula .auth-screen {
       showFinishProfileStatus('Please choose a handle.', true);
       return;
     }
+    if (!/^[A-Za-z0-9_]{2,30}$/.test(handle)) {
+      showFinishProfileStatus('Handles must be 2-30 characters — letters, numbers, and underscores only.', true);
+      document.getElementById('finishHandle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (handleCheckState.finishHandle && handleCheckState.finishHandle.available === false) {
+      showFinishProfileStatus('That handle is already taken — please choose another.', true);
+      document.getElementById('finishHandle').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     var btn = document.getElementById('finishProfileSubmitBtn');
     btn.disabled = true;
@@ -5707,10 +5725,11 @@ body.theme-nebula .auth-screen {
   }
 
   /* ── Comments screen ── */
-  var commentsScreenState = { bleepId: null, replyingTo: null, replyingToHandle: null };
+  var commentsScreenState = { bleepId: null, postAuthorId: null, replyingTo: null, replyingToHandle: null };
 
   async function openCommentsScreen(bleepId) {
     commentsScreenState.bleepId = bleepId;
+    commentsScreenState.postAuthorId = null;
     commentsScreenState.replyingTo = null;
     document.getElementById('commentsReplyingBanner').style.display = 'none';
     document.getElementById('commentInput').value = '';
@@ -5724,6 +5743,7 @@ body.theme-nebula .auth-screen {
 
       if (bleepRes.ok) {
         var bleepData = await bleepRes.json();
+        commentsScreenState.postAuthorId = bleepData.bleep ? bleepData.bleep.author_id : null;
         renderCommentsPostPreview(bleepData.bleep);
       } else {
         document.getElementById('commentsPostPreview').innerHTML = '';
@@ -5773,7 +5793,12 @@ body.theme-nebula .auth-screen {
     var row = document.createElement('div');
     row.className = 'comment-row' + (c.parent_comment_id ? ' reply' : '');
     var isOwner = currentUser && currentUser.id === c.author_id;
-    var deleteHtml = isOwner
+    // The backend already allows the Bleep's author to remove comments on
+    // their own post (comment-detail.js), not just the comment's own
+    // author — this just surfaces that same option in the UI, which
+    // previously only ever showed Delete to the comment's author.
+    var isPostOwner = currentUser && commentsScreenState.postAuthorId && currentUser.id === commentsScreenState.postAuthorId;
+    var deleteHtml = (isOwner || isPostOwner)
       ? '<span class="comment-action-link danger" onclick="deleteComment(\'' + escapeHtml(c.id) + '\', this)">Delete</span>'
       : '';
     row.innerHTML =
@@ -7260,7 +7285,11 @@ body.theme-nebula .auth-screen {
   function flushPendingComposeInputs() {
     var trendInput = document.getElementById('composeTrendInput');
     if (trendInput && trendInput.value.trim()) {
-      var tVal = trendInput.value.trim().replace(/[,;]$/, '');
+      // Lowercased for the same reason as handleTrendInputKeydown below —
+      // this is the second, independent place a trend-point chip gets
+      // added (on step navigation instead of Enter), and it was missing
+      // the same normalization.
+      var tVal = trendInput.value.trim().replace(/[,;]$/, '').toLowerCase();
       if (tVal && composeTrendPoints.indexOf(tVal) === -1 && composeTrendPoints.length < 8) {
         composeTrendPoints.push(tVal);
         renderComposeTrendChips();
@@ -7959,7 +7988,13 @@ body.theme-nebula .auth-screen {
     if (evt.key === 'Enter' || evt.key === ',' || evt.key === ';') {
       evt.preventDefault();
       var input = document.getElementById('composeTrendInput');
-      var val = input.value.trim().replace(/[,;]$/, '');
+      // Lowercased (but not slugified — unlike onboarding's interest pills,
+      // these keep spaces so they read naturally) so "Gaming" and "gaming"
+      // are recognized as the same trend-point instead of silently
+      // becoming two, and so matching against other people's trend-points
+      // (similar posts, notification categories, merch) actually works —
+      // the backend now stores/matches trend-points lowercase throughout.
+      var val = input.value.trim().replace(/[,;]$/, '').toLowerCase();
       if (val && composeTrendPoints.indexOf(val) === -1 && composeTrendPoints.length < 8) {
         composeTrendPoints.push(val);
         renderComposeTrendChips();

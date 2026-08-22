@@ -304,16 +304,26 @@ export async function handleBleepsPost(request, env) {
   }
 
   // trendPoints arrives as a JSON array string, e.g. '["Sustainable Tech","Urban Design"]'
+  // Normalized to lowercase on the way in — every other place in the app
+  // that reads trend-points (subscribed_trend_points, location_anchor
+  // matching, the merch-recommendation map, notification categorization)
+  // already assumes lowercase, per the convention documented in
+  // migrations/0008_onboarding.sql. Bleep-authored trend-points were the
+  // one place that never actually enforced it, which silently broke
+  // case-sensitive lookups downstream (commerce notification category,
+  // similar-posts matching) any time someone typed "Gaming" instead of
+  // "gaming". Fixed here instead of trusting every reader to lowercase.
   let trendPoints = [];
   const trendPointsRaw = form.get('trendPoints');
   if (trendPointsRaw) {
     try {
       const parsed = JSON.parse(trendPointsRaw.toString());
       if (Array.isArray(parsed)) {
-        trendPoints = parsed
-          .map((t) => t.toString().trim())
-          .filter((t) => t.length > 0 && t.length <= 40)
-          .slice(0, 8); // sane cap so nobody turns a caption into 200 tags
+        trendPoints = [...new Set(
+          parsed
+            .map((t) => t.toString().trim().toLowerCase())
+            .filter((t) => t.length > 0 && t.length <= 40)
+        )].slice(0, 8); // sane cap so nobody turns a caption into 200 tags
       }
     } catch {
       // malformed JSON — just skip trend-points rather than failing the whole post
@@ -457,7 +467,7 @@ export async function handleBleepsSimilar(request, env) {
               COUNT(DISTINCT tp.topic) AS overlap_count
        FROM bleeps b
        JOIN users u ON u.id = b.author_id
-       JOIN trend_points tp ON tp.bleep_id = b.id AND tp.topic IN (${placeholders}) COLLATE NOCASE
+       JOIN trend_points tp ON tp.bleep_id = b.id AND tp.topic COLLATE NOCASE IN (${placeholders})
        WHERE b.deleted_at IS NULL
        GROUP BY b.id
        ORDER BY overlap_count DESC, b.created_at DESC

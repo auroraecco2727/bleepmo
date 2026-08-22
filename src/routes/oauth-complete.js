@@ -77,6 +77,13 @@ export async function handleCompleteOAuthSignup(request, env) {
   const email = (pending.email || '').toLowerCase();
 
   if (!handle) return badRequest('Please choose a handle.');
+  // Same gate as signup.js — OAuth-completed accounts skipped this check
+  // entirely before, so a Google/Apple sign-in could end up with a handle
+  // outside the pattern the rest of the app assumes (renderBleepMentions,
+  // check-handle.js), silently making that account un-@-mentionable.
+  if (!/^[A-Za-z0-9_]{2,30}$/.test(handle)) {
+    return badRequest('Handles must be 2-30 characters — letters, numbers, and underscores only.');
+  }
   if (!email) return badRequest('Your Google/Apple account didn\'t share a usable email — try a different sign-in method.');
 
   const existing = await env.DB
