@@ -6479,6 +6479,7 @@ body.theme-nebula .auth-screen {
     var state = flickPaneState[paneKey];
     var container = document.getElementById(paneKey + 'FlickPaneContent');
     if (!container) return;
+    teardownFlickPaneVideos(paneKey); // release whatever was here before we overwrite it
     container.innerHTML = '<div class="profile-loading">Loading…</div>';
 
     var url = '/api/bleeps?contentType=' + state.contentType + (trendTopic ? '&trend=' + encodeURIComponent(trendTopic) : '');
@@ -6538,6 +6539,7 @@ body.theme-nebula .auth-screen {
   function renderFlickUpNextRail(paneKey) {
     var rail = document.getElementById(paneKey + 'UpNextRail');
     if (!rail) return;
+    releaseVideosIn(rail); // also rebuilds on every scrub — see releaseVideosIn
     var state = flickPaneState[paneKey];
     var n = state.items.length;
     if (!n) { rail.innerHTML = ''; return; }
@@ -6571,10 +6573,28 @@ body.theme-nebula .auth-screen {
     }
   }
 
+  // Shared by every spot that replaces a chunk of DOM containing <video>
+  // elements via innerHTML — releasing decoders explicitly before the old
+  // markup is discarded, rather than trusting the browser to notice on its
+  // own. See the longer comment on teardownFlickPaneVideos below for why.
+  function releaseVideosIn(containerEl) {
+    if (!containerEl) return;
+    var videos = containerEl.querySelectorAll('video');
+    for (var i = 0; i < videos.length; i++) {
+      var v = videos[i];
+      try {
+        v.pause();
+        v.removeAttribute('src');
+        v.load();
+      } catch (err) { /* best-effort cleanup — never worth breaking navigation over */ }
+    }
+  }
+
   function renderFlickRecommendedRail(paneKey) {
     if (paneKey !== 'long') return;
     var rail = document.getElementById(paneKey + 'RecommendedRail');
     if (!rail) return;
+    releaseVideosIn(rail); // this rail rebuilds on every scrub through Long-Flicks — see releaseVideosIn
     var state = flickPaneState.long;
     var current = state.items[state.activeIndex];
     var pool = state.recommendedPool.filter(function (b) { return !current || b.id !== current.id; });
@@ -8516,11 +8536,27 @@ body.theme-nebula .auth-screen {
   }
 
   function pauseFlickPane(paneKey) {
-    var video = document.getElementById(paneKey + 'FlickVideo');
-    if (video) video.pause();
+    teardownFlickPaneVideos(paneKey);
     if (bingeTimer[paneKey]) { clearTimeout(bingeTimer[paneKey]); bingeTimer[paneKey] = null; }
     var progressEl = document.getElementById(paneKey + 'BingeProgress');
     if (progressEl) progressEl.style.display = 'none';
+  }
+
+  // Fully release every <video> element inside a Flicks pane (the main
+  // player plus every rail/thumbnail video) before it's torn down.
+  //
+  // Why this matters: loadFlickPane() rebuilds this pane's video elements
+  // from scratch on every visit (container.innerHTML = ...), and just
+  // removing a <video> from the DOM does NOT reliably or immediately
+  // release its decoder/network resources — Firefox in particular is
+  // known to lag on this well behind Chrome. Revisiting a Flicks tab a
+  // few times without an explicit pause()+src-clear+load() on the old
+  // elements first left a growing number of not-yet-released decoders
+  // behind, which is what made the app measurably slower with each tab
+  // switch (most obvious on Firefox) even with zero real traffic.
+  function teardownFlickPaneVideos(paneKey) {
+    var pane = document.getElementById(paneKey + 'FlickPaneContent');
+    releaseVideosIn(pane);
   }
 
   function goToSlide(slideKey) {
