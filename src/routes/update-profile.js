@@ -54,6 +54,14 @@ export async function handleUpdateProfile(request, env) {
   const handle = form.has('handle') ? (form.get('handle') || '').toString().trim() : null;
   if (handle !== null) {
     if (!handle) return badRequest('Handle can\'t be empty.');
+    // Same format gate as signup.js and oauth-complete.js — this was the
+    // one remaining place a handle could be set without it: an existing
+    // user changing their handle from Settings could previously save
+    // anything (spaces, symbols, wrong length) as long as it wasn't
+    // already taken, silently breaking @-mentions for that account.
+    if (!/^[A-Za-z0-9_]{2,30}$/.test(handle)) {
+      return badRequest('Handles must be 2-30 characters — letters, numbers, and underscores only.');
+    }
     if (handle !== user.handle) {
       const existing = await env.DB
         .prepare('SELECT id FROM users WHERE handle = ? COLLATE NOCASE AND id != ?')
