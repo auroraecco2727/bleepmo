@@ -9149,16 +9149,6 @@ body.theme-nebula .auth-screen {
     display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px;
     cursor: pointer; z-index: 15;
   }
-  /* .flick-player has flex:1, so it physically grows to fill the space
-     the rail leaves behind once .flick-rail collapses to width:0 — which
-     means a plain "right: 8px" (measured from flick-player's own edge)
-     drifts ~90px further outward the moment the rail hides, since that
-     edge itself just moved. Compensating by that same 90px (the rail's
-     width) here keeps the toggle bar sitting at the same physical
-     "inner edge" position — right where the rail's boundary used to be —
-     in both states, instead of jumping out to the screen's true edge
-     once the rail is gone. */
-  .flick-hero-row:has(.flick-rail.hidden-rail) .flick-rail-toggle-bar { right: 98px; }
   .flick-rail-toggle-bar::before, .flick-rail-toggle-bar::after {
     content: ''; width: 3.5px; height: 32px; border-radius: 3px;
     background: rgba(212,175,55,0.5);
