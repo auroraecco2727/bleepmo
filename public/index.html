@@ -602,7 +602,7 @@ body::after {
    HEART-PULSE SUMMON BUTTON (lives in the creator row now, not a bottom bar)
 ══════════════════════════════════════ */
 .bleepbot-summon-btn {
-  margin-left: auto; flex-shrink: 0; cursor: pointer; padding: 4px;
+  margin-left: auto; flex-shrink: 0; cursor: pointer; padding: 6px;
   border-radius: 8px; display: flex; align-items: center; transition: all 0.2s;
 }
 .bleepbot-summon-btn:hover { background: rgba(212,175,55,0.1); }
@@ -923,17 +923,11 @@ body::after {
   color: #ff8c3c;
   width: 100%;
 }
-.breaking-dot {
-  width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
-  background: #ff8c3c; box-shadow: 0 0 6px #ff8c3c, 0 0 2px #ff8c3c;
-  animation: breakingDotPulse 1.7s ease-in-out infinite;
-}
 .linked-post-row {
   font-size: 11px; color: var(--text-mid); cursor: pointer;
   margin: 6px 0; padding: 6px 0; border-top: 0.5px solid rgba(212,175,55,0.1);
 }
 .linked-post-row:hover { color: var(--text-hi); }
-@keyframes breakingDotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
 
 .live-delete-btn {
   margin-left: auto; color: var(--text-lo); cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.2s;
@@ -2343,8 +2337,9 @@ body.theme-nebula .auth-screen {
         <div class="symbol-chip" data-symbol="&amp;" onclick="selectSettingsSymbol('&amp;')">&amp;</div>
       </div>
       <div class="auth-field">
-        <input class="auth-input" type="text" id="settingsHandle" />
+        <input class="auth-input" type="text" id="settingsHandle" oninput="checkSettingsHandle()" />
       </div>
+      <div class="handle-status" id="settingsHandleStatus"></div>
     </div>
 
     <!-- Password -->
@@ -4697,7 +4692,7 @@ body.theme-nebula .auth-screen {
       '    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
       '  </span>' +
       '</div>' +
-      (b.is_breaking ? '<div class="breaking-badge"><span class="breaking-dot"></span>Breaking</div>' : '') +
+      (b.is_breaking ? '<div class="breaking-badge">Breaking</div>' : '') +
       '<div class="live-media-slot"></div>' +
       bodyHtml +
       tagsRowHtml +
@@ -5175,6 +5170,26 @@ body.theme-nebula .auth-screen {
     document.getElementById('settingsScreen').classList.remove('show');
   }
 
+  // Settings' handle field starts pre-filled with the user's own current
+  // handle, unlike signup/finish-profile/oauth which always start blank.
+  // /api/check-handle has no concept of "current user" — it just checks
+  // whether any row has that handle — so retyping your own unchanged
+  // handle would otherwise come back "already taken" (true, but
+  // confusing, since it's taken by you). Short-circuit that one case
+  // before delegating to the shared check.
+  function checkSettingsHandle() {
+    var raw = document.getElementById('settingsHandle').value.trim();
+    var statusEl = document.getElementById('settingsHandleStatus');
+    if (currentUser && raw.toLowerCase() === (currentUser.handle || '').toLowerCase()) {
+      clearTimeout((handleCheckState.settingsHandle || {}).timer);
+      handleCheckState.settingsHandle = { timer: null, token: (handleCheckState.settingsHandle || {}).token || 0, available: true };
+      statusEl.className = 'handle-status';
+      statusEl.textContent = '';
+      return;
+    }
+    queueHandleAvailabilityCheck('settingsHandle', 'settingsHandleStatus');
+  }
+
   async function saveSettings() {
     if (!currentUser) return;
     var btn = document.getElementById('settingsSaveBtn');
@@ -5191,6 +5206,19 @@ body.theme-nebula .auth-screen {
 
     if (!fullName || !handle) {
       showSettingsStatus('Screen-name and handle can\'t be empty.', true);
+      btn.disabled = false;
+      btn.textContent = originalText;
+      return;
+    }
+    if (!/^[A-Za-z0-9_]{2,30}$/.test(handle)) {
+      showSettingsStatus('Handles must be 2-30 characters — letters, numbers, and underscores only.', true);
+      btn.disabled = false;
+      btn.textContent = originalText;
+      return;
+    }
+    var handleChanged = !currentUser || handle.toLowerCase() !== (currentUser.handle || '').toLowerCase();
+    if (handleChanged && handleCheckState.settingsHandle && handleCheckState.settingsHandle.available === false) {
+      showSettingsStatus('That handle is already taken — please choose another.', true);
       btn.disabled = false;
       btn.textContent = originalText;
       return;
@@ -6433,9 +6461,9 @@ body.theme-nebula .auth-screen {
           '<div class="flick-center" id="' + p + 'FlickCenter" onclick="toggleFlickPlayback(\'' + p + '\')">' +
             '<div class="flick-play" id="' + p + 'FlickPlayBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#D4AF37"><polygon points="5,3 19,12 5,21"/></svg></div>' +
           '</div>' +
-          '<div class="flick-actions"' + (isLong ? ' style="top:24px;transform:none;"' : '') + '>' +
+          '<div class="flick-actions">' +
             '<span class="bleepbot-summon-btn" title="Contextual Intelligence" onclick="toggleFlickBleepbot(\'' + p + '\')">' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+              '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 3 14 3 8.5C3 6 5 4 7.5 4C9.24 4 10.91 5.01 12 6.5C13.09 5.01 14.76 4 16.5 4C19 4 21 6 21 8.5C21 14 12 21 12 21Z" fill="rgba(212,175,55,0.15)" stroke="#D4AF37" stroke-width="1.3"/><polyline points="6,11 8,9 10,12 12,8 14,11 16,10 18,11" stroke="#D4AF37" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
             '</span>' +
           '</div>' +
           '<div class="visor-bar" id="' + p + 'FlickVisorBar" style="display:none;">' +
@@ -6451,7 +6479,7 @@ body.theme-nebula .auth-screen {
             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">' +
               '<div class="syne" style="font-size:15px;font-weight:700;color:#fff;line-height:1.25;flex:1;min-width:0;" id="' + p + 'FlickTitle"></div>' +
               '<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">' +
-                '<span class="flick-act" id="' + p + 'FlickLikeAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label" id="' + p + 'FlickLikeCount" style="position:static;">0</span></span>' +
+                '<span class="flick-act act like-btn" id="' + p + 'FlickLikeAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span class="flick-act-label like-count-badge" id="' + p + 'FlickLikeCount" style="position:static;">0</span></span>' +
                 '<span class="flick-act" id="' + p + 'FlickCommentAct" style="position:static;flex-direction:row;gap:4px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="flick-act-label" id="' + p + 'FlickCommentCount" style="position:static;">0</span></span>' +
                 (isLong ?
                   '<span class="flick-act" id="' + p + 'FlickShareAct" style="position:static;" title="Share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9"/></svg></span>'
@@ -6696,8 +6724,19 @@ body.theme-nebula .auth-screen {
     document.getElementById(paneKey + 'FlickCommentCount').textContent = b.comment_count || 0;
 
     var likeAct = document.getElementById(paneKey + 'FlickLikeAct');
+    // toggleLike()/setLikeButtonsState() (shared with the main feed's like
+    // button) find their target via the like-btn class + data-bleep-id
+    // attribute and update a .like-count-badge child — this element is
+    // built once per pane load with none of that wired to a specific
+    // post, so every previous like here silently did nothing visible:
+    // the click handler ran, the POST likely succeeded, but the shared
+    // state-sync helpers never found this element to update it. Setting
+    // these here, per active Flick, is what actually connects it.
+    likeAct.setAttribute('data-bleep-id', b.id);
     likeAct.onclick = function (e) { e.stopPropagation(); toggleLike(b.id, likeAct); };
     likeAct.classList.toggle('liked', !!b.liked_by_viewer);
+    var likeSvg = likeAct.querySelector('svg');
+    if (likeSvg) likeSvg.setAttribute('fill', b.liked_by_viewer ? 'currentColor' : 'none');
 
     document.getElementById(paneKey + 'FlickCommentAct').onclick = function (e) { e.stopPropagation(); openCommentsScreen(b.id); };
 
@@ -9110,6 +9149,16 @@ body.theme-nebula .auth-screen {
     display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px;
     cursor: pointer; z-index: 15;
   }
+  /* .flick-player has flex:1, so it physically grows to fill the space
+     the rail leaves behind once .flick-rail collapses to width:0 — which
+     means a plain "right: 8px" (measured from flick-player's own edge)
+     drifts ~90px further outward the moment the rail hides, since that
+     edge itself just moved. Compensating by that same 90px (the rail's
+     width) here keeps the toggle bar sitting at the same physical
+     "inner edge" position — right where the rail's boundary used to be —
+     in both states, instead of jumping out to the screen's true edge
+     once the rail is gone. */
+  .flick-hero-row:has(.flick-rail.hidden-rail) .flick-rail-toggle-bar { right: 98px; }
   .flick-rail-toggle-bar::before, .flick-rail-toggle-bar::after {
     content: ''; width: 3.5px; height: 32px; border-radius: 3px;
     background: rgba(212,175,55,0.5);
@@ -9184,8 +9233,7 @@ body.theme-nebula .auth-screen {
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
   .flick-actions {
-    position: absolute; right: 0; top: 50%;
-    transform: translateY(-50%);
+    position: absolute; right: 0; top: 24px;
     display: flex; flex-direction: column; gap: 16px;
     padding-right: 10px; align-items: center;
   }
