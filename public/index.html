@@ -9144,20 +9144,27 @@ body.theme-nebula .auth-screen {
      toggle (.tab-bar-toggle), just rotated to sit flush against the
      video's own right edge instead of floating between video and rail. */
   .flick-rail-toggle-bar {
-    position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+    position: absolute; top: 50%; right: 0; transform: translateY(-50%);
     width: 20px; height: 44px;
-    display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 3px;
     cursor: pointer; z-index: 15;
   }
+  /* Absolutely-positioned (not flex-centered) so the primary bar stays
+     pinned flush at the true right edge in both states — a flex-centered
+     box would leave it floating ~8px inward, and even flex with
+     justify-content:flex-end would shift it once the second bar fades
+     in, since the hidden pseudo-element still occupies its flex slot.
+     Pinning each bar's own position directly avoids both problems. */
   .flick-rail-toggle-bar::before, .flick-rail-toggle-bar::after {
-    content: ''; width: 3.5px; height: 32px; border-radius: 3px;
+    content: ''; position: absolute; top: 50%; width: 3.5px; height: 32px; border-radius: 3px;
     background: rgba(212,175,55,0.5);
     transition: background 0.2s, height 0.2s, opacity 0.2s, transform 0.2s;
   }
-  /* Second bar only appears once the rail is hidden — same "1 bar = shown,
-     2 bars = hidden" logic as the tab-menu toggle. */
-  .flick-rail-toggle-bar::after { opacity: 0; transform: scaleX(0); }
-  .flick-rail-toggle-bar.rail-hidden::after { opacity: 1; transform: scaleX(1); }
+  .flick-rail-toggle-bar::before { right: 0; transform: translateY(-50%); }
+  /* Second bar only appears once the rail is hidden, sitting just inside
+     the first — same "1 bar = shown, 2 bars = hidden" logic as the
+     tab-menu toggle. */
+  .flick-rail-toggle-bar::after { right: 6.5px; opacity: 0; transform: translateY(-50%) scaleX(0); }
+  .flick-rail-toggle-bar.rail-hidden::after { opacity: 1; transform: translateY(-50%) scaleX(1); }
   .flick-rail-toggle-bar:hover::before, .flick-rail-toggle-bar:hover::after,
   .flick-rail-toggle-bar:active::before, .flick-rail-toggle-bar:active::after { background: rgba(212,175,55,0.8); height: 38px; }
 
