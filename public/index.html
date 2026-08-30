@@ -400,19 +400,38 @@ body::after {
 
 .creator-row { display: flex; align-items: center; gap: 9px; }
 
-/* EXPERIMENTAL — quick-jump buttons live inside the Contextual Intelligence
-   panel for now, giving that space a job while there's no real AI analysis
-   yet. Safe to rip out via this block + the .bb-quick-actions markup +
-   filterFeedByAuthor/clearAuthorFilter/showToast if it doesn't feel right. */
-.bb-quick-actions { display: flex; flex-direction: row; gap: 8px; margin-top: 2px; }
-.bb-action-btn {
-  display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 10px;
+/* Quick-jump/action buttons live inside the Contextual Intelligence panel
+   as its first (and currently only) page — organized into labeled groups
+   of tiles rather than one flat row of unlabeled icons, so the panel
+   reads as organized rather than a cramped icon strip, and so mobile
+   users (who never see a bare `title` attribute — that's a hover-only
+   tooltip, invisible on touch) have an actual visible label to go on
+   before tapping something. No AI/generated content here yet — see the
+   .bb-action-group markup at each call site (buildBleepCardInner,
+   setActiveFlick) for how groups are assigned per content type. */
+.bb-action-group + .bb-action-group { margin-top: 14px; }
+.bb-action-group-label {
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-lo); font-weight: 600; margin-bottom: 8px;
+}
+.bb-action-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
+}
+.bb-action-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; padding: 10px 4px; min-height: 44px;
+  border-radius: 12px;
   background: rgba(212,175,55,0.06); border: 1px solid rgba(212,175,55,0.22);
   color: var(--gold); cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
 }
-.bb-action-btn:hover { background: rgba(212,175,55,0.14); border-color: rgba(212,175,55,0.4); }
+.bb-action-tile:hover { background: rgba(212,175,55,0.14); border-color: rgba(212,175,55,0.4); transform: translateY(-1px); }
+.bb-action-tile:active { transform: translateY(0); }
+.bb-action-tile-label {
+  font-size: 9.5px; color: var(--text-mid); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
 
 /* ══════════════════════════════════════
    CREATOR PROFILE SCREEN
@@ -759,6 +778,7 @@ body::after {
 
 .bb-action-danger { color: #ff6f5a; border-color: rgba(255,90,60,0.3); background: rgba(255,80,50,0.06); }
 .bb-action-danger:hover { background: rgba(255,80,50,0.14); border-color: rgba(255,90,60,0.5); }
+.bb-action-danger .bb-action-tile-label { color: #ff6f5a; }
 
 /* ── Carousel container ── */
 .carousel-wrap {
@@ -4665,10 +4685,13 @@ body.theme-nebula .auth-screen {
 
     var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
     var deleteActionHtml = canDelete
-      ? '<span class="bb-action-btn bb-action-danger" title="Delete ' + escapeHtml(b.full_name) + '\'s Bleep" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>'
+      ? '<span class="bb-action-tile bb-action-danger" title="Delete ' + escapeHtml(b.full_name) + '\'s Bleep" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span class="bb-action-tile-label">Delete</span></span>'
       : '';
     var editActionHtml = (currentUser && currentUser.is_admin)
-      ? '<span class="bb-action-btn" title="Edit (admin)" onclick="adminEditBleep(\'' + b.id + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>'
+      ? '<span class="bb-action-tile" title="Edit (admin)" onclick="adminEditBleep(\'' + b.id + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="bb-action-tile-label">Edit</span></span>'
+      : '';
+    var manageGroupHtml = (editActionHtml || deleteActionHtml)
+      ? '<div class="bb-action-group"><div class="bb-action-group-label">Manage</div><div class="bb-action-grid">' + editActionHtml + deleteActionHtml + '</div></div>'
       : '';
 
     var linkedPreviewHtml = '';
@@ -4707,13 +4730,12 @@ body.theme-nebula .auth-screen {
       '<div class="bleepbot-expand" id="' + expandId + '">' +
       '  <div class="bleepbot-inner">' +
       '    <div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleLiveExpand(\'' + expandId + '\')">✕</span></div>' +
-      '    <div class="bb-quick-actions">' +
-      '      <span class="bb-action-btn" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
-      '      <span class="bb-action-btn" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' +
-      '      <span class="bb-action-btn" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span>' +
-      editActionHtml +
-      deleteActionHtml +
-      '    </div>' +
+      '    <div class="bb-action-group"><div class="bb-action-group-label">Creator</div><div class="bb-action-grid">' +
+      '      <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="bb-action-tile-label">Bleeps</span></span>' +
+      '      <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="bb-action-tile-label">Flicks</span></span>' +
+      '      <span class="bb-action-tile" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg><span class="bb-action-tile-label">Profile</span></span>' +
+      '    </div></div>' +
+      manageGroupHtml +
       '  </div>' +
       '</div>';
 
@@ -6154,8 +6176,12 @@ body.theme-nebula .auth-screen {
     });
   }
 
-  /* EXPERIMENTAL — see the CSS comment above .bb-quick-actions for the
-     full block this belongs to if it needs to be removed later. */
+  /* Leftover from an earlier design of the quick-jump buttons in the
+     Contextual Intelligence panel (see .bb-action-group in the CSS and
+     buildBleepCardInner/setActiveFlick) — not currently wired to those
+     buttons, which call openProfileScreen directly instead. Kept in case
+     an in-feed author filter comes back; safe to remove along with
+     filterFeedByAuthor/clearAuthorFilter/showToast if not. */
   var activeAuthorFilter = null;
 
   function filterFeedByAuthor(authorId, handleDisplay) {
@@ -6755,23 +6781,27 @@ body.theme-nebula .auth-screen {
     if (bbInner) {
       var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
       var deleteActionHtml = canDelete
-        ? '<span class="bb-action-btn bb-action-danger" title="Delete ' + escapeHtml(b.full_name) + '\'s Flick" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span>'
+        ? '<span class="bb-action-tile bb-action-danger" title="Delete ' + escapeHtml(b.full_name) + '\'s Flick" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span class="bb-action-tile-label">Delete</span></span>'
         : '';
       var editActionHtml = (currentUser && currentUser.is_admin)
-        ? '<span class="bb-action-btn" title="Edit (admin)" onclick="adminEditBleep(\'' + b.id + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>'
+        ? '<span class="bb-action-tile" title="Edit (admin)" onclick="adminEditBleep(\'' + b.id + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="bb-action-tile-label">Edit</span></span>'
+        : '';
+      var manageGroupHtml = (editActionHtml || deleteActionHtml)
+        ? '<div class="bb-action-group"><div class="bb-action-group-label">Manage</div><div class="bb-action-grid">' + editActionHtml + deleteActionHtml + '</div></div>'
         : '';
       bbInner.innerHTML =
         '<div class="bb-header"><span class="bb-header-label">Contextual Intelligence</span><span class="bb-close-btn" onclick="toggleFlickBleepbot(\'' + paneKey + '\')">✕</span></div>' +
-        '<div class="bb-quick-actions">' +
-        '  <span class="bb-action-btn" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>' +
-        '  <span class="bb-action-btn" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>' +
-        '  <span class="bb-action-btn" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg></span>' +
-        '  <span class="bb-action-btn" title="Binge Mode settings" onclick="event.stopPropagation(); openBingeSettings()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></span>' +
-        '  <span class="bb-action-btn" title="Save to Vault" onclick="event.stopPropagation(); openVaultFromFlick(\'' + paneKey + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>' +
-        '  <span class="bb-action-btn" title="Send a tip" onclick="event.stopPropagation(); openTipModalFromFlick(\'' + paneKey + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg></span>' +
-        editActionHtml +
-        deleteActionHtml +
-        '</div>';
+        '<div class="bb-action-group"><div class="bb-action-group-label">Creator</div><div class="bb-action-grid">' +
+        '  <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="bb-action-tile-label">Bleeps</span></span>' +
+        '  <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="bb-action-tile-label">Flicks</span></span>' +
+        '  <span class="bb-action-tile" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg><span class="bb-action-tile-label">Profile</span></span>' +
+        '</div></div>' +
+        '<div class="bb-action-group"><div class="bb-action-group-label">This Flick</div><div class="bb-action-grid">' +
+        '  <span class="bb-action-tile" title="Binge Mode settings" onclick="event.stopPropagation(); openBingeSettings()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span class="bb-action-tile-label">Binge</span></span>' +
+        '  <span class="bb-action-tile" title="Save to Vault" onclick="event.stopPropagation(); openVaultFromFlick(\'' + paneKey + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="bb-action-tile-label">Vault</span></span>' +
+        '  <span class="bb-action-tile" title="Send a tip" onclick="event.stopPropagation(); openTipModalFromFlick(\'' + paneKey + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg><span class="bb-action-tile-label">Tip</span></span>' +
+        '</div></div>' +
+        manageGroupHtml;
     }
 
     var visorBar = document.getElementById(paneKey + 'FlickVisorBar');
