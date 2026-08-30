@@ -6515,7 +6515,6 @@ body.theme-nebula .auth-screen {
       var res = await fetch(url, { credentials: 'include' });
       if (!res.ok) { container.innerHTML = ''; return; }
       var data = await res.json();
-      state.recommended = !!data.usedTrendFallback;
       if (!data.bleeps || data.bleeps.length === 0) {
         state.items = [];
         state.loaded = true;
@@ -6639,6 +6638,13 @@ body.theme-nebula .auth-screen {
     var state = flickPaneState.long;
     var b = state.recommendedPool.find(function (x) { return x.id === bleepId; });
     if (!b) return;
+    // One-shot flag consumed by setActiveFlick — shows the "Recommended
+    // by Bleepmo" visor briefly for the flick the person just jumped to
+    // from this rail, rather than the old behavior (a pane-wide flag set
+    // once when the pane first loaded) which had nothing to do with
+    // which video was actually playing, so it either never showed or
+    // stayed up for the entire video regardless of how you got there.
+    b._justRecommended = true;
     var existingIdx = state.items.findIndex(function (x) { return x.id === bleepId; });
     if (existingIdx !== -1) {
       setActiveFlick('long', existingIdx);
@@ -6770,9 +6776,18 @@ body.theme-nebula .auth-screen {
 
     var visorBar = document.getElementById(paneKey + 'FlickVisorBar');
     var visorLine = document.getElementById(paneKey + 'FlickVisorLine');
-    if (state.recommended) {
+    clearTimeout(visorTimer[paneKey]);
+    visorBar.style.transition = '';
+    visorBar.style.opacity = '';
+    if (b._justRecommended) {
+      delete b._justRecommended; // one-shot — only fires right after the click that got us here
       visorLine.textContent = 'Recommended by Bleepmo';
       visorBar.style.display = 'flex';
+      visorTimer[paneKey] = setTimeout(function () {
+        visorBar.style.transition = 'opacity 0.4s ease';
+        visorBar.style.opacity = '0';
+        setTimeout(function () { visorBar.style.display = 'none'; }, 400);
+      }, 5000);
     } else if (b.trend_points && b.trend_points.length) {
       visorLine.textContent = b.trend_points.join(' · ');
       visorBar.style.display = 'flex';
@@ -6851,6 +6866,7 @@ body.theme-nebula .auth-screen {
   })();
   var bingeSessionCount = { short: 0, long: 0 };
   var bingeTimer = { short: null, long: null };
+  var visorTimer = { short: null, long: null };
 
   function saveBingeSettings() {
     try { localStorage.setItem('bleepmo_binge_settings', JSON.stringify(bingeSettings)); } catch (err) { /* ignore */ }
@@ -8577,6 +8593,7 @@ body.theme-nebula .auth-screen {
   function pauseFlickPane(paneKey) {
     teardownFlickPaneVideos(paneKey);
     if (bingeTimer[paneKey]) { clearTimeout(bingeTimer[paneKey]); bingeTimer[paneKey] = null; }
+    if (visorTimer[paneKey]) { clearTimeout(visorTimer[paneKey]); visorTimer[paneKey] = null; }
     var progressEl = document.getElementById(paneKey + 'BingeProgress');
     if (progressEl) progressEl.style.display = 'none';
   }
