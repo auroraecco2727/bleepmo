@@ -105,6 +105,12 @@ export async function handleBleepsGet(request, env) {
   if (authorFilter) {
     query += ' AND b.author_id = ?';
     binds.push(authorFilter);
+  } else {
+    // Muting only affects passive/browsing surfaces (this branch) — a
+    // deliberate visit to a muted person's own profile (authorFilter set)
+    // still shows their content. See migrations/0014_muted_users.sql.
+    query += ' AND b.author_id NOT IN (SELECT muted_id FROM muted_users WHERE muter_id = ?)';
+    binds.push(viewer.id);
   }
   if (contentTypeFilter) {
     query += ' AND b.content_type = ?';
@@ -137,8 +143,9 @@ export async function handleBleepsGet(request, env) {
       FROM bleeps b
       JOIN users u ON u.id = b.author_id
       WHERE b.deleted_at IS NULL
+        AND b.author_id NOT IN (SELECT muted_id FROM muted_users WHERE muter_id = ?)
     `;
-    const fallbackBinds = [];
+    const fallbackBinds = [viewer.id];
     if (contentTypeFilter) {
       fallbackQuery += ' AND b.content_type = ?';
       fallbackBinds.push(contentTypeFilter);
@@ -469,11 +476,12 @@ export async function handleBleepsSimilar(request, env) {
        JOIN users u ON u.id = b.author_id
        JOIN trend_points tp ON tp.bleep_id = b.id AND tp.topic COLLATE NOCASE IN (${placeholders})
        WHERE b.deleted_at IS NULL
+         AND b.author_id NOT IN (SELECT muted_id FROM muted_users WHERE muter_id = ?)
        GROUP BY b.id
        ORDER BY overlap_count DESC, b.created_at DESC
        LIMIT ?`
     )
-    .bind(...topics, SIMILAR_RESULTS_LIMIT)
+    .bind(...topics, viewer.id, SIMILAR_RESULTS_LIMIT)
     .all();
 
   return new Response(JSON.stringify({ bleeps: results }), {

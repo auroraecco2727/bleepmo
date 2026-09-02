@@ -2146,8 +2146,8 @@ body.theme-nebula .auth-screen {
     </div>
 
     <div class="signup-section">
-      <div class="signup-section-label">Trend-points</div>
-      <input type="text" class="compose-trend-input" id="longFlickTrendInput" placeholder="Type a trend-point, press Enter" onkeydown="handleLongFlickTrendKeydown(event)" />
+      <div class="signup-section-label">Trendpoints</div>
+      <input type="text" class="compose-trend-input" id="longFlickTrendInput" placeholder="Type a trendpoint, press Enter" onkeydown="handleLongFlickTrendKeydown(event)" />
       <div class="compose-trend-chips" id="longFlickTrendChips"></div>
     </div>
 
@@ -2217,8 +2217,8 @@ body.theme-nebula .auth-screen {
     </div>
 
     <div class="signup-section">
-      <div class="signup-section-label">Trend-points</div>
-      <input type="text" class="compose-trend-input" id="shortFlickTrendInput" placeholder="Type a trend-point, press Enter" onkeydown="handleShortFlickTrendKeydown(event)" />
+      <div class="signup-section-label">Trendpoints</div>
+      <input type="text" class="compose-trend-input" id="shortFlickTrendInput" placeholder="Type a trendpoint, press Enter" onkeydown="handleShortFlickTrendKeydown(event)" />
       <div class="compose-trend-chips" id="shortFlickTrendChips"></div>
     </div>
 
@@ -2265,8 +2265,8 @@ body.theme-nebula .auth-screen {
     </div>
 
     <div class="signup-section">
-      <div class="signup-section-label">Trend-points</div>
-      <input type="text" class="compose-trend-input" id="goLiveTrendInput" placeholder="Type a trend-point, press Enter" onkeydown="handleGoLiveTrendKeydown(event)" />
+      <div class="signup-section-label">Trendpoints</div>
+      <input type="text" class="compose-trend-input" id="goLiveTrendInput" placeholder="Type a trendpoint, press Enter" onkeydown="handleGoLiveTrendKeydown(event)" />
       <div class="compose-trend-chips" id="goLiveTrendChips"></div>
     </div>
 
@@ -2533,7 +2533,7 @@ body.theme-nebula .auth-screen {
   </div>
 </div>
 
-<!-- ══ TREND FEED — category view a trend-point chip pushes you into ══ -->
+<!-- ══ TREND FEED — category view a trendpoint chip pushes you into ══ -->
 <div class="notif-screen" id="trendFeedScreen">
   <div class="profile-header-bar">
     <span class="profile-back-btn" onclick="closeTrendFeedScreen()">
@@ -3307,10 +3307,10 @@ body.theme-nebula .auth-screen {
       </div>
     </div>
 
-    <!-- Step 4: Trend-points & Tags -->
+    <!-- Step 4: Trendpoints & Tags -->
     <div class="composer-step-panel" id="composeStep4">
       <div class="composer-step-label">Step 4 of 6 — Help people find this</div>
-      <div class="composer-step-sub">Trend-points and tagged people — both optional.</div>
+      <div class="composer-step-sub">Trendpoints and tagged people — both optional.</div>
       <div id="composeTrendInputWrap">
         <input type="text" class="compose-trend-input" id="composeTrendInput" placeholder="Type a topic, press Enter to add" onkeydown="handleTrendInputKeydown(event)" />
         <div class="compose-trend-chips" id="composeTrendChips"></div>
@@ -3324,7 +3324,7 @@ body.theme-nebula .auth-screen {
       <input type="checkbox" id="composeBreaking" style="display:none;" />
     </div>
 
-    <!-- Step 5: Similar posts (real, no AI needed — trend-point overlap) -->
+    <!-- Step 5: Similar posts (real, no AI needed — trendpoint overlap) -->
     <div class="composer-step-panel" id="composeStep5">
       <div class="composer-step-label">Step 5 of 6 — Similar posts</div>
       <div class="composer-step-sub" id="similarPostsSub">Checking for related posts…</div>
@@ -3441,7 +3441,7 @@ body.theme-nebula .auth-screen {
     <div class="onboarding-preview-intro">Here's how we'll color-code your feed based on this:</div>
     <div class="onboarding-preview-stack">
       <div class="onboarding-preview-card card-cat-local"><b>Electric Cyan</b> — local metro signal</div>
-      <div class="onboarding-preview-card card-cat-interest"><b>Neon Violet</b> — your Trend-Point matches</div>
+      <div class="onboarding-preview-card card-cat-interest"><b>Neon Violet</b> — your Trendpoint matches</div>
       <div class="onboarding-preview-card card-cat-commerce"><b>Amber Gold</b> — storefront &amp; merch drops</div>
       <div class="onboarding-preview-card card-cat-interactive"><b>Emerald Green</b> — live polls &amp; interactive cards</div>
     </div>
@@ -4551,7 +4551,7 @@ body.theme-nebula .auth-screen {
     return '<div class="bullet-tags">' + parts.join('') + '</div>';
   }
 
-  /* ── Chip destinations: trend-point -> topic feed, tagged handle -> profile ── */
+  /* ── Chip destinations: trendpoint -> topic feed, tagged handle -> profile ── */
   async function openTaggedUserProfile(handleTag) {
     if (!handleTag || handleTag.length < 2) return;
     var rawHandle = handleTag.slice(1); // drop the leading @/*/~/^/>/& symbol
@@ -4684,6 +4684,10 @@ body.theme-nebula .auth-screen {
     }
 
     var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
+    var canMuteCreator = currentUser && currentUser.id !== b.author_id;
+    var muteActionHtml = canMuteCreator
+      ? '<span class="bb-action-tile" title="Mute ' + escapeHtml(b.full_name) + '" onclick="toggleMuteCreator(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="17" y1="9" x2="22" y2="14"/><line x1="22" y1="9" x2="17" y2="14"/></svg><span class="bb-action-tile-label">Mute</span></span>'
+      : '';
     var deleteActionHtml = canDelete
       ? '<span class="bb-action-tile bb-action-danger" title="Delete ' + escapeHtml(b.full_name) + '\'s Bleep" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span class="bb-action-tile-label">Delete</span></span>'
       : '';
@@ -4734,6 +4738,7 @@ body.theme-nebula .auth-screen {
       '      <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="bb-action-tile-label">Bleeps</span></span>' +
       '      <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="bb-action-tile-label">Flicks</span></span>' +
       '      <span class="bb-action-tile" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg><span class="bb-action-tile-label">Profile</span></span>' +
+      muteActionHtml +
       '    </div></div>' +
       manageGroupHtml +
       '  </div>' +
@@ -6218,6 +6223,58 @@ body.theme-nebula .auth-screen {
     toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2600);
   }
 
+  /* ── Mute a creator ──
+     A soft, one-directional, silent content preference — not a block.
+     Only affects the muter's own passive feeds going forward (see the
+     header comment in migrations/0014_muted_users.sql for the exact
+     scope). Called from the "Mute" tile in the Contextual Intelligence
+     panel (buildBleepCardInner, setActiveFlick).
+
+     This doesn't know the creator's current mute state ahead of time —
+     the tile always starts labeled "Mute" on a fresh page load and just
+     reflects whatever the toggle endpoint returns afterward. Encountering
+     an already-muted creator's post again in the same session is a rare
+     enough edge case (their posts are filtered out of passive feeds, so
+     it mainly happens if you visit their profile directly, where mute
+     deliberately doesn't hide anything) that a full ahead-of-time synced
+     state wasn't worth the extra per-post backend lookup for a first
+     version of this. */
+  async function toggleMuteCreator(authorId, handleDisplay, el) {
+    var label = el ? el.querySelector('.bb-action-tile-label') : null;
+    try {
+      var res = await fetch('/api/users/' + encodeURIComponent(authorId) + '/mute', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      var data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Could not update that.');
+        return;
+      }
+      if (data.muted) {
+        if (label) label.textContent = 'Unmute';
+        showToast('Muted ' + handleDisplay + ' — you won\'t see their posts in your feed.');
+        // Immediate, visible confirmation: collapse every one of their
+        // posts currently on screen, not just the one this was opened
+        // from — otherwise it'd look like nothing happened until the
+        // feed next reloads from scratch.
+        document.querySelectorAll('.creator-row[data-author-id="' + authorId + '"]').forEach(function (row) {
+          var card = row.closest('.card-wrap');
+          if (card) {
+            card.style.transition = 'opacity 0.3s ease';
+            card.style.opacity = '0';
+            setTimeout(function () { card.remove(); }, 300);
+          }
+        });
+      } else {
+        if (label) label.textContent = 'Mute';
+        showToast('Unmuted ' + handleDisplay + '.');
+      }
+    } catch (err) {
+      showToast('Could not update that — check your connection.');
+    }
+  }
+
   /* ── Likes ── */
   function setLikeButtonsState(bleepId, liked, count) {
     document.querySelectorAll('.like-btn[data-bleep-id="' + bleepId + '"]').forEach(function (btn) {
@@ -6311,7 +6368,7 @@ body.theme-nebula .auth-screen {
   function cardCategory(b) {
     // Commerce checked first, matching the priority already implicit in
     // the feed-scoring formula (W_local=3 > W_interest=2) — local beats
-    // interest when a bleep's trend-points satisfy both. 'interactive'
+    // interest when a bleep's trendpoints satisfy both. 'interactive'
     // still has no real feature behind it (polling doesn't exist), so it
     // stays unreachable until that gets built — that's an honest gap, not
     // a bug.
@@ -6477,9 +6534,6 @@ body.theme-nebula .auth-screen {
           : '') +
         '<div class="flick-player' + (isLong ? ' long-player' : '') + '" id="' + p + 'FlickPlayer">' +
           '<video id="' + p + 'FlickVideo" muted loop playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#05070f;"></video>' +
-          '<div class="flick-mute-btn" id="' + p + 'FlickMuteBtn" onclick="event.stopPropagation(); toggleFlickMute(\'' + p + '\')" title="Unmute">' +
-            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/></svg>' +
-          '</div>' +
           '<div class="flick-scanlines"></div>' +
           '<div class="jarvis-ring r1"></div>' +
           '<div class="jarvis-ring r2"></div>' +
@@ -6510,6 +6564,10 @@ body.theme-nebula .auth-screen {
                 (isLong ?
                   '<span class="flick-act" id="' + p + 'FlickShareAct" style="position:static;" title="Share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-3.9M8.6 13.4l6.8 3.9"/></svg></span>'
                   : '') +
+                '<span class="flick-act flick-volume-act" id="' + p + 'FlickMuteBtn" style="position:static;flex-direction:row;gap:6px;cursor:default;">' +
+                  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/></svg>' +
+                  '<input type="range" class="flick-volume-slider" id="' + p + 'FlickVolumeSlider" min="0" max="100" value="0" onclick="event.stopPropagation();" oninput="event.stopPropagation(); handleFlickVolumeInput(\'' + p + '\', this.value)" title="Volume" />' +
+                '</span>' +
               '</div>' +
             '</div>' +
             (isLong ? '<div class="long-flick-desc" id="' + p + 'FlickDesc" style="margin-bottom:6px;"></div>' : '') +
@@ -6780,6 +6838,10 @@ body.theme-nebula .auth-screen {
     var bbInner = document.getElementById(paneKey + 'FlickBleepbotInner');
     if (bbInner) {
       var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
+      var canMuteCreator = currentUser && currentUser.id !== b.author_id;
+      var muteActionHtml = canMuteCreator
+        ? '<span class="bb-action-tile" title="Mute ' + escapeHtml(b.full_name) + '" onclick="toggleMuteCreator(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="17" y1="9" x2="22" y2="14"/><line x1="22" y1="9" x2="17" y2="14"/></svg><span class="bb-action-tile-label">Mute</span></span>'
+        : '';
       var deleteActionHtml = canDelete
         ? '<span class="bb-action-tile bb-action-danger" title="Delete ' + escapeHtml(b.full_name) + '\'s Flick" onclick="deleteLiveBleep(\'' + b.id + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg><span class="bb-action-tile-label">Delete</span></span>'
         : '';
@@ -6795,6 +6857,7 @@ body.theme-nebula .auth-screen {
         '  <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Bleeps" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span class="bb-action-tile-label">Bleeps</span></span>' +
         '  <span class="bb-action-tile" title="' + escapeHtml(b.full_name) + '\'s Flicks" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'flicks\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg><span class="bb-action-tile-label">Flicks</span></span>' +
         '  <span class="bb-action-tile" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg><span class="bb-action-tile-label">Profile</span></span>' +
+        muteActionHtml +
         '</div></div>' +
         '<div class="bb-action-group"><div class="bb-action-group-label">This Flick</div><div class="bb-action-grid">' +
         '  <span class="bb-action-tile" title="Binge Mode settings" onclick="event.stopPropagation(); openBingeSettings()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg><span class="bb-action-tile-label">Binge</span></span>' +
@@ -6828,17 +6891,38 @@ body.theme-nebula .auth-screen {
     armBingeAutoAdvance(paneKey);
   }
 
-  function toggleFlickMute(paneKey) {
+  // Three icon states now instead of a plain on/off mute toggle: muted
+  // (X), low volume (single wave), high volume (double wave) — reflecting
+  // this is a real volume control (see the slider added alongside it),
+  // not just a binary mute switch.
+  var flickVolumeIcons = {
+    muted: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/></svg>',
+    low: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><path d="M16 8a5 5 0 0 1 0 8"/></svg>',
+    high: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(212,175,55,0.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>'
+  };
+
+  function updateFlickVolumeIcon(paneKey) {
     var video = document.getElementById(paneKey + 'FlickVideo');
     var btn = document.getElementById(paneKey + 'FlickMuteBtn');
+    if (!video || !btn) return;
+    var svgEl = btn.querySelector('svg');
+    var state = (video.muted || video.volume === 0) ? 'muted' : (video.volume < 0.5 ? 'low' : 'high');
+    if (svgEl) svgEl.outerHTML = flickVolumeIcons[state];
+    // Passive state description now — this icon isn't clickable itself,
+    // the slider next to it is the only control (see the removed
+    // toggleFlickMute below for why: with the slider already able to
+    // reach 0, a separate click-to-mute button was just a second control
+    // doing the same job as the first).
+    btn.title = state === 'muted' ? 'Muted' : 'Volume ' + Math.round(video.volume * 100) + '%';
+  }
+
+  function handleFlickVolumeInput(paneKey, value) {
+    var video = document.getElementById(paneKey + 'FlickVideo');
     if (!video) return;
-    video.muted = !video.muted;
-    if (btn) {
-      btn.title = video.muted ? 'Unmute' : 'Mute';
-      btn.innerHTML = video.muted
-        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/></svg>'
-        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 12 5 12 19 8 15 4 15 4 9"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
-    }
+    var vol = Math.max(0, Math.min(100, parseInt(value, 10) || 0)) / 100;
+    video.volume = vol;
+    video.muted = vol === 0; // dragging to 0 mutes; dragging up from muted un-mutes — matches standard player conventions
+    updateFlickVolumeIcon(paneKey);
   }
 
   function toggleFlickPlayback(paneKey) {
@@ -7384,14 +7468,14 @@ body.theme-nebula .auth-screen {
   var COMPOSE_STEP_COUNT = 6;
 
   // Flushes whatever's still typed (but not yet committed via Enter/,/;)
-  // in the trend-point or tag-people inputs. Without this, typing a value
+  // in the trendpoint or tag-people inputs. Without this, typing a value
   // and clicking Continue/Back straight away silently threw it away —
   // it looked like the field was rejecting input entirely.
   function flushPendingComposeInputs() {
     var trendInput = document.getElementById('composeTrendInput');
     if (trendInput && trendInput.value.trim()) {
       // Lowercased for the same reason as handleTrendInputKeydown below —
-      // this is the second, independent place a trend-point chip gets
+      // this is the second, independent place a trendpoint chip gets
       // added (on step navigation instead of Enter), and it was missing
       // the same normalization.
       var tVal = trendInput.value.trim().replace(/[,;]$/, '').toLowerCase();
@@ -7439,7 +7523,7 @@ body.theme-nebula .auth-screen {
     composeLinkedBleepId = null;
 
     if (!composeTrendPoints.length) {
-      sub.textContent = "No trend-points picked yet, so nothing to compare against — that's fine, this step is optional.";
+      sub.textContent = "No trendpoints picked yet, so nothing to compare against — that's fine, this step is optional.";
       list.innerHTML = '';
       return;
     }
@@ -7467,7 +7551,7 @@ body.theme-nebula .auth-screen {
         row.innerHTML =
           '<div style="flex:1;">' +
           '  <div class="similar-post-title">' + escapeHtml(titleText) + '</div>' +
-          '  <div class="similar-post-meta">' + escapeHtml(b.handle_symbol + b.handle) + ' · ' + b.overlap_count + ' shared trend-point' + (b.overlap_count === 1 ? '' : 's') + '</div>' +
+          '  <div class="similar-post-meta">' + escapeHtml(b.handle_symbol + b.handle) + ' · ' + b.overlap_count + ' shared trendpoint' + (b.overlap_count === 1 ? '' : 's') + '</div>' +
           '</div>';
         row.onclick = function () {
           var alreadySelected = row.classList.contains('selected');
@@ -8095,10 +8179,10 @@ body.theme-nebula .auth-screen {
       var input = document.getElementById('composeTrendInput');
       // Lowercased (but not slugified — unlike onboarding's interest pills,
       // these keep spaces so they read naturally) so "Gaming" and "gaming"
-      // are recognized as the same trend-point instead of silently
-      // becoming two, and so matching against other people's trend-points
+      // are recognized as the same trendpoint instead of silently
+      // becoming two, and so matching against other people's trendpoints
       // (similar posts, notification categories, merch) actually works —
-      // the backend now stores/matches trend-points lowercase throughout.
+      // the backend now stores/matches trendpoints lowercase throughout.
       var val = input.value.trim().replace(/[,;]$/, '').toLowerCase();
       if (val && composeTrendPoints.indexOf(val) === -1 && composeTrendPoints.length < 8) {
         composeTrendPoints.push(val);
@@ -8119,7 +8203,7 @@ body.theme-nebula .auth-screen {
       // treatment they already get once a Bleep is posted (see the
       // combined 'btag hi tag-chip' class used when rendering a real
       // Bleep's tagged-people pills) — previously missing here, so
-      // tag chips looked identical to trend-point chips while composing.
+      // tag chips looked identical to trendpoint chips while composing.
       chip.className = 'btag hi tag-chip';
       chip.title = 'Remove';
       chip.textContent = '@' + h + ' ✕';
@@ -9270,12 +9354,6 @@ body.theme-nebula .auth-screen {
   }
 
   /* Player action strip */
-  .flick-mute-btn {
-    position: absolute; top: 10px; left: 10px; z-index: 15;
-    width: 30px; height: 30px; border-radius: 50%;
-    background: rgba(0,0,0,0.45); backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-  }
   .flick-actions {
     position: absolute; right: 0; top: 24px;
     display: flex; flex-direction: column; gap: 16px;
@@ -9288,6 +9366,24 @@ body.theme-nebula .auth-screen {
   .flick-act:hover { opacity: 1; }
   .flick-act svg { display: block; }
   .flick-act-label { font-size: 9px; color: rgba(212,175,55,0.7); }
+  .flick-volume-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 46px; height: 3px; border-radius: 2px;
+    background: rgba(212,175,55,0.25); outline: none; cursor: pointer;
+    vertical-align: middle;
+  }
+  .flick-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--gold); cursor: pointer;
+    box-shadow: 0 0 4px rgba(212,175,55,0.6);
+  }
+  .flick-volume-slider::-moz-range-thumb {
+    width: 10px; height: 10px; border-radius: 50%; border: none;
+    background: var(--gold); cursor: pointer;
+    box-shadow: 0 0 4px rgba(212,175,55,0.6);
+  }
+  .flick-volume-slider::-moz-range-track { background: rgba(212,175,55,0.25); height: 3px; border-radius: 2px; }
 
   .flick-tag {
     display: inline-flex; align-items: center; gap: 4px;
@@ -9750,7 +9846,7 @@ body.theme-nebula .auth-screen {
     <div class="offers-section-head">
       <div>
         <div class="offers-section-title">🎬 Flicks You Might Like</div>
-        <div class="offers-section-sub">Picked from your trend-points</div>
+        <div class="offers-section-sub">Picked from your trendpoints</div>
       </div>
       <div class="offers-see-all" onclick="jumpToOfferFlick('long')">See all</div>
     </div>

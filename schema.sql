@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   has_store       INTEGER NOT NULL DEFAULT 0,  -- manually flipped for now; gates the profile "Showcase" storefront tab
   is_admin        INTEGER NOT NULL DEFAULT 0,  -- manually flipped; gates admin-only settings (e.g. AI provider config)
   location_anchor TEXT,             -- onboarding Step 1: metro slug, e.g. "los-angeles"
-  subscribed_trend_points TEXT,     -- onboarding Step 2: JSON array of lowercase trend-point strings
+  subscribed_trend_points TEXT,     -- onboarding Step 2: JSON array of lowercase trendpoint strings
   theme_glow_intensity TEXT DEFAULT 'medium',  -- onboarding Step 3: 'low' | 'medium' | 'high'
   onboarding_completed_at TEXT,     -- set once the 3-step modal is finished; null skips it for pre-existing users
   suspended_at    TEXT,             -- set by an admin; blocks login while non-null, reversible
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS bleeps (
 CREATE TABLE IF NOT EXISTS trend_points (
   id          TEXT PRIMARY KEY,
   bleep_id    TEXT NOT NULL REFERENCES bleeps(id) ON DELETE CASCADE,
-  topic       TEXT NOT NULL,                       -- e.g. "Sustainable Tech" — rendered with a bullet, not a #
+  topic       TEXT NOT NULL,                       -- lowercase, e.g. "sustainable-tech" — rendered with a bullet, not a #
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -264,13 +264,9 @@ CREATE INDEX IF NOT EXISTS idx_engagement_content ON engagement_events(content_t
 CREATE INDEX IF NOT EXISTS idx_engagement_user_time ON engagement_events(user_id, created_at);
 
 -- ══════════════════════════════════════
--- Generic runtime settings (key-value). First use: which AI provider(s)
--- handle AI Assist and future AI features, changeable from Settings without
--- a redeploy.
--- ══════════════════════════════════════
--- ══════════════════════════════════════
--- App-wide settings (key/value) — currently just the AI provider order,
--- but a natural home for future runtime-toggleable config too.
+-- App-wide settings (key/value). First use: which AI provider(s) handle
+-- AI Assist and future AI features, changeable from Settings without a
+-- redeploy — a natural home for future runtime-toggleable config too.
 -- ══════════════════════════════════════
 CREATE TABLE IF NOT EXISTS app_settings (
   key         TEXT PRIMARY KEY,

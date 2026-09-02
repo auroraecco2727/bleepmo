@@ -6,7 +6,7 @@
 -- matching composer fix in public/index.html) may have mixed-case topics
 -- (e.g. "Sustainable Tech"), which silently broke case-sensitive matching
 -- in two places downstream:
---   - the /api/bleeps/similar query (trend-point overlap matching)
+--   - the /api/bleeps/similar query (trendpoint overlap matching)
 --   - the notification bell's "commerce" category classifier
 --     (getRecommendedMerchForTopics in src/routes/store.js)
 --

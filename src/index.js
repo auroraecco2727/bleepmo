@@ -17,6 +17,7 @@ import { handleBleepCommentsGet, handleBleepCommentsPost } from './routes/bleep-
 import { handleCommentDetailDelete } from './routes/comment-detail.js';
 import { handleBleepLikeToggle } from './routes/like.js';
 import { handleFollowToggle, handleUserRelationship } from './routes/follow.js';
+import { handleMuteToggle, handleMutedListGet } from './routes/mute.js';
 import { handleSearch } from './routes/search.js';
 import {
   handleConversationsGet,
@@ -118,6 +119,11 @@ export default {
 
       const relationshipMatch = path.match(/^\/api\/users\/([^/]+)\/relationship$/);
       if (relationshipMatch && method === 'GET') return await handleUserRelationship(request, env, relationshipMatch[1]);
+
+      const muteMatch = path.match(/^\/api\/users\/([^/]+)\/mute$/);
+      if (muteMatch && method === 'POST') return await handleMuteToggle(request, env, muteMatch[1]);
+
+      if (path === '/api/me/muted' && method === 'GET') return await handleMutedListGet(request, env);
 
       // ── Search ──
       if (path === '/api/search' && method === 'GET') return await handleSearch(request, env);

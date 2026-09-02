@@ -1,11 +1,11 @@
 -- Onboarding 3-step flow data capture (Step 1: location anchor,
--- Step 2: subscribed trend-points, Step 3: theme glow intensity).
+-- Step 2: subscribed trendpoints, Step 3: theme glow intensity).
 -- No UI depends on these existing yet except the new onboarding modal —
 -- safe to run any time.
 
 ALTER TABLE users ADD COLUMN location_anchor TEXT;
 
--- JSON array of lowercase trend-point strings, e.g. ["indie-tech","gaming"].
+-- JSON array of lowercase trendpoint strings, e.g. ["indie-tech","gaming"].
 -- This is also the exact format the feed-scoring formula (bleeps.js,
 -- scoreBleep()) already expects when reading this column.
 ALTER TABLE users ADD COLUMN subscribed_trend_points TEXT;
