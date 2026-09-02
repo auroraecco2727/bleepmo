@@ -4740,6 +4740,10 @@ body.theme-nebula .auth-screen {
       '      <span class="bb-action-tile" title="View ' + escapeHtml(b.full_name) + '\'s Profile" onclick="openProfileScreen(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol) + '\', \'' + escapeHtml(b.handle) + '\', \'' + escapeHtml(b.full_name) + '\', \'bleeps\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg><span class="bb-action-tile-label">Profile</span></span>' +
       muteActionHtml +
       '    </div></div>' +
+      '    <div class="bb-action-group"><div class="bb-action-group-label">This Bleep</div><div class="bb-action-grid">' +
+      '      <span class="bb-action-tile" title="Save to Vault" onclick="event.stopPropagation(); openAddToVaultSheet({id: \'' + escapeHtml(b.id) + '\', title: \'' + escapeHtml((b.title || (b.body ? b.body.slice(0, 50) : '')).replace(/'/g, "\\'")) + '\', handleSymbol: \'' + escapeHtml(b.handle_symbol) + '\', handle: \'' + escapeHtml(b.handle) + '\'})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><span class="bb-action-tile-label">Vault</span></span>' +
+      (isOwnPost ? '' : '      <span class="bb-action-tile" title="Send a tip" onclick="event.stopPropagation(); openTipModal(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\', \'bleep\', \'' + escapeHtml(b.id) + '\')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg><span class="bb-action-tile-label">Tip</span></span>') +
+      '    </div></div>' +
       manageGroupHtml +
       '  </div>' +
       '</div>';
