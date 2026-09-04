@@ -4683,7 +4683,7 @@ body.theme-nebula .auth-screen {
       bodyHtml = b.body ? '<div class="live-bleep-body">' + renderBleepMentions(b.body) + '</div>' : '';
     }
 
-    var isOwnPost = currentUser && currentUser.id === b.author_id; var canDelete = currentUser && (isOwnPost || currentUser.is_admi
+    var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
     var canMuteCreator = currentUser && currentUser.id !== b.author_id;
     var muteActionHtml = canMuteCreator
       ? '<span class="bb-action-tile" title="Mute ' + escapeHtml(b.full_name) + '" onclick="toggleMuteCreator(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="17" y1="9" x2="22" y2="14"/><line x1="22" y1="9" x2="17" y2="14"/></svg><span class="bb-action-tile-label">Mute</span></span>'
@@ -6841,7 +6841,7 @@ body.theme-nebula .auth-screen {
 
     var bbInner = document.getElementById(paneKey + 'FlickBleepbotInner');
     if (bbInner) {
-      var isOwnPost = currentUser && currentUser.id === b.author_id; var canDelete = currentUser && (isOwnPost || currentUser.is_admi
+      var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
       var canMuteCreator = currentUser && currentUser.id !== b.author_id;
       var muteActionHtml = canMuteCreator
         ? '<span class="bb-action-tile" title="Mute ' + escapeHtml(b.full_name) + '" onclick="toggleMuteCreator(\'' + escapeHtml(b.author_id) + '\', \'' + escapeHtml(b.handle_symbol + b.handle) + '\', this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="17" y1="9" x2="22" y2="14"/><line x1="22" y1="9" x2="17" y2="14"/></svg><span class="bb-action-tile-label">Mute</span></span>'
