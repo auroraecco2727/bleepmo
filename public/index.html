@@ -4683,6 +4683,7 @@ body.theme-nebula .auth-screen {
       bodyHtml = b.body ? '<div class="live-bleep-body">' + renderBleepMentions(b.body) + '</div>' : '';
     }
 
+    var isOwnPost = currentUser && currentUser.id === b.author_id;
     var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
     var canMuteCreator = currentUser && currentUser.id !== b.author_id;
     var muteActionHtml = canMuteCreator
@@ -6841,6 +6842,7 @@ body.theme-nebula .auth-screen {
 
     var bbInner = document.getElementById(paneKey + 'FlickBleepbotInner');
     if (bbInner) {
+      var isOwnPost = currentUser && currentUser.id === b.author_id;
       var canDelete = currentUser && (currentUser.id === b.author_id || currentUser.is_admin);
       var canMuteCreator = currentUser && currentUser.id !== b.author_id;
       var muteActionHtml = canMuteCreator
