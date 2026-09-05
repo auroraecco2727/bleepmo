@@ -6527,6 +6527,15 @@ body.theme-nebula .auth-screen {
     long: { contentType: 'flick_long', items: [], activeIndex: 0, recommended: false, loaded: false, recommendedPool: [], recommendedLoaded: false },
   };
   var activeTrendContext = null; // topic string, or null if nothing to carry forward
+  // Set by openVaultReference() right before it calls goToSlide() to jump
+  // to a specific saved Flick. goToSlide() always kicks off its own normal
+  // feed load for whichever pane it's entering — without this, that load
+  // would win the race and silently replace the one specific Flick we
+  // actually wanted to show with the regular feed instead, moments later.
+  // Checking for this at the top of loadFlickPane() (the same function
+  // goToSlide already calls) avoids the race entirely rather than trying
+  // to out-time it from outside.
+  var pendingVaultFlick = null; // { paneKey, flick } | null
 
   function buildFlickPlayerHtml(paneKey) {
     var p = paneKey; // short-hand for id prefixes below
@@ -6597,6 +6606,24 @@ body.theme-nebula .auth-screen {
     var container = document.getElementById(paneKey + 'FlickPaneContent');
     if (!container) return;
     teardownFlickPaneVideos(paneKey); // release whatever was here before we overwrite it
+
+    if (pendingVaultFlick && pendingVaultFlick.paneKey === paneKey) {
+      var vf = pendingVaultFlick.flick;
+      pendingVaultFlick = null;
+      state.items = [vf];
+      state.activeIndex = 0;
+      state.loaded = true;
+      container.innerHTML = buildFlickPlayerHtml(paneKey);
+      if (paneKey === 'long') {
+        loadLongRecommendedPool();
+      } else {
+        renderFlickRail(paneKey);
+      }
+      setActiveFlick(paneKey, 0);
+      attachFlickVerticalSwipe(paneKey);
+      return;
+    }
+
     container.innerHTML = '<div class="profile-loading">Loading…</div>';
 
     var url = '/api/bleeps?contentType=' + state.contentType + (trendTopic ? '&trend=' + encodeURIComponent(trendTopic) : '');
@@ -7206,19 +7233,82 @@ body.theme-nebula .auth-screen {
 
   function buildVaultCardHtml(v) {
     var refHtml = '';
+    var kindLabel = '';
     if (v.reference_type === 'bleep' && v.bleep_id) {
       var label = v.bleep_title || (v.bleep_body ? v.bleep_body.slice(0, 50) : 'Saved post');
-      refHtml = '<div class="cal-vault-ref">Saved: ' + escapeHtml((v.bleep_handle_symbol || '') + (v.bleep_handle || '')) + ' — ' + escapeHtml(label) + '</div>';
+      // v.key_takeaway (shown above, in cal-vault-takeaway) is the
+      // person's own note on why they saved this — separate from what
+      // was actually saved, which this line identifies instead. Reads
+      // as "Saved post" for every entry regardless of content if the
+      // type badge is missing, which is exactly what made every card
+      // look identical/unidentifiable before this.
+      kindLabel = v.bleep_content_type === 'flick_long' ? 'Long-Flick'
+        : v.bleep_content_type === 'flick_short' ? 'Short-Flick'
+        : 'Bleep';
+      refHtml = '<div class="cal-vault-ref">' + escapeHtml(kindLabel) + ' · ' + escapeHtml((v.bleep_handle_symbol || '') + (v.bleep_handle || '')) + ' — ' + escapeHtml(label) + '</div>';
+    } else if (v.reference_type === 'bleep' && !v.bleep_id) {
+      // The referenced post was deleted after this was saved — say so
+      // plainly rather than silently falling through to "Saved post"
+      // with nothing to actually open.
+      refHtml = '<div class="cal-vault-ref" style="color:var(--text-lo);font-style:italic;">Original post no longer available</div>';
     } else if (v.reference_url) {
-      refHtml = '<div class="cal-vault-ref">' + escapeHtml(v.reference_url) + '</div>';
+      refHtml = '<div class="cal-vault-ref">🔗 ' + escapeHtml(v.reference_url) + '</div>';
     }
+    var clickable = (v.reference_type === 'bleep' && v.bleep_id) || (v.reference_type !== 'bleep' && v.reference_url);
     return (
-      '<div class="cal-vault-card">' +
+      '<div class="cal-vault-card"' + (clickable ? ' style="cursor:pointer;" onclick="openVaultReference(\'' + v.id + '\')"' : '') + '>' +
       '  <div class="cal-vault-takeaway">' + escapeHtml(v.key_takeaway) + '</div>' +
       refHtml +
-      '  <span class="cal-vault-delete" onclick="deleteVaultEntry(\'' + v.id + '\')">Remove</span>' +
+      '  <span class="cal-vault-delete" onclick="event.stopPropagation(); deleteVaultEntry(\'' + v.id + '\')">Remove</span>' +
       '</div>'
     );
+  }
+
+  // Opens whatever a Vault entry actually points to — an external link in
+  // a new tab, or the original Bleep/Long-Flick/Short-Flick it references.
+  // Looked up from calendarState.vaultByDate rather than passed inline,
+  // since a full entry has several fields and the ones already loaded in
+  // memory for the currently-open day are the same ones the card was
+  // built from — no reason to re-fetch or re-escape them into the
+  // onclick attribute.
+  async function openVaultReference(vaultId) {
+    var dayEntries = calendarState.vaultByDate[calendarState.selectedDate] || [];
+    var v = dayEntries.find(function (x) { return x.id === vaultId; });
+    if (!v) return;
+
+    if (v.reference_type !== 'bleep') {
+      if (v.reference_url) window.open(v.reference_url, '_blank', 'noopener');
+      return;
+    }
+    if (!v.bleep_id) {
+      showToast('That post is no longer available.');
+      return;
+    }
+
+    if (v.bleep_content_type === 'bleep') {
+      closeCalDaySheet();
+      openCommentsScreen(v.bleep_id);
+      return;
+    }
+
+    // Long-Flick or Short-Flick — these live in the Flicks player, not
+    // the comments screen, so jump there instead. See pendingVaultFlick
+    // above for why this needs a full fetch rather than just handing
+    // over the (partial) fields already in calendarState.
+    try {
+      var res = await fetch('/api/bleeps/' + encodeURIComponent(v.bleep_id), { credentials: 'include' });
+      var data = await res.json();
+      if (!res.ok || !data.bleep) {
+        showToast(data.error || 'That post is no longer available.');
+        return;
+      }
+      var paneKey = v.bleep_content_type === 'flick_long' ? 'long' : 'short';
+      pendingVaultFlick = { paneKey: paneKey, flick: data.bleep };
+      closeCalDaySheet();
+      goToSlide(paneKey === 'long' ? 'flicksLong' : 'flicksShort');
+    } catch (err) {
+      showToast('Couldn\'t reach the server.');
+    }
   }
 
   function openCalDaySheet(dateStr) {
